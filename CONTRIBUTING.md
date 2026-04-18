@@ -1,7 +1,4 @@
 
-## `CONTRIBUTING.md`
-
-```md
 # Contributing Guide
 
 Tài liệu này mô tả cách làm việc chung của nhóm khi phát triển project **Sport Court Booking Management**.
