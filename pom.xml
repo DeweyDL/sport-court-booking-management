@@ -23,9 +23,9 @@
         </dependency>
 
         <dependency>
-            groupId:     com.formdev
-            artifactId:  flatlaf-intellij-themes
-            version:     (see button below)
+            <groupId> com.formdev</groupId>
+            <artifactId>flatlaf-intellij-themes</artifactId>
+            <version>3.7.1</version>
         </dependency>
     </dependencies>
 
