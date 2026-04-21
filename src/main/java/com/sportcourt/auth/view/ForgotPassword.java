@@ -1,6 +1,11 @@
 package com.sportcourt.auth.view;
 
+import com.sportcourt.auth.controller.AuthController;
+import com.sportcourt.auth.dto.AuthResult;
+import com.sportcourt.auth.dto.ResetPasswordRequest;
+import com.sportcourt.style.AppDialog;
 import com.sportcourt.style.BackgroundPanel;
+import com.sportcourt.style.AppFonts;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,8 +14,10 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class ForgotPassword extends JFrame {
+    private final AuthController authController = new AuthController();
 
     public ForgotPassword() {
+        AppFonts.register();
         setTitle("ForgotPassword");
         setSize(900, 600);
         setLocationRelativeTo(null);
@@ -36,13 +43,25 @@ public class ForgotPassword extends JFrame {
         r.fill = GridBagConstraints.HORIZONTAL;
         r.gridx = 0;
 
+        JLabel backToLogin = new JLabel("< Quay lại đăng nhập");
+        backToLogin.setFont(AppFonts.lexendRegular(13f));
+        backToLogin.setForeground(new Color(58, 134, 45));
+        backToLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backToLogin.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                new LoginScreen().setVisible(true);
+                dispose();
+            }
+        });
+
         // ===== TITLE =====
         JLabel title = new JLabel("ĐẶT LẠI MẬT KHẨU");
-        title.setFont(new Font("Lexend", Font.BOLD, 25));
+        title.setFont(AppFonts.lexendBold(25f));
         title.setForeground(Color.BLACK);
 
         JLabel subtitle = new JLabel("Vui lòng điền thông tin để nhận mã xác thực.");
-        subtitle.setFont(new Font("PlusJakartaSans", Font.PLAIN, 13));
+        subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(new Color(120, 120, 120));
 
         // ===== NAME =====
@@ -158,7 +177,7 @@ public class ForgotPassword extends JFrame {
         };
 
         checkBtn.setForeground(Color.BLACK);
-        checkBtn.setFont(new Font("Lexend", Font.BOLD, 18));
+        checkBtn.setFont(AppFonts.lexendBold(18f));
         checkBtn.setFocusPainted(false);
         checkBtn.setContentAreaFilled(false);
         checkBtn.setBorderPainted(false);
@@ -169,7 +188,7 @@ public class ForgotPassword extends JFrame {
         sendOtp.addActionListener(e -> {
 
                     if (phonenum.getText().isEmpty()) {
-                        JOptionPane.showMessageDialog(null, "Vui lòng nhập số điện thoại!");
+                        AppDialog.showError(this, "Vui lòng nhập số điện thoại!");
                         return;
                     }
                     contactRow1.setVisible(true);
@@ -181,7 +200,7 @@ public class ForgotPassword extends JFrame {
         checkOtp.addActionListener(e -> {
 
             if (otp.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Vui lòng nhập OTP!");
+                AppDialog.showError(this, "Vui lòng nhập OTP!");
                 return;
             }
             passPanel.setVisible(true);
@@ -192,9 +211,19 @@ public class ForgotPassword extends JFrame {
 
 
         checkBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        checkBtn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+        checkBtn.addActionListener(e -> {
+            ResetPasswordRequest request = new ResetPasswordRequest(
+                    username.getText().trim(),
+                    phonenum.getText().trim(),
+                    new String(password.getPassword())
+            );
+            AuthResult result = authController.resetPassword(request);
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+            } else {
+                AppDialog.showError(this, result.message());
+            }
+            if (result.success()) {
                 new LoginScreen().setVisible(true);
                 dispose();
             }
@@ -202,6 +231,9 @@ public class ForgotPassword extends JFrame {
 
         // ===== ADD COMPONENTS =====
         r.gridy = 0;
+        rightPanel.add(backToLogin, r);
+
+        r.gridy++;
         rightPanel.add(title, r);
 
         r.gridy++;
@@ -249,4 +281,3 @@ public class ForgotPassword extends JFrame {
     }
 
 }
-
