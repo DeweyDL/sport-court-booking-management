@@ -1,16 +1,24 @@
 package com.sportcourt.auth.view;
 
+import com.sportcourt.auth.controller.AuthController;
+import com.sportcourt.auth.dto.AuthResult;
+import com.sportcourt.auth.dto.RegisterRequest;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.sportcourt.style.AppDialog;
 import com.sportcourt.style.BackgroundPanel;
-import com.toedter.calendar.JDateChooser;
+import com.sportcourt.style.AppFonts;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
+import java.time.LocalDate;
 
 public class Register extends JFrame {
+    private final AuthController authController = new AuthController();
 
     public Register() {
+        AppFonts.register();
         setTitle("Register Login");
         setSize(1100, 800);
         setLocationRelativeTo(null);
@@ -41,18 +49,30 @@ public class Register extends JFrame {
 
         GridBagConstraints filler = new GridBagConstraints();
         filler.gridx = 0;
-        filler.gridy = 9;
+        filler.gridy = 10;
         filler.weightx = 1;
         filler.weighty = 1;
         filler.fill = GridBagConstraints.BOTH;
 
+        JLabel backToLogin = new JLabel("< Quay lại đăng nhập");
+        backToLogin.setFont(AppFonts.lexendRegular(13f));
+        backToLogin.setForeground(new Color(58, 134, 45));
+        backToLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backToLogin.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                new LoginScreen().setVisible(true);
+                dispose();
+            }
+        });
+
         // ===== TITLE =====
         JLabel title = new JLabel("ĐĂNG KÍ TÀI KHOẢN");
-        title.setFont(new Font("Lexend", Font.BOLD, 25));
+        title.setFont(AppFonts.lexendBold(25f));
         title.setForeground(Color.BLACK);
 
         JLabel subtitle = new JLabel("Vui lòng điền thông tin của bạn.");
-        subtitle.setFont(new Font("PlusJakartaSans", Font.PLAIN, 13));
+        subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(new Color(120, 120, 120));
 
         // ===== NAME =====
@@ -120,21 +140,18 @@ public class Register extends JFrame {
 
         // ===== BIRTHDAY (ICON + LABEL + DATEPICKER 1 HÀNG) =====
 
-        JDateChooser birthdayChooser = new JDateChooser();
-        birthdayChooser.setDateFormatString("dd/MM/yyyy");
-        birthdayChooser.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        birthdayChooser.setPreferredSize(new Dimension(140, 45));
-        birthdayChooser.setBorder(null);
-        birthdayChooser.setBackground(new Color(250, 249, 250));
-
-        // chỉnh text bên trong
-        JTextField editor = (JTextField) birthdayChooser.getDateEditor().getUiComponent();
-        editor.setBorder(null);
-        editor.setBackground(new Color(250, 249, 249));
-        editor.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-
-        // không cho chọn ngày tương lai
-        birthdayChooser.setMaxSelectableDate(new java.util.Date());
+        DatePicker birthdayPicker = new DatePicker();
+        birthdayPicker.getSettings().setFormatForDatesCommonEra("dd/MM/yyyy");
+        birthdayPicker.getSettings().setAllowKeyboardEditing(false);
+        birthdayPicker.getComponentDateTextField().setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        birthdayPicker.getComponentDateTextField().setBorder(null);
+        birthdayPicker.getComponentDateTextField().setBackground(new Color(250, 249, 249));
+        birthdayPicker.getComponentDateTextField().setFocusable(false);
+        birthdayPicker.getComponentToggleCalendarButton().setText("\uD83D\uDCC5");
+        birthdayPicker.getComponentToggleCalendarButton().setFocusable(false);
+        birthdayPicker.setBorder(null);
+        birthdayPicker.setBackground(new Color(250, 249, 250));
+        birthdayPicker.setPreferredSize(new Dimension(140, 45));
 
         // ===== ICON =====
         JLabel icon = new JLabel(scaleIcon("/icon/calendar.png", 13, 13));
@@ -144,6 +161,7 @@ public class Register extends JFrame {
         JLabel label1 = new JLabel("Ngày sinh");
         label1.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         label1.setForeground(new Color(120, 120, 120));
+        birthdayPicker.addDateChangeListener(e -> label1.setVisible(birthdayPicker.getDate() == null));
 
         // ===== LEFT GROUP (icon + label) =====
         JPanel leftGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 10));
@@ -158,7 +176,7 @@ public class Register extends JFrame {
         birthdayRow.setPreferredSize(new Dimension(200, 45));
 
         birthdayRow.add(leftGroup, BorderLayout.WEST);
-        birthdayRow.add(birthdayChooser, BorderLayout.CENTER);
+        birthdayRow.add(birthdayPicker, BorderLayout.CENTER);
 
         // ===== ADDRESS =====
 
@@ -218,7 +236,7 @@ public class Register extends JFrame {
         };
 
         registerBtn.setForeground(Color.BLACK);
-        registerBtn.setFont(new Font("Lexend", Font.BOLD, 18));
+        registerBtn.setFont(AppFonts.lexendBold(18f));
         registerBtn.setFocusPainted(false);
         registerBtn.setContentAreaFilled(false);
         registerBtn.setBorderPainted(false);
@@ -242,9 +260,26 @@ public class Register extends JFrame {
         });
 
         registerBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        registerBtn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+        registerBtn.addActionListener(e -> {
+            LocalDate ngaySinh = birthdayPicker.getDate();
+
+            RegisterRequest request = new RegisterRequest(
+                    username.getText().trim(),
+                    new String(password.getPassword()),
+                    username.getText().trim(),
+                    phonenum.getText().trim(),
+                    email.getText().trim(),
+                    ngaySinh,
+                    address.getText().trim()
+            );
+
+            AuthResult result = authController.register(request);
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+            } else {
+                AppDialog.showError(this, result.message());
+            }
+            if (result.success()) {
                 new LoginScreen().setVisible(true);
                 dispose();
             }
@@ -252,6 +287,9 @@ public class Register extends JFrame {
 
         // ===== ADD COMPONENTS =====
         r.gridy = 0;
+        rightPanel.add(backToLogin, r);
+
+        r.gridy++;
         rightPanel.add(title, r);
 
         r.gridy++;

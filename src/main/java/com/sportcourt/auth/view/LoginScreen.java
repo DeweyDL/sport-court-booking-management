@@ -1,6 +1,11 @@
 package com.sportcourt.auth.view;
 
+import com.sportcourt.auth.controller.AuthController;
+import com.sportcourt.auth.dto.AuthResult;
+import com.sportcourt.auth.dto.LoginRequest;
+import com.sportcourt.style.AppDialog;
 import com.sportcourt.style.BackgroundPanel;
+import com.sportcourt.style.AppFonts;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
@@ -9,9 +14,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
 
-public class LoginScreen extends JFrame {
+public class    LoginScreen extends JFrame {
+    private final AuthController authController = new AuthController();
 
     public LoginScreen() {
+        AppFonts.register();
         setTitle("RentSta Login");
         setSize(1000, 600);
         setLocationRelativeTo(null);
@@ -50,11 +57,11 @@ public class LoginScreen extends JFrame {
 
         // ===== TITLE =====
         JLabel title = new JLabel("CHÀO MỪNG TRỞ LẠI!");
-        title.setFont(new Font("Lexend", Font.BOLD, 25));
+        title.setFont(AppFonts.lexendBold(25f));
         title.setForeground(Color.BLACK);
 
         JLabel subtitle = new JLabel("Vui lòng điền thông tin tài khoản của bạn.");
-        subtitle.setFont(new Font("PlusJakartaSans", Font.PLAIN, 13));
+        subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(new Color(120, 120, 120));
 
         // ===== USERNAME =====
@@ -95,7 +102,7 @@ public class LoginScreen extends JFrame {
 
         // ===== FORGOT PASSWORD =====
         JLabel forgot = new JLabel("Quên mật khẩu?");
-        forgot.setFont(new Font("Lexend", Font.BOLD, 10));
+        forgot.setFont(AppFonts.lexendBold(10f));
         forgot.setForeground(new Color(58, 134, 45));
         forgot.setHorizontalAlignment(SwingConstants.RIGHT);
         forgot.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -114,7 +121,7 @@ public class LoginScreen extends JFrame {
         };
 
         loginBtn.setForeground(Color.BLACK);
-        loginBtn.setFont(new Font("Lexend", Font.BOLD, 18));
+        loginBtn.setFont(AppFonts.lexendBold(18f));
         loginBtn.setFocusPainted(false);
         loginBtn.setContentAreaFilled(false);
         loginBtn.setBorderPainted(false);
@@ -143,6 +150,21 @@ public class LoginScreen extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 new ForgotPassword().setVisible(true);
+                dispose();
+            }
+        });
+
+        loginBtn.addActionListener(e -> {
+            String usernameValue = username.getText().trim();
+            String passwordValue = new String(password.getPassword());
+
+            AuthResult result = authController.login(new LoginRequest(usernameValue, passwordValue));
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+            } else {
+                AppDialog.showError(this, result.message());
+            }
+            if (result.success()) {
                 dispose();
             }
         });
