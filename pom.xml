@@ -22,6 +22,11 @@
             <version>23.26.1.0.0</version>
         </dependency>
 
+        <dependency>
+            groupId:     com.formdev
+            artifactId:  flatlaf-intellij-themes
+            version:     (see button below)
+        </dependency>
     </dependencies>
 
 
