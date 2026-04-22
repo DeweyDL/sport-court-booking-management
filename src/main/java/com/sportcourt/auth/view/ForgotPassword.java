@@ -82,20 +82,20 @@ public class ForgotPassword extends JFrame {
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(username, BorderLayout.CENTER);
 
-        // ---- PHONE ----
-        JTextField phonenum = new JTextField();
-        phonenum.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        phonenum.setBackground(new Color(250, 249, 250));
-        phonenum.setBorder(null);
-        phonenum.putClientProperty("JTextField.placeholderText", "Số điện thoại");
+        // ---- EMAIL ----
+        JTextField emailField = new JTextField();
+        emailField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        emailField.setBackground(new Color(250, 249, 250));
+        emailField.setBorder(null);
+        emailField.putClientProperty("JTextField.placeholderText", "Email");
 
-        JPanel phonePanel = new JPanel(new BorderLayout());
-        phonePanel.setBackground(new Color(250, 249, 250));
-        phonePanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        phonePanel.setPreferredSize(new Dimension(200, 45));
+        JPanel emailPanel = new JPanel(new BorderLayout());
+        emailPanel.setBackground(new Color(250, 249, 250));
+        emailPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        emailPanel.setPreferredSize(new Dimension(200, 45));
 
-        JLabel phoneIcon = new JLabel(scaleIcon("/icon/phone.png", 13, 13));
-        phoneIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", 13, 13));
+        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
 
         JButton sendOtp = new JButton("Gửi mã OTP");
         sendOtp.setFont(new Font("Segoe UI", Font.PLAIN, 15));
@@ -103,12 +103,12 @@ public class ForgotPassword extends JFrame {
         sendOtp.setForeground(new Color(16, 110, 0));
         sendOtp.setBorderPainted(false);
 
-        phonePanel.add(phoneIcon, BorderLayout.WEST);
-        phonePanel.add(phonenum, BorderLayout.CENTER);
+        emailPanel.add(emailIcon, BorderLayout.WEST);
+        emailPanel.add(emailField, BorderLayout.CENTER);
 
         JPanel contactRow = new JPanel(new BorderLayout(15,0));
         contactRow.setBackground(new Color(250, 249, 250));
-        contactRow.add(phonePanel, BorderLayout.CENTER);
+        contactRow.add(emailPanel, BorderLayout.CENTER);
         sendOtp.setPreferredSize(new Dimension(130, 45));
         contactRow.add(sendOtp, BorderLayout.EAST);
 
@@ -186,27 +186,34 @@ public class ForgotPassword extends JFrame {
         // ===== EVENT =====
 
         sendOtp.addActionListener(e -> {
-
-                    if (phonenum.getText().isEmpty()) {
-                        AppDialog.showError(this, "Vui lòng nhập số điện thoại!");
-                        return;
-                    }
-                    contactRow1.setVisible(true);
-                    this.revalidate();
-                    this.repaint();
-                    //checkOtp.setText("Gửi lại mã");
+            AuthResult result = authController.sendResetPasswordOtp(
+                    username.getText().trim(),
+                    emailField.getText().trim()
+            );
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+                contactRow1.setVisible(true);
+                this.revalidate();
+                this.repaint();
+            } else {
+                AppDialog.showError(this, result.message());
+            }
         });
 
         checkOtp.addActionListener(e -> {
-
-            if (otp.getText().isEmpty()) {
-                AppDialog.showError(this, "Vui lòng nhập OTP!");
-                return;
+            AuthResult result = authController.verifyResetPasswordOtp(
+                    username.getText().trim(),
+                    emailField.getText().trim(),
+                    new String(otp.getPassword()).trim()
+            );
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+                passPanel.setVisible(true);
+                this.revalidate();
+                this.repaint();
+            } else {
+                AppDialog.showError(this, result.message());
             }
-            passPanel.setVisible(true);
-            this.revalidate();
-            this.repaint();
-            //checkOtp.setText("Gửi lại mã");
         });
 
 
@@ -214,7 +221,7 @@ public class ForgotPassword extends JFrame {
         checkBtn.addActionListener(e -> {
             ResetPasswordRequest request = new ResetPasswordRequest(
                     username.getText().trim(),
-                    phonenum.getText().trim(),
+                    emailField.getText().trim(),
                     new String(password.getPassword())
             );
             AuthResult result = authController.resetPassword(request);
@@ -243,7 +250,7 @@ public class ForgotPassword extends JFrame {
         r.gridy++;
         rightPanel.add(userPanel, r);
 
-        //Phonenum
+        // Email
         r.gridy++;
         rightPanel.add(contactRow,r);
 

@@ -29,4 +29,20 @@ public class AuthController {
     public AuthResult resetPassword(ResetPasswordRequest request) {
         return authService.resetPassword(request);
     }
+
+    public AuthResult sendRegisterOtp(String email) {
+        return authService.sendRegisterOtp(email);
+    }
+
+    public AuthResult verifyRegisterOtp(String email, String otpCode) {
+        return authService.verifyRegisterOtp(email, otpCode);
+    }
+
+    public AuthResult sendResetPasswordOtp(String username, String email) {
+        return authService.sendResetPasswordOtp(username, email);
+    }
+
+    public AuthResult verifyResetPasswordOtp(String username, String email, String otpCode) {
+        return authService.verifyResetPasswordOtp(username, email, otpCode);
+    }
 }

@@ -13,6 +13,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.time.LocalDate;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class Register extends JFrame {
     private final AuthController authController = new AuthController();
@@ -49,7 +51,7 @@ public class Register extends JFrame {
 
         GridBagConstraints filler = new GridBagConstraints();
         filler.gridx = 0;
-        filler.gridy = 10;
+        filler.gridy = 11;
         filler.weightx = 1;
         filler.weighty = 1;
         filler.fill = GridBagConstraints.BOTH;
@@ -137,6 +139,42 @@ public class Register extends JFrame {
 
         contactRow.add(phonePanel);
         contactRow.add(emailPanel);
+
+        JTextField otpField = new JTextField();
+        otpField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        otpField.setBackground(new Color(250, 249, 250));
+        otpField.setBorder(null);
+        otpField.putClientProperty("JTextField.placeholderText", "Nhập OTP email");
+
+        JPanel otpPanel = new JPanel(new BorderLayout());
+        otpPanel.setBackground(new Color(250, 249, 250));
+        otpPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        otpPanel.setPreferredSize(new Dimension(200, 45));
+        otpPanel.add(otpField, BorderLayout.CENTER);
+
+        JButton sendOtpBtn = new JButton("Gửi OTP");
+        sendOtpBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        sendOtpBtn.setBackground(new Color(231, 250, 229));
+        sendOtpBtn.setForeground(new Color(16, 110, 0));
+        sendOtpBtn.setBorderPainted(false);
+        sendOtpBtn.setPreferredSize(new Dimension(100, 45));
+
+        JButton verifyOtpBtn = new JButton("Xác thực");
+        verifyOtpBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        verifyOtpBtn.setBackground(new Color(231, 250, 229));
+        verifyOtpBtn.setForeground(new Color(16, 110, 0));
+        verifyOtpBtn.setBorderPainted(false);
+        verifyOtpBtn.setPreferredSize(new Dimension(110, 45));
+
+        JPanel otpRow = new JPanel(new BorderLayout(15, 0));
+        otpRow.setBackground(new Color(250, 249, 250));
+        otpRow.add(otpPanel, BorderLayout.CENTER);
+
+        JPanel otpActionPanel = new JPanel(new GridLayout(1, 2, 8, 0));
+        otpActionPanel.setBackground(new Color(250, 249, 250));
+        otpActionPanel.add(sendOtpBtn);
+        otpActionPanel.add(verifyOtpBtn);
+        otpRow.add(otpActionPanel, BorderLayout.EAST);
 
         // ===== BIRTHDAY (ICON + LABEL + DATEPICKER 1 HÀNG) =====
 
@@ -241,6 +279,8 @@ public class Register extends JFrame {
         registerBtn.setContentAreaFilled(false);
         registerBtn.setBorderPainted(false);
         registerBtn.setPreferredSize(new Dimension(200, 45));
+        registerBtn.setEnabled(false);
+        final boolean[] registerOtpVerified = {false};
 
         // ===== CREATE ACCOUNT =====
         JLabel label = new JLabel(
@@ -262,6 +302,11 @@ public class Register extends JFrame {
         registerBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         registerBtn.addActionListener(e -> {
             LocalDate ngaySinh = birthdayPicker.getDate();
+
+            if (!registerOtpVerified[0]) {
+                AppDialog.showError(this, "Vui lòng xác thực OTP email trước khi đăng ký.");
+                return;
+            }
 
             RegisterRequest request = new RegisterRequest(
                     username.getText().trim(),
@@ -285,6 +330,50 @@ public class Register extends JFrame {
             }
         });
 
+        sendOtpBtn.addActionListener(e -> {
+            AuthResult result = authController.sendRegisterOtp(email.getText().trim());
+            if (result.success()) {
+                AppDialog.showInfo(this, result.message());
+            } else {
+                AppDialog.showError(this, result.message());
+            }
+        });
+
+        verifyOtpBtn.addActionListener(e -> {
+            AuthResult result = authController.verifyRegisterOtp(email.getText().trim(), otpField.getText().trim());
+            if (result.success()) {
+                registerOtpVerified[0] = true;
+                registerBtn.setEnabled(true);
+                AppDialog.showInfo(this, result.message());
+            } else {
+                registerOtpVerified[0] = false;
+                registerBtn.setEnabled(false);
+                AppDialog.showError(this, result.message());
+            }
+        });
+
+        email.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                resetOtpState();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                resetOtpState();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                resetOtpState();
+            }
+
+            private void resetOtpState() {
+                registerOtpVerified[0] = false;
+                registerBtn.setEnabled(false);
+            }
+        });
+
         // ===== ADD COMPONENTS =====
         r.gridy = 0;
         rightPanel.add(backToLogin, r);
@@ -302,6 +391,10 @@ public class Register extends JFrame {
         // SĐT + Email (1 dòng)
         r.gridy++;
         rightPanel.add(contactRow, r);
+
+        // OTP
+        r.gridy++;
+        rightPanel.add(otpRow, r);
 
         // Ngày sinh (label + datepicker cùng hàng)
         r.gridy++;

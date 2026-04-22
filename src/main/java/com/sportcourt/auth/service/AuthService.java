@@ -11,4 +11,12 @@ public interface AuthService {
     AuthResult register(RegisterRequest request);
 
     AuthResult resetPassword(ResetPasswordRequest request);
+
+    AuthResult sendRegisterOtp(String email);
+
+    AuthResult verifyRegisterOtp(String email, String otpCode);
+
+    AuthResult sendResetPasswordOtp(String username, String email);
+
+    AuthResult verifyResetPasswordOtp(String username, String email, String otpCode);
 }

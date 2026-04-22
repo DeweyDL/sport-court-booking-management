@@ -19,5 +19,13 @@ public interface AuthDao {
 
     void createUserAndAccount(String userId, String accountId, RegisterRequest request, String passwordHash) throws SQLException;
 
-    boolean updatePasswordByUsernameAndPhone(String username, String sdt, String passwordHash) throws SQLException;
+    boolean updatePasswordByUsernameAndEmail(String username, String email, String passwordHash) throws SQLException;
+
+    Optional<String> findEmailByUsernameAndEmail(String username, String email) throws SQLException;
+
+    void createEmailOtp(String otpId, String email, String otpCode, String purpose, int expireMinutes) throws SQLException;
+
+    boolean consumeValidOtp(String email, String otpCode, String purpose) throws SQLException;
+
+    boolean hasVerifiedOtp(String email, String purpose, int validWindowMinutes) throws SQLException;
 }

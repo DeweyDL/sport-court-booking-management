@@ -1,20 +1,22 @@
-ackage Style;
+package com.sportcourt.style;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.net.URL;
 
 public class BackgroundPanel extends JPanel {
-    private Image backgroundImage;
+    private final Image backgroundImage;
 
-    // Constructor nhận vào đường dẫn ảnh
     public BackgroundPanel(String path) {
-        this.backgroundImage = new ImageIcon(path).getImage();
+        URL resource = getClass().getResource(path);
+        this.backgroundImage = resource == null ? null : new ImageIcon(resource).getImage();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // Vẽ ảnh nền phủ kín toàn bộ diện tích Panel
         if (backgroundImage != null) {
             g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         }
