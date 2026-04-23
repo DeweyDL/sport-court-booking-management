@@ -4,7 +4,7 @@ CREATE TABLE USERS
     USER_ID    VARCHAR2(20),
     HOTEN      VARCHAR2(50)              NOT NULL,
     SDT        VARCHAR2(10)              NOT NULL,
-    EMAIL      VARCHAR2(100)             NOT NULL,
+    EMAIL       VARCHAR2(100)             NOT NULL,
     NGAYSINH   DATE,
     DIACHI     VARCHAR2(255),
     CREATED_AT DATE      DEFAULT SYSDATE NOT NULL,
