@@ -20,6 +20,7 @@ public class AuthServiceImpl implements AuthService {
     private static final String PURPOSE_RESET_PASSWORD = "RESET_PASSWORD";
     private static final int OTP_EXPIRE_MINUTES = 5;
     private static final int OTP_VERIFIED_WINDOW_MINUTES = 10;
+    private static final int SESSION_EXPIRE_MINUTES = 120;
 
     private final AuthDao authDao;
     private MailSender mailSender;
@@ -39,65 +40,58 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResult login(LoginRequest request) {
-        if (request == null || isBlank(request.username()) || isBlank(request.password())) {
-            return AuthResult.fail("Vui lòng nhập đầy đủ tài khoản và mật khẩu.");
+        if (request == null) {
+            return AuthResult.fail("Dữ liệu đăng nhập không hợp lệ.");
         }
 
         try {
-            Optional<String> passwordHashOpt = authDao.findPasswordHashByUsername(request.username().trim());
-            if (passwordHashOpt.isEmpty() || !Sha256Password.matches(request.password(), passwordHashOpt.get())) {
-                return AuthResult.fail("Sai tên đăng nhập hoặc mật khẩu.");
+            String phone = normalize(request.phone());
+            String password = normalize(request.password());
+            Optional<String> passwordHashOpt = authDao.findPasswordHashByPhone(phone);
+            if (passwordHashOpt.isEmpty() || !Sha256Password.matches(password, passwordHashOpt.get())) {
+                return AuthResult.fail("Sai số điện thoại hoặc mật khẩu.");
             }
 
-            Optional<AuthPrincipal> principal = authDao.findPrincipalByUsername(request.username().trim());
+            Optional<AuthPrincipal> principal = authDao.findPrincipalByPhone(phone);
             if (principal.isEmpty()) {
                 return AuthResult.fail("Không tìm thấy thông tin người dùng.");
             }
+            String sessionToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+            authDao.createAccountToken(generateId("TOK"), principal.get().accountId(), sessionToken, SESSION_EXPIRE_MINUTES);
             return AuthResult.ok("Đăng nhập thành công.", principal.get());
         } catch (SQLException e) {
-            return AuthResult.fail("Lỗi kết nối: " + e.getMessage());
+            return AuthResult.fail("Đăng nhập thất bại: " + mapOracleError(e));
         }
     }
 
     @Override
     public AuthResult register(RegisterRequest request) {
-        if (request == null || isBlank(request.username()) || isBlank(request.password())
-                || isBlank(request.hoTen()) || isBlank(request.sdt()) || isBlank(request.email())) {
-            return AuthResult.fail("Vui lòng nhập đầy đủ thông tin bắt buộc.");
+        if (request == null) {
+            return AuthResult.fail("Dữ liệu đăng ký không hợp lệ.");
         }
 
         try {
-            if (authDao.existsUsername(request.username().trim())) {
-                return AuthResult.fail("Tên đăng nhập đã tồn tại.");
-            }
-            if (authDao.existsPhone(request.sdt().trim())) {
-                return AuthResult.fail("Số điện thoại đã tồn tại.");
-            }
-            if (authDao.existsEmail(request.email().trim())) {
-                return AuthResult.fail("Email đã tồn tại.");
-            }
-
             String userId = generateId("USR");
             String accountId = generateId("ACC");
-            String passwordHash = Sha256Password.hash(request.password());
+            String customerId = generateId("KH");
+            String password = normalize(request.password());
+            String passwordHash = Sha256Password.hash(password);
 
             RegisterRequest normalized = new RegisterRequest(
-                    request.username().trim(),
-                    request.password(),
-                    request.hoTen().trim(),
-                    request.sdt().trim(),
-                    request.email().trim(),
-                    request.ngaySinh(),
-                    request.diaChi() == null ? null : request.diaChi().trim()
+                    password,
+                    normalize(request.hoTen()),
+                    normalize(request.sdt()),
+                    normalize(request.email()),
+                    request.ngaySinh()
             );
             if (!authDao.hasVerifiedOtp(normalized.email(), PURPOSE_REGISTER, OTP_VERIFIED_WINDOW_MINUTES)) {
                 return AuthResult.fail("Vui lòng xác thực OTP email trước khi đăng ký.");
             }
 
-            authDao.createUserAndAccount(userId, accountId, normalized, passwordHash);
+            authDao.createUserAndAccount(userId, accountId, customerId, normalized, passwordHash);
             return AuthResult.ok("Đăng ký thành công.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Đăng ký thất bại: " + e.getMessage());
+            return AuthResult.fail("Đăng ký thất bại: " + mapOracleError(e));
         }
     }
 
@@ -127,7 +121,7 @@ public class AuthServiceImpl implements AuthService {
             }
             return AuthResult.ok("Đặt lại mật khẩu thành công.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Không thể đặt lại mật khẩu: " + e.getMessage());
+            return AuthResult.fail("Không thể đặt lại mật khẩu: " + mapOracleError(e));
         }
     }
 
@@ -146,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
             getMailSender().sendOtp(normalizedEmail, otpCode, "Đăng ký");
             return AuthResult.ok("Đã gửi OTP đến email của bạn.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Không thể gửi OTP: " + e.getMessage());
+            return AuthResult.fail("Không thể gửi OTP: " + mapOracleError(e));
         } catch (Exception e) {
             return AuthResult.fail("Lỗi gửi email OTP: " + e.getMessage());
         }
@@ -164,7 +158,7 @@ public class AuthServiceImpl implements AuthService {
             }
             return AuthResult.ok("Xác thực OTP thành công.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Không thể xác thực OTP: " + e.getMessage());
+            return AuthResult.fail("Không thể xác thực OTP: " + mapOracleError(e));
         }
     }
 
@@ -184,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
             getMailSender().sendOtp(accountEmail, otpCode, "Quên mật khẩu");
             return AuthResult.ok("Đã gửi OTP về email đã đăng ký.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Không thể gửi OTP: " + e.getMessage());
+            return AuthResult.fail("Không thể gửi OTP: " + mapOracleError(e));
         } catch (Exception e) {
             return AuthResult.fail("Lỗi gửi email OTP: " + e.getMessage());
         }
@@ -206,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
             }
             return AuthResult.ok("Xác thực OTP thành công.", null);
         } catch (SQLException e) {
-            return AuthResult.fail("Không thể xác thực OTP: " + e.getMessage());
+            return AuthResult.fail("Không thể xác thực OTP: " + mapOracleError(e));
         }
     }
 
@@ -228,5 +222,38 @@ public class AuthServiceImpl implements AuthService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String normalize(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String mapOracleError(SQLException ex) {
+        String message = ex.getMessage() == null ? "" : ex.getMessage().toUpperCase();
+        if (message.contains("UQ_USERS_SDT") || message.contains("UQ_ACCOUNT_USERNAME")) {
+            return "Số điện thoại đã tồn tại.";
+        }
+        if (message.contains("UQ_USERS_EMAIL")) {
+            return "Email đã tồn tại.";
+        }
+        if (message.contains("CK_USERS_SDT")) {
+            return "Số điện thoại không đúng định dạng.";
+        }
+        if (message.contains("CK_USERS_EMAIL")) {
+            return "Email không đúng định dạng.";
+        }
+        if (message.contains("ORA-01400")) {
+            return "Thiếu thông tin bắt buộc.";
+        }
+        if (message.contains("ORA-02290")) {
+            return "Dữ liệu không hợp lệ theo ràng buộc DB.";
+        }
+        if (message.contains("ORA-02291") || message.contains("ORA-02292")) {
+            return "Lỗi ràng buộc khóa ngoại trong DB.";
+        }
+        if (message.contains("ORA-00001")) {
+            return "Dữ liệu bị trùng (vi phạm UNIQUE).";
+        }
+        return ex.getMessage();
     }
 }

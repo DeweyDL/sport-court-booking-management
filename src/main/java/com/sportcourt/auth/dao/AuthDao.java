@@ -7,17 +7,13 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 public interface AuthDao {
-    Optional<AuthPrincipal> findPrincipalByUsername(String username) throws SQLException;
+    Optional<AuthPrincipal> findPrincipalByPhone(String phone) throws SQLException;
 
-    Optional<String> findPasswordHashByUsername(String username) throws SQLException;
-
-    boolean existsUsername(String username) throws SQLException;
+    Optional<String> findPasswordHashByPhone(String phone) throws SQLException;
 
     boolean existsEmail(String email) throws SQLException;
 
-    boolean existsPhone(String sdt) throws SQLException;
-
-    void createUserAndAccount(String userId, String accountId, RegisterRequest request, String passwordHash) throws SQLException;
+    void createUserAndAccount(String userId, String accountId, String customerId, RegisterRequest request, String passwordHash) throws SQLException;
 
     boolean updatePasswordByUsernameAndEmail(String username, String email, String passwordHash) throws SQLException;
 
@@ -28,4 +24,6 @@ public interface AuthDao {
     boolean consumeValidOtp(String email, String otpCode, String purpose) throws SQLException;
 
     boolean hasVerifiedOtp(String email, String purpose, int validWindowMinutes) throws SQLException;
+
+    void createAccountToken(String tokenId, String accountId, String tokenValue, int expireMinutes) throws SQLException;
 }

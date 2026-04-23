@@ -15,18 +15,18 @@ import java.util.Optional;
 public class JdbcAuthDao implements AuthDao {
 
     @Override
-    public Optional<AuthPrincipal> findPrincipalByUsername(String username) throws SQLException {
+    public Optional<AuthPrincipal> findPrincipalByPhone(String phone) throws SQLException {
         String sql = """
                 SELECT a.ACCOUNT_ID, a.USER_ID, a.USERNAME, a.STATUS, u.HOTEN, u.EMAIL, u.SDT
                 FROM ACCOUNT a
                 JOIN USERS u ON u.USER_ID = a.USER_ID
-                WHERE a.USERNAME = ?
+                WHERE u.SDT = ?
                   AND a.IS_DELETED = 0
                   AND u.IS_DELETED = 0
                 """;
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, username);
+            statement.setString(1, phone);
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
@@ -45,16 +45,18 @@ public class JdbcAuthDao implements AuthDao {
     }
 
     @Override
-    public Optional<String> findPasswordHashByUsername(String username) throws SQLException {
+    public Optional<String> findPasswordHashByPhone(String phone) throws SQLException {
         String sql = """
-                SELECT PASSWORD_HASH
-                FROM ACCOUNT
-                WHERE USERNAME = ?
-                  AND IS_DELETED = 0
+                SELECT a.PASSWORD_HASH
+                FROM ACCOUNT a
+                JOIN USERS u ON u.USER_ID = a.USER_ID
+                WHERE u.SDT = ?
+                  AND u.IS_DELETED = 0
+                  AND a.IS_DELETED = 0
                 """;
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, username);
+            statement.setString(1, phone);
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
@@ -65,22 +67,12 @@ public class JdbcAuthDao implements AuthDao {
     }
 
     @Override
-    public boolean existsUsername(String username) throws SQLException {
-        return exists("SELECT 1 FROM ACCOUNT WHERE USERNAME = ? AND IS_DELETED = 0", username);
-    }
-
-    @Override
     public boolean existsEmail(String email) throws SQLException {
         return exists("SELECT 1 FROM USERS WHERE EMAIL = ? AND IS_DELETED = 0", email);
     }
 
     @Override
-    public boolean existsPhone(String sdt) throws SQLException {
-        return exists("SELECT 1 FROM USERS WHERE SDT = ? AND IS_DELETED = 0", sdt);
-    }
-
-    @Override
-    public void createUserAndAccount(String userId, String accountId, RegisterRequest request, String passwordHash) throws SQLException {
+    public void createUserAndAccount(String userId, String accountId, String customerId, RegisterRequest request, String passwordHash) throws SQLException {
         String insertUser = """
                 INSERT INTO USERS(USER_ID, HOTEN, SDT, EMAIL, NGAYSINH, DIACHI, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, ?, ?, SYSDATE, 0)
@@ -89,10 +81,15 @@ public class JdbcAuthDao implements AuthDao {
                 INSERT INTO ACCOUNT(ACCOUNT_ID, USER_ID, USERNAME, PASSWORD_HASH, STATUS, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, 'ACTIVE', SYSDATE, 0)
                 """;
+        String insertCustomer = """
+                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANG_THAI, DOANH_THU, CREATED_AT, IS_DELETED)
+                VALUES (?, ?, NULL, 'ACTIVE', 0, SYSDATE, 0)
+                """;
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement userStmt = connection.prepareStatement(insertUser);
-                 PreparedStatement accountStmt = connection.prepareStatement(insertAccount)) {
+                 PreparedStatement accountStmt = connection.prepareStatement(insertAccount);
+                 PreparedStatement customerStmt = connection.prepareStatement(insertCustomer)) {
                 userStmt.setString(1, userId);
                 userStmt.setString(2, request.hoTen());
                 userStmt.setString(3, request.sdt());
@@ -102,14 +99,18 @@ public class JdbcAuthDao implements AuthDao {
                 } else {
                     userStmt.setNull(5, Types.DATE);
                 }
-                userStmt.setString(6, request.diaChi());
+                userStmt.setNull(6, Types.NVARCHAR);
                 userStmt.executeUpdate();
 
                 accountStmt.setString(1, accountId);
                 accountStmt.setString(2, userId);
-                accountStmt.setString(3, request.username());
+                accountStmt.setString(3, request.sdt());
                 accountStmt.setString(4, passwordHash);
                 accountStmt.executeUpdate();
+
+                customerStmt.setString(1, customerId);
+                customerStmt.setString(2, userId);
+                customerStmt.executeUpdate();
                 connection.commit();
             } catch (SQLException e) {
                 connection.rollback();
@@ -230,6 +231,22 @@ public class JdbcAuthDao implements AuthDao {
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next();
             }
+        }
+    }
+
+    @Override
+    public void createAccountToken(String tokenId, String accountId, String tokenValue, int expireMinutes) throws SQLException {
+        String sql = """
+                INSERT INTO ACCOUNT_TOKEN(TOKEN_ID, ACCOUNT_ID, TOKEN_VALUE, EXPIRED_AT, ISSUED_AT, IS_REVOKED, CREATED_AT, IS_DELETED)
+                VALUES (?, ?, ?, SYSDATE + (? / 1440), SYSDATE, 'NO', SYSDATE, 0)
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, tokenId);
+            statement.setString(2, accountId);
+            statement.setString(3, tokenValue);
+            statement.setInt(4, expireMinutes);
+            statement.executeUpdate();
         }
     }
 

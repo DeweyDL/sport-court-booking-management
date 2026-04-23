@@ -68,11 +68,11 @@ public class LoginScreen extends JFrame {
         subtitle.setFont(AppFonts.lexendRegular(18f));
         subtitle.setForeground(new Color(120, 120, 120));
 
-        JTextField username = new JTextField();
-        username.setFont(new Font("Segoe UI", Font.PLAIN, 20));
-        username.setBackground(new Color(242, 242, 242));
-        username.setBorder(null);
-        username.putClientProperty("JTextField.placeholderText", "Số điện thoại");
+        JTextField phoneField = new JTextField();
+        phoneField.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        phoneField.setBackground(new Color(242, 242, 242));
+        phoneField.setBorder(null);
+        phoneField.putClientProperty("JTextField.placeholderText", "Số điện thoại");
 
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
@@ -82,7 +82,7 @@ public class LoginScreen extends JFrame {
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", 18, 18));
         userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
         userPanel.add(userIcon, BorderLayout.WEST);
-        userPanel.add(username, BorderLayout.CENTER);
+        userPanel.add(phoneField, BorderLayout.CENTER);
 
         JPasswordField password = new JPasswordField();
         password.setFont(new Font("Segoe UI", Font.PLAIN, 20));
@@ -150,9 +150,9 @@ public class LoginScreen extends JFrame {
         });
 
         Runnable doLogin = () -> {
-            String usernameValue = username.getText().trim();
+            String phoneValue = phoneField.getText().trim();
             String passwordValue = new String(password.getPassword());
-            AuthResult result = authController.login(new LoginRequest(usernameValue, passwordValue));
+            AuthResult result = authController.login(new LoginRequest(phoneValue, passwordValue));
             if (result.success()) {
                 AppDialog.showInfo(this, result.message());
                 dispose();

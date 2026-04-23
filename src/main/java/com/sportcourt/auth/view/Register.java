@@ -2,6 +2,7 @@ package com.sportcourt.auth.view;
 
 import com.sportcourt.auth.controller.AuthController;
 import com.sportcourt.auth.dto.AuthResult;
+import com.sportcourt.auth.dto.RegisterRequest;
 import com.sportcourt.style.AppDialog;
 import com.sportcourt.style.AppFonts;
 import javax.swing.*;
@@ -150,7 +151,7 @@ public class Register extends JPanel {
         verifyOtpBtn.setBackground(new Color(187, 220, 182));
         verifyOtpBtn.setForeground(new Color(16, 110, 0));
         verifyOtpBtn.setBorderPainted(false);
-        verifyOtpBtn.setPreferredSize(new Dimension(200, 45));
+        verifyOtpBtn.setPreferredSize(new Dimension(200, 50));
 
         JPanel otpRow = new JPanel(new BorderLayout(20, 0));
         otpRow.setBackground(new Color(242, 242, 242));
@@ -212,6 +213,7 @@ public class Register extends JPanel {
         registerBtn.setContentAreaFilled(false);
         registerBtn.setBorderPainted(false);
         registerBtn.setPreferredSize(new Dimension(200, 50));
+        registerBtn.setEnabled(false);
         final boolean[] registerOtpVerified = {false};
 
         // ===== CREATE ACCOUNT =====
@@ -250,19 +252,42 @@ public class Register extends JPanel {
             }
         });
 
-//        registerBtn.addActionListener(e -> {
-//            RegisterRequest req = new RegisterRequest(
-//                    username.getText().trim(), new String(password.getPassword()), username.getText().trim(),
-//                    phonenum.getText().trim(), email.getText().trim(), birthdayPicker.getDate(), address.getText().trim()
-//            );
-//            AuthResult res = authController.register(req);
-//            if (res.success()) {
-//                AppDialog.showInfo(this, res.message());
-//                cardLayout.show(parentPanel, "LOGIN");
-//            } else {
-//                AppDialog.showError(this, res.message());
-//            }
-//        });
+        registerBtn.addActionListener(e -> {
+            if (!registerOtpVerified[0]) {
+                AppDialog.showError(this, "Vui lòng xác thực OTP trước khi đăng ký.");
+                return;
+            }
+
+            String fullName = username.getText().trim();
+            String phone = phonenum.getText().trim();
+            String emailValue = email.getText().trim();
+            String passwordValue = new String(password.getPassword());
+            String confirmPassword = new String(checkPassword.getPassword());
+
+            if (fullName.isEmpty() || phone.isEmpty() || emailValue.isEmpty() || passwordValue.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập đầy đủ thông tin bắt buộc.");
+                return;
+            }
+            if (!passwordValue.equals(confirmPassword)) {
+                AppDialog.showError(this, "Mật khẩu xác nhận không khớp.");
+                return;
+            }
+
+            RegisterRequest req = new RegisterRequest(
+                    passwordValue,
+                    fullName,
+                    phone,
+                    emailValue,
+                    null
+            );
+            AuthResult res = authController.register(req);
+            if (res.success()) {
+                AppDialog.showInfo(this, res.message());
+                cardLayout.show(parentPanel, "LOGIN");
+            } else {
+                AppDialog.showError(this, res.message());
+            }
+        });
 
         // ================= ADD COMPONENTS VÀO RIGHTPANEL =================
         r.gridy = 0; add(backToLogin, r);

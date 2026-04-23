@@ -8,11 +8,11 @@ public final class AppDialog {
     }
 
     public static void showInfo(Component parent, String message) {
-        show(parent, "Thong bao", message, JOptionPane.INFORMATION_MESSAGE);
+        show(parent, "Thông báo", message, JOptionPane.INFORMATION_MESSAGE);
     }
 
     public static void showError(Component parent, String message) {
-        show(parent, "Loi", message, JOptionPane.ERROR_MESSAGE);
+        show(parent, "Lỗi", message, JOptionPane.ERROR_MESSAGE);
     }
 
     private static void show(Component parent, String title, String message, int type) {
