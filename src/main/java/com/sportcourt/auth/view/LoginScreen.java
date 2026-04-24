@@ -34,6 +34,8 @@ public class LoginScreen extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         rightPanel.setBackground(new Color(242, 242, 242));
 
+
+
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
