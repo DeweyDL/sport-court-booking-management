@@ -10,7 +10,7 @@ public class Court {
     private String areaId;
     private String status;
     private LocalDateTime createdAt;
-    private boolean deleted;
+    private boolean isDeleted;
 
     public Court() {
     }
@@ -54,10 +54,10 @@ public class Court {
     }
 
     public boolean isDeleted() {
-        return deleted;
+        return isDeleted;
     }
 
-    public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
+    public void setIsDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }
