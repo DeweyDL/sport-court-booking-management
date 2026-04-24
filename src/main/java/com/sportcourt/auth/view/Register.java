@@ -213,7 +213,7 @@ public class Register extends JPanel {
         registerBtn.setContentAreaFilled(false);
         registerBtn.setBorderPainted(false);
         registerBtn.setPreferredSize(new Dimension(200, 50));
-        registerBtn.setEnabled(false);
+        registerBtn.setEnabled(true);
         final boolean[] registerOtpVerified = {false};
 
         // ===== CREATE ACCOUNT =====
@@ -245,7 +245,6 @@ public class Register extends JPanel {
             AuthResult res = authController.verifyRegisterOtp(email.getText().trim(), otpField.getText().trim());
             if (res.success()) {
                 registerOtpVerified[0] = true;
-                registerBtn.setEnabled(true);
                 AppDialog.showInfo(this, res.message());
             } else {
                 AppDialog.showError(this, res.message());
@@ -253,23 +252,38 @@ public class Register extends JPanel {
         });
 
         registerBtn.addActionListener(e -> {
-            if (!registerOtpVerified[0]) {
-                AppDialog.showError(this, "Vui lòng xác thực OTP trước khi đăng ký.");
-                return;
-            }
-
             String fullName = username.getText().trim();
             String phone = phonenum.getText().trim();
             String emailValue = email.getText().trim();
             String passwordValue = new String(password.getPassword());
             String confirmPassword = new String(checkPassword.getPassword());
 
-            if (fullName.isEmpty() || phone.isEmpty() || emailValue.isEmpty() || passwordValue.isEmpty()) {
-                AppDialog.showError(this, "Vui lòng nhập đầy đủ thông tin bắt buộc.");
+            if (phone.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập số điện thoại.");
+                return;
+            }
+            if (emailValue.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập email.");
+                return;
+            }
+            if (fullName.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập họ và tên.");
+                return;
+            }
+            if (passwordValue.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập mật khẩu.");
+                return;
+            }
+            if (confirmPassword.isEmpty()) {
+                AppDialog.showError(this, "Vui lòng nhập xác nhận mật khẩu.");
                 return;
             }
             if (!passwordValue.equals(confirmPassword)) {
                 AppDialog.showError(this, "Mật khẩu xác nhận không khớp.");
+                return;
+            }
+            if (!registerOtpVerified[0]) {
+                AppDialog.showError(this, "Vui lòng xác thực OTP trước khi đăng ký.");
                 return;
             }
 
