@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public class CourtTableRow {
     private String courtId;
     private String areaId;
-    private String sportType;
+    private String sportTypeName;
     private String branchId;
     private String branchName;
     private String status;
@@ -19,7 +19,7 @@ public class CourtTableRow {
     public CourtTableRow(
             String courtId,
             String areaId,
-            String sportType,
+            String sportTypeName,
             String branchId,
             String branchName,
             String status,
@@ -28,7 +28,7 @@ public class CourtTableRow {
     ) {
         this.courtId = courtId;
         this.areaId = areaId;
-        this.sportType = sportType;
+        this.sportTypeName = sportTypeName;
         this.branchId = branchId;
         this.branchName = branchName;
         this.status = status;
@@ -68,12 +68,12 @@ public class CourtTableRow {
         this.branchName = branchName;
     }
 
-    public String getSportType() {
-        return sportType;
+    public String getSportTypeName() {
+        return sportTypeName;
     }
 
-    public void setSportTypeName(String sportType) {
-        this.sportType = sportType;
+    public void setSportTypeName(String sportTypeName) {
+        this.sportTypeName = sportTypeName;
     }
 
     public String getStatus() {
