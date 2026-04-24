@@ -10,7 +10,6 @@ public class CourtTableRow {
     private String branchName;
     private String status;
     private LocalDateTime createdAt;
-    private boolean isDeleted;
 
     public CourtTableRow() {
 
