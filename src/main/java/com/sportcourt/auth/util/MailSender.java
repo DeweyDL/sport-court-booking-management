@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -15,8 +14,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 public class MailSender {
-    private static final String PRIMARY_CONFIG = "mail.properties";
-    private static final String FALLBACK_CONFIG = "mail.properties.example";
+    private static final String PRIMARY_CONFIG = "db/mail.properties";
+    private static final String FALLBACK_CONFIG = "db/mail.properties.example";
     private static final String CRLF = "\r\n";
 
     private final Properties config = new Properties();
