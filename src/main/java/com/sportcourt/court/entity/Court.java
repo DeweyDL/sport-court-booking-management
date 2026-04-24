@@ -3,34 +3,46 @@ package com.sportcourt.court.entity;
 import java.time.LocalDateTime;
 
 public class Court {
-    private String CourtID;
-    private String AreaID;
-    private String Status;
+    public static final String STATUS_ACTIVE = "ĐANG HOẠT ĐỘNG";
+    public static final String STATUS_MAINTENANCE = "BẢO TRÌ";
+
+    private String courtId;
+    private String areaId;
+    private String status;
     private LocalDateTime createdAt;
     private boolean deleted;
 
-    public String getCourtID() {
-        return CourtID;
+    public Court() {
     }
 
-    public void setCourtID(String CourtID) {
-        this.CourtID = CourtID;
+    public Court(String courtId, String areaId, String status) {
+        this.courtId = courtId;
+        this.areaId = areaId;
+        this.status = status;
     }
 
-    public String getAreaID() {
-        return AreaID;
+    public String getCourtId() {
+        return courtId;
     }
 
-    public void setAreaID(String AreaID) {
-        this.AreaID = AreaID;
+    public void setCourtId(String courtId) {
+        this.courtId = courtId;
+    }
+
+    public String getAreaId() {
+        return areaId;
+    }
+
+    public void setAreaId(String areaId) {
+        this.areaId = areaId;
     }
 
     public String getStatus() {
-        return Status;
+        return status;
     }
 
-    public void setStatus(String Status) {
-        this.Status = Status;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {
