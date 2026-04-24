@@ -28,6 +28,7 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+*.xml
 
 ### VS Code ###
 .vscode/
@@ -37,3 +38,4 @@ build/
 
 ### config ###
 src/main/resources/db/db.properties
+src/main/resources/mail/mail.properties
