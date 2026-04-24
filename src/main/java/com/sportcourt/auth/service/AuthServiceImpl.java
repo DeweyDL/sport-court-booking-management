@@ -81,8 +81,8 @@ public class AuthServiceImpl implements AuthService {
                     password,
                     normalize(request.hoTen()),
                     normalize(request.sdt()),
-                    normalize(request.email()),
-                    request.ngaySinh()
+                    normalize(request.email())
+
             );
             if (!authDao.hasVerifiedOtp(normalized.email(), PURPOSE_REGISTER, OTP_VERIFIED_WINDOW_MINUTES)) {
                 return AuthResult.fail("Vui lòng xác thực OTP email trước khi đăng ký.");

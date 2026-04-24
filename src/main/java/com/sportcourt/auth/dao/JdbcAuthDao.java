@@ -5,7 +5,6 @@ import com.sportcourt.auth.dto.RegisterRequest;
 import com.sportcourt.common.db.ConnectionUtils;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -94,11 +93,7 @@ public class JdbcAuthDao implements AuthDao {
                 userStmt.setString(2, request.hoTen());
                 userStmt.setString(3, request.sdt());
                 userStmt.setString(4, request.email());
-                if (request.ngaySinh() != null) {
-                    userStmt.setDate(5, Date.valueOf(request.ngaySinh()));
-                } else {
-                    userStmt.setNull(5, Types.DATE);
-                }
+                userStmt.setNull(5, Types.DATE);
                 userStmt.setNull(6, Types.NVARCHAR);
                 userStmt.executeUpdate();
 

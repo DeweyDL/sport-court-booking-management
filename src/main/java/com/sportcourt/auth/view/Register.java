@@ -291,8 +291,8 @@ public class Register extends JPanel {
                     passwordValue,
                     fullName,
                     phone,
-                    emailValue,
-                    null
+                    emailValue
+
             );
             AuthResult res = authController.register(req);
             if (res.success()) {

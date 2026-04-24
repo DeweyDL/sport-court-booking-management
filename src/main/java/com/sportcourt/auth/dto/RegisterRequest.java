@@ -6,7 +6,6 @@ public record RegisterRequest(
         String password,
         String hoTen,
         String sdt,
-        String email,
-        LocalDate ngaySinh
+        String email
 ) {
 }
