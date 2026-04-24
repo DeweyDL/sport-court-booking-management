@@ -14,8 +14,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 public class MailSender {
-    private static final String PRIMARY_CONFIG = "db/mail.properties";
-    private static final String FALLBACK_CONFIG = "db/mail.properties.example";
+    private static final String PRIMARY_CONFIG = "mail/mail.properties";
+    private static final String FALLBACK_CONFIG = "mail/mail.properties.example";
     private static final String CRLF = "\r\n";
 
     private final Properties config = new Properties();
