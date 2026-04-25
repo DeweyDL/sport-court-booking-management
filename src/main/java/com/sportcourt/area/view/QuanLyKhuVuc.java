@@ -5,9 +5,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
 
-public class QuanLyChiNhanh extends JPanel {
+public class QuanLyKhuVuc extends JPanel {
 
-    public QuanLyChiNhanh() {
+    public QuanLyKhuVuc() {
         setLayout(new BorderLayout(0, 20));
         setBackground(Color.decode("#F5F7FA")); // Màu nền nhạt của cả trang
         setBorder(new EmptyBorder(30, 40, 30, 40));

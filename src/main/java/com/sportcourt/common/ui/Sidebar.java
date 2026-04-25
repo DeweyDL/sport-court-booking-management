@@ -1,12 +1,14 @@
-package com.sportcourt.common.admin;
+package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.area.view.QuanLyKhuVuc;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.net.URL;
 
-public class AdminManagement extends JFrame {
+public class Sidebar extends JFrame {
 
     private JPanel mainContentPanel;
     private CardLayout cardLayout;
@@ -21,7 +23,7 @@ public class AdminManagement extends JFrame {
     private final Color LOGO_COLOR = Color.decode("#39ff14");
     private final Color LOGOUT_RED = Color.decode("#FF4D4D");
 
-    public AdminManagement() {
+    public Sidebar() {
         setTitle("RentSta - Facility Management");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -37,7 +39,7 @@ public class AdminManagement extends JFrame {
         // Thêm các trang tương ứng
         mainContentPanel.add(createPage("TRANG CHỦ"), "TRANG CHỦ");
         mainContentPanel.add(createPage("BÁO CÁO DOANH THU"), "BÁO CÁO DOANH THU");
-        mainContentPanel.add(new QuanLyChiNhanh(), "QUẢN LÝ CHI NHÁNH");
+        mainContentPanel.add(new QuanLyKhuVuc(), "QUẢN LÝ CHI NHÁNH");
         mainContentPanel.add(createPage("QUẢN LÝ KHÁCH HÀNG"), "QUẢN LÝ KHÁCH HÀNG");
         mainContentPanel.add(createPage("QUẢN LÝ DỤNG CỤ"), "QUẢN LÝ DỤNG CỤ");
         mainContentPanel.add(createPage("QUẢN LÝ SẢN PHẨM DỊCH VỤ"), "QUẢN LÝ SẢN PHẨM DỊCH VỤ");
@@ -226,6 +228,6 @@ public class AdminManagement extends JFrame {
 
     public static void main(String[] args) {
         FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> new AdminManagement().setVisible(true));
+        SwingUtilities.invokeLater(() -> new Sidebar().setVisible(true));
     }
 }
