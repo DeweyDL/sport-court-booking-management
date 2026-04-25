@@ -48,8 +48,21 @@ public final class OracleConnection {
     }
 
     public static Connection getOracleConnection() throws SQLException {
+        ensureOracleDriverLoaded();
         Connection conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
         LOGGER.debug("Opened Oracle database connection to {}", URL);
         return conn;
+    }
+
+    private static void ensureOracleDriverLoaded() throws SQLException {
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException(
+                    "Oracle JDBC driver not found on runtime classpath. " +
+                            "Reimport Maven project and run the app with Maven dependencies attached.",
+                    e
+            );
+        }
     }
 }
