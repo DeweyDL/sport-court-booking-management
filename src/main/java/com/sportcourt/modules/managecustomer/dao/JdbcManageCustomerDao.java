@@ -19,9 +19,10 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     @Override
     public List<CustomerSummary> findByName(String keyword) throws SQLException {
         String sql = """
-                SELECT kh.MAKH, kh.USER_ID, u.HOTEN, u.SDT, kh.TRANG_THAI, kh.DOANH_THU
+                SELECT kh.MAKH, kh.USER_ID, u.HOTEN, u.SDT, hkh.TEN_HANG AS HANG_KHACH_HANG, kh.TRANG_THAI, kh.DOANH_THU
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
+                LEFT JOIN HANG_KHACH_HANG hkh ON hkh.MA_HANG = kh.MA_HANG
                 WHERE (
                       UPPER(u.HOTEN) LIKE '%' || UPPER(?) || '%'
                       OR u.SDT LIKE '%' || ? || '%'
@@ -41,6 +42,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                             rs.getString("USER_ID"),
                             rs.getString("HOTEN"),
                             rs.getString("SDT"),
+                            rs.getString("HANG_KHACH_HANG"),
                             rs.getString("TRANG_THAI"),
                             rs.getBigDecimal("DOANH_THU")
                     ));
@@ -53,7 +55,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     @Override
     public Optional<CustomerProfile> findProfileById(String maKhachHang) throws SQLException {
         String sql = """
-                SELECT kh.MAKH, kh.USER_ID, a.ACCOUNT_ID, u.HOTEN, u.SDT, u.EMAIL, a.USERNAME,
+                SELECT kh.MAKH, kh.USER_ID, a.ACCOUNT_ID, u.HOTEN, u.SDT, u.DIACHI, u.EMAIL, a.USERNAME,
                        kh.TRANG_THAI, kh.MA_HANG, kh.DOANH_THU
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
@@ -73,6 +75,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                         rs.getString("ACCOUNT_ID"),
                         rs.getString("HOTEN"),
                         rs.getString("SDT"),
+                        rs.getString("DIACHI"),
                         rs.getString("EMAIL"),
                         rs.getString("USERNAME"),
                         rs.getString("TRANG_THAI"),
@@ -138,7 +141,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public boolean updateCustomer(String maKhachHang, UpdateCustomerRequest request) throws SQLException {
         String updateUser = """
                 UPDATE USERS u
-                SET u.HOTEN = ?, u.SDT = ?
+                SET u.HOTEN = ?, u.SDT = ?, u.EMAIL = NVL(?, u.EMAIL), u.DIACHI = NVL(?, u.DIACHI)
                 WHERE u.USER_ID = (
                     SELECT kh.USER_ID
                     FROM KHACH_HANG kh
@@ -146,6 +149,17 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                       AND kh.IS_DELETED = 0
                 )
                   AND u.IS_DELETED = 0
+                """;
+        String updateAccount = """
+                UPDATE ACCOUNT a
+                SET a.USERNAME = NVL(?, a.USERNAME)
+                WHERE a.USER_ID = (
+                    SELECT kh.USER_ID
+                    FROM KHACH_HANG kh
+                    WHERE kh.MAKH = ?
+                      AND kh.IS_DELETED = 0
+                )
+                  AND a.IS_DELETED = 0
                 """;
         String updateCustomer = """
                 UPDATE KHACH_HANG
@@ -156,17 +170,24 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement userStmt = connection.prepareStatement(updateUser);
+                 PreparedStatement accountStmt = connection.prepareStatement(updateAccount);
                  PreparedStatement customerStmt = connection.prepareStatement(updateCustomer)) {
                 userStmt.setString(1, request.hoTen().trim());
                 userStmt.setString(2, request.sdt().trim());
-                userStmt.setString(3, maKhachHang);
+                userStmt.setString(3, request.emailHeThong());
+                userStmt.setString(4, request.diaChi());
+                userStmt.setString(5, maKhachHang);
                 int userUpdated = userStmt.executeUpdate();
+
+                accountStmt.setString(1, request.username());
+                accountStmt.setString(2, maKhachHang);
+                int accountUpdated = accountStmt.executeUpdate();
 
                 customerStmt.setString(1, request.trangThai().trim());
                 customerStmt.setString(2, maKhachHang);
                 int customerUpdated = customerStmt.executeUpdate();
 
-                if (userUpdated <= 0 || customerUpdated <= 0) {
+                if (userUpdated <= 0 || accountUpdated <= 0 || customerUpdated <= 0) {
                     connection.rollback();
                     return false;
                 }

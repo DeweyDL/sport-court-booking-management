@@ -9,9 +9,7 @@ import java.awt.*;
 
 final class CustomerProfileDialog {
     enum Action {
-        UPDATE,
-        DELETE,
-        RESTORE
+        UPDATE
     }
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
@@ -19,8 +17,6 @@ final class CustomerProfileDialog {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BRAND_BLUE = new Color(37, 99, 235);
-    private static final Color BRAND_GREEN = new Color(22, 163, 74);
-    private static final Color DANGER_RED = new Color(220, 38, 38);
     private static final Color FIELD_BG = new Color(241, 245, 249);
 
     private CustomerProfileDialog() {
@@ -42,7 +38,7 @@ final class CustomerProfileDialog {
         JLabel title = new JLabel("Hồ sơ khách hàng");
         title.setFont(AppFonts.lexendBold(24f));
         title.setForeground(TEXT_DARK);
-        JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết trước khi cập nhật hoặc xóa.");
+        JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết trước khi cập nhật.");
         subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(TEXT_MUTED);
         header.add(title, BorderLayout.NORTH);
@@ -64,9 +60,10 @@ final class CustomerProfileDialog {
         addField(card, g, 2, "Số điện thoại", profile.sdt());
         addField(card, g, 3, "Email hệ thống", safeEmailText(profile.emailHeThong()));
         addField(card, g, 4, "Tên đăng nhập", safeText(profile.username()));
-        addField(card, g, 5, "Trạng thái", safeText(profile.trangThai()));
-        addField(card, g, 6, "Mã hạng", safeText(profile.maHang()));
-        addField(card, g, 7, "Doanh thu", profile.doanhThu() == null ? "0 VNĐ" : profile.doanhThu() + " VNĐ");
+        addField(card, g, 5, "Địa chỉ", safeText(profile.diaChi()));
+        addField(card, g, 6, "Trạng thái", safeText(profile.trangThai()));
+        addField(card, g, 7, "Mã hạng", safeText(profile.maHang()));
+        addField(card, g, 8, "Doanh thu", profile.doanhThu() == null ? "0 VNĐ" : profile.doanhThu() + " VNĐ");
 
         JScrollPane scrollPane = new JScrollPane(card);
         scrollPane.setBorder(null);
@@ -77,39 +74,15 @@ final class CustomerProfileDialog {
         root.add(scrollPane, BorderLayout.CENTER);
 
         final Action[] result = new Action[1];
-        JPanel actions;
-        JButton btnRestore = null;
-        boolean inactiveCustomer = "INACTIVE".equalsIgnoreCase(safeText(profile.trangThai()));
-        if (inactiveCustomer) {
-            actions = new JPanel(new GridLayout(1, 1, 0, 0));
-            btnRestore = actionButton("Khôi phục", BRAND_GREEN, Color.WHITE);
-            actions.add(btnRestore);
-        } else {
-            actions = new JPanel(new GridLayout(1, 2, 12, 0));
-            JButton btnDelete = actionButton("Xóa khách hàng", DANGER_RED, Color.WHITE);
-            JButton btnUpdate = actionButton("Cập nhật thông tin", BRAND_BLUE, Color.WHITE);
-            actions.add(btnDelete);
-            actions.add(btnUpdate);
-
-            btnDelete.addActionListener(e -> {
-                result[0] = Action.DELETE;
-                dialog.dispose();
-            });
-            btnUpdate.addActionListener(e -> {
-                result[0] = Action.UPDATE;
-                dialog.dispose();
-            });
-        }
+        JPanel actions = new JPanel(new GridLayout(1, 1, 0, 0));
+        JButton btnUpdate = actionButton("Cập nhật thông tin", BRAND_BLUE, Color.WHITE);
+        actions.add(btnUpdate);
         actions.setOpaque(false);
         root.add(actions, BorderLayout.SOUTH);
-
-        if (btnRestore != null) {
-            JButton finalBtnRestore = btnRestore;
-            finalBtnRestore.addActionListener(e -> {
-                result[0] = Action.RESTORE;
-                dialog.dispose();
-            });
-        }
+        btnUpdate.addActionListener(e -> {
+            result[0] = Action.UPDATE;
+            dialog.dispose();
+        });
 
         dialog.pack();
         dialog.setSize(560, 560);
@@ -142,26 +115,23 @@ final class CustomerProfileDialog {
     }
 
     private static JButton actionButton(String text, Color background, Color foreground) {
-        JButton btn = new JButton(text);
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
         btn.setFont(AppFonts.lexendBold(13f));
         btn.setForeground(foreground);
-        btn.setBackground(background);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        Color borderColor;
-        if (DANGER_RED.equals(background)) {
-            borderColor = new Color(185, 28, 28);
-        } else if (BRAND_GREEN.equals(background)) {
-            borderColor = new Color(21, 128, 61);
-        } else {
-            borderColor = new Color(29, 78, 216);
-        }
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor, 1, true),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        btn.setBorderPainted(true);
-        btn.setContentAreaFilled(true);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }

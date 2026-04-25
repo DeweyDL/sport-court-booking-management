@@ -11,15 +11,13 @@ import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
 import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -27,140 +25,186 @@ import java.util.List;
 import java.util.Locale;
 
 public class ManageCustomerPreviewScreen extends JPanel {
-    private static final Color PAGE_BG = new Color(240, 248, 242);
-    private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(58, 134, 45);
-    private static final Color BRAND_GREEN_SOFT = new Color(220, 242, 214);
-    private static final Color TEXT_DARK = new Color(30, 41, 59);
-    private static final Color TEXT_MUTED = new Color(100, 116, 139);
-
     private final ManageCustomerController controller = new ManageCustomerController();
     private final List<CustomerVm> customers = new ArrayList<>();
 
+    private final JLabel titleLabel = new JLabel("QUẢN LÝ KHÁCH HÀNG");
     private final JTextField txtSearch = new JTextField();
-    private final DefaultTableModel tableModel = new DefaultTableModel(
-            new Object[]{"MAKH", "HOTEN", "TIER", "STATUS", "ACTIONS"}, 0
-    ) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
-    private final JTable table = new JTable(tableModel);
+    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 / 0 khách hàng");
+    private final JPanel tableBodyPanel = new JPanel();
 
     private CustomerVm selectedCustomer;
-    private JLabel lblSummary;
 
     public ManageCustomerPreviewScreen() {
         AppFonts.register();
-        setLayout(new BorderLayout());
-        add(buildContent(), BorderLayout.CENTER);
+        setLayout(new BorderLayout(0, 18));
+        setBackground(new Color(247, 247, 251));
+        setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        add(createHeader(), BorderLayout.NORTH);
+        add(createMainContent(), BorderLayout.CENTER);
+
         applyEvents();
         loadCustomers("");
     }
 
-    private JPanel buildContent() {
-        JPanel root = new JPanel(new BorderLayout(14, 14));
-        root.setBackground(PAGE_BG);
-        root.setBorder(new EmptyBorder(14, 14, 14, 14));
-        root.add(buildHeader(), BorderLayout.NORTH);
-        root.add(buildListPanel(), BorderLayout.CENTER);
-        return root;
+    private JPanel createHeader() {
+        JPanel headerWrapper = new JPanel();
+        headerWrapper.setLayout(new BoxLayout(headerWrapper, BoxLayout.Y_AXIS));
+        headerWrapper.setOpaque(false);
+        headerWrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+        headerWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
+        titleRow.setBorder(new EmptyBorder(14, 0, 0, 0));
+
+        titleLabel.setFont(new Font("Lexend", Font.BOLD, 30));
+        titleLabel.setForeground(new Color(30, 31, 36));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleRow.add(titleLabel, BorderLayout.WEST);
+
+        JPanel subtitleRow = new JPanel(new BorderLayout());
+        subtitleRow.setOpaque(false);
+        subtitleRow.setBorder(new EmptyBorder(6, 0, 0, 0));
+        JLabel subtitle = new JLabel("Hiển thị dữ liệu khách hàng và hỗ trợ tìm kiếm nhanh.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(new Color(103, 112, 133));
+        subtitleRow.add(subtitle, BorderLayout.WEST);
+
+        headerWrapper.add(titleRow);
+        headerWrapper.add(subtitleRow);
+        return headerWrapper;
     }
 
-    private JPanel buildHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-
-        JLabel title = new JLabel("Quản Lý Khách Hàng");
-        title.setForeground(TEXT_DARK);
-        title.setFont(AppFonts.lexendBold(24f));
-        header.add(title, BorderLayout.WEST);
-        return header;
+    private JPanel createMainContent() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setOpaque(false);
+        mainPanel.add(createCustomerSection(), BorderLayout.CENTER);
+        return mainPanel;
     }
 
-    private JPanel buildListPanel() {
-        JPanel panel = cardPanel();
-        panel.setLayout(new BorderLayout(10, 10));
-        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+    private JPanel createCustomerSection() {
+        JPanel sectionPanel = new JPanel(new BorderLayout(0, 14));
+        sectionPanel.setOpaque(false);
+        sectionPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
 
-        JPanel top = new JPanel(new BorderLayout(8, 0));
-        top.setOpaque(false);
+        JPanel titlePanel = new JPanel(new BorderLayout(10, 0));
+        titlePanel.setOpaque(false);
 
-        txtSearch.setPreferredSize(new Dimension(320, 36));
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rightControls.setOpaque(false);
+
+        JLabel title = new JLabel("Danh sách khách hàng");
+        title.setFont(new Font("Lexend", Font.BOLD, 18));
+        title.setForeground(new Color(35, 37, 43));
+
+        txtSearch.setPreferredSize(new Dimension(310, 38));
         txtSearch.setFont(AppFonts.lexendRegular(13f));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc số điện thoại...");
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(187, 227, 179)),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        txtSearch.setBorder(new CompoundBorder(
+                new MatteBorder(1, 1, 1, 1, new Color(229, 231, 235)),
+                new EmptyBorder(8, 12, 8, 12)
         ));
-        top.add(txtSearch, BorderLayout.CENTER);
+        txtSearch.putClientProperty("JComponent.roundRect", true);
+        txtSearch.putClientProperty("JTextField.arc", 999);
 
-        JButton btnCreate = brandButton("Thêm khách hàng");
-        btnCreate.addActionListener(e -> openCreateDialog());
-        top.add(btnCreate, BorderLayout.EAST);
+        JButton createButton = createPillButton("+ Thêm khách hàng", new Color(220, 252, 231), new Color(22, 101, 52), true);
+        createButton.setPreferredSize(new Dimension(160, 36));
+        createButton.setBorder(new EmptyBorder(7, 14, 7, 14));
+        createButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        createButton.addActionListener(event -> openCreateDialog());
 
-        lblSummary = new JLabel("Đang tải dữ liệu khách hàng...");
-        lblSummary.setForeground(TEXT_MUTED);
-        lblSummary.setFont(AppFonts.lexendRegular(12f));
-        panel.add(lblSummary, BorderLayout.SOUTH);
-        panel.add(top, BorderLayout.NORTH);
+        JPanel titleWithActionRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        titleWithActionRow.setOpaque(false);
+        titleWithActionRow.add(title);
+        titleWithActionRow.add(createButton);
 
-        table.setRowHeight(34);
-        table.setFont(AppFonts.lexendRegular(12f));
-        table.getTableHeader().setFont(AppFonts.lexendBold(12f));
-        table.getTableHeader().setBackground(Color.WHITE);
-        table.getTableHeader().setForeground(new Color(107, 114, 128));
-        table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setFillsViewportHeight(true);
-        table.setSelectionBackground(BRAND_GREEN_SOFT);
-        table.setSelectionForeground(TEXT_DARK);
-        table.setRowHeight(58);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.setDefaultRenderer(Object.class, new ZebraCellRenderer());
-        table.getColumnModel().getColumn(0).setPreferredWidth(110);
-        table.getColumnModel().getColumn(1).setPreferredWidth(220);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(130);
-        table.getColumnModel().getColumn(4).setPreferredWidth(260);
-        table.getColumnModel().getColumn(2).setCellRenderer(new TierBadgeRenderer());
-        table.getColumnModel().getColumn(3).setCellRenderer(new StatusBadgeRenderer());
-        table.getColumnModel().getColumn(4).setCellRenderer(new ActionsRenderer());
+        titleTextPanel.add(titleWithActionRow);
+        rightControls.add(txtSearch);
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        panel.add(scrollPane, BorderLayout.CENTER);
+        titlePanel.add(titleTextPanel, BorderLayout.WEST);
+        titlePanel.add(rightControls, BorderLayout.EAST);
 
-        return panel;
+        JPanel tableCard = createRoundedTableCard();
+        tableCard.add(createCustomerHeader(), BorderLayout.NORTH);
+
+        tableBodyPanel.setLayout(new BoxLayout(tableBodyPanel, BoxLayout.Y_AXIS));
+        tableBodyPanel.setBackground(Color.WHITE);
+        JScrollPane tableScrollPane = new JScrollPane(tableBodyPanel);
+        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tableScrollPane.getViewport().setBackground(Color.WHITE);
+        tableScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        tableScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        tableCard.add(tableScrollPane, BorderLayout.CENTER);
+        tableCard.add(createFooter(), BorderLayout.SOUTH);
+
+        sectionPanel.add(titlePanel, BorderLayout.NORTH);
+        sectionPanel.add(tableCard, BorderLayout.CENTER);
+        return sectionPanel;
     }
 
-    private JPanel cardPanel() {
-        JPanel panel = new JPanel();
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(227, 232, 240), 1),
-                BorderFactory.createEmptyBorder()
-        ));
-        return panel;
+    private JPanel createRoundedTableCard() {
+        JPanel tableCard = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 42, 42);
+                g2.setColor(new Color(236, 236, 239));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 42, 42);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintChildren(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Shape shape = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 42, 42);
+                g2.setClip(shape);
+                super.paintChildren(g2);
+                g2.dispose();
+            }
+        };
+        tableCard.setOpaque(false);
+        tableCard.setBackground(Color.WHITE);
+        return tableCard;
     }
 
-    private JButton brandButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(AppFonts.lexendBold(12f));
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBackground(BRAND_GREEN);
-        btn.setOpaque(true);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(45, 110, 35), 1, true),
-                BorderFactory.createEmptyBorder(6, 12, 6, 12)
-        ));
-        btn.setBorderPainted(true);
-        btn.setContentAreaFilled(true);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(118, 36));
-        return btn;
+    private JPanel createCustomerHeader() {
+        JPanel headerPanel = new JPanel(new GridLayout(1, 7, 0, 0));
+        headerPanel.setBackground(new Color(241, 242, 246));
+        headerPanel.setBorder(new EmptyBorder(16, 26, 16, 26));
+        headerPanel.add(createHeaderLabel("MÃ KH", SwingConstants.LEFT));
+        headerPanel.add(createHeaderLabel("HỌ TÊN", SwingConstants.LEFT));
+        headerPanel.add(createHeaderLabel("SỐ ĐIỆN THOẠI", SwingConstants.LEFT));
+        headerPanel.add(createHeaderLabel("HẠNG", SwingConstants.CENTER));
+        headerPanel.add(createHeaderLabel("TRẠNG THÁI", SwingConstants.CENTER));
+        headerPanel.add(createHeaderLabel("DOANH THU", SwingConstants.LEFT));
+        headerPanel.add(createHeaderLabel("THAO TÁC", SwingConstants.CENTER));
+        return headerPanel;
+    }
+
+    private JPanel createFooter() {
+        JPanel footerPanel = new JPanel(new BorderLayout());
+        footerPanel.setBackground(new Color(246, 246, 248));
+        footerPanel.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        footerLabel.setForeground(new Color(107, 114, 128));
+        footerPanel.add(footerLabel, BorderLayout.WEST);
+        return footerPanel;
+    }
+
+    private JLabel createHeaderLabel(String text, int alignment) {
+        JLabel label = new JLabel(text, alignment);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(94, 103, 82));
+        return label;
     }
 
     private void applyEvents() {
@@ -180,29 +224,13 @@ public class ManageCustomerPreviewScreen extends JPanel {
                 refreshCustomers();
             }
         });
-
-        table.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                updateSelectedCustomerFromTable();
-            }
-        });
-
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1) {
-                    updateSelectedCustomerFromTable();
-                    openProfileForSelectedCustomer();
-                }
-            }
-        });
     }
 
     private void loadCustomers(String keyword) {
         String selectedCode = selectedCustomer == null ? null : selectedCustomer.getMaKhachHang();
         CustomerResult<List<CustomerSummary>> result = controller.searchByName(keyword);
         if (!result.success()) {
-            AppDialog.showError(this, buildFriendlyError("Không thể tải danh sách khách hàng lúc này.", result.message()));
+            AppDialog.showError(this, normalizeError("Không thể tải danh sách khách hàng.", result.message()));
             return;
         }
 
@@ -211,22 +239,172 @@ public class ManageCustomerPreviewScreen extends JPanel {
             customers.add(CustomerVm.fromSummary(summary));
         }
 
-        refillTable();
-        lblSummary.setText("Hiển thị " + customers.size() + " khách hàng trong danh sách.");
+        renderCustomerTable();
         restoreSelection(selectedCode);
     }
 
-    private void refillTable() {
-        tableModel.setRowCount(0);
-        for (CustomerVm customer : customers) {
-            tableModel.addRow(new Object[]{
-                    compactCustomerCode(customer.getMaKhachHang()),
-                    customer.getHoTen(),
-                    customer.getTrangThai(),
-                    customer.getTrangThai(),
-                    "ACTIONS"
-            });
+    private void renderCustomerTable() {
+        tableBodyPanel.removeAll();
+        if (customers.isEmpty()) {
+            tableBodyPanel.add(createEmptyRow());
+        } else {
+            for (CustomerVm customer : customers) {
+                tableBodyPanel.add(createCustomerRow(customer));
+            }
         }
+        footerLabel.setText("Đang hiển thị " + customers.size() + " / " + customers.size() + " khách hàng");
+        tableBodyPanel.revalidate();
+        tableBodyPanel.repaint();
+    }
+
+    private JPanel createCustomerRow(CustomerVm customer) {
+        JPanel rowPanel = new JPanel(new GridLayout(1, 7, 0, 0));
+        rowPanel.setBackground(Color.WHITE);
+        rowPanel.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(236, 236, 239)),
+                new EmptyBorder(18, 26, 18, 26)
+        ));
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+
+        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getMaKhachHang(), true), SwingConstants.LEFT));
+        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getHoTen(), false), SwingConstants.LEFT));
+        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getSdt(), false), SwingConstants.LEFT));
+        rowPanel.add(createTableCellWrapper(createTierPill(customer.getMaHang()), SwingConstants.CENTER));
+        rowPanel.add(createTableCellWrapper(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER));
+        rowPanel.add(createTableCellWrapper(createBodyLabel(formatCurrency(customer.getDoanhThu()), false), SwingConstants.LEFT));
+
+        JPanel actionGroup = new JPanel();
+        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
+        actionGroup.setOpaque(false);
+
+        boolean inactive = "INACTIVE".equalsIgnoreCase(customer.getTrangThai());
+        JButton statusBtn = inactive
+                ? createMiniActionButton("Khôi phục", new Color(220, 252, 231), new Color(22, 101, 52))
+                : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+        Dimension actionButtonSize = new Dimension(88, 30);
+        statusBtn.setPreferredSize(actionButtonSize);
+        statusBtn.setMinimumSize(actionButtonSize);
+        statusBtn.setMaximumSize(actionButtonSize);
+        statusBtn.addActionListener(event -> {
+            selectedCustomer = customer;
+            if (inactive) {
+                restoreSelectedCustomer();
+            } else {
+                deleteSelectedCustomer();
+            }
+        });
+        actionGroup.add(statusBtn);
+        actionGroup.add(Box.createHorizontalStrut(10));
+
+        JButton detailBtn = createMiniActionButton("Xem chi tiết", new Color(239, 246, 255), new Color(29, 78, 216));
+        Dimension detailButtonSize = new Dimension(96, 30);
+        detailBtn.setPreferredSize(detailButtonSize);
+        detailBtn.setMinimumSize(detailButtonSize);
+        detailBtn.setMaximumSize(detailButtonSize);
+        detailBtn.addActionListener(event -> {
+            selectedCustomer = customer;
+            openProfileForSelectedCustomer();
+        });
+        actionGroup.add(detailBtn);
+        rowPanel.add(createTableCellWrapper(actionGroup, SwingConstants.CENTER));
+        return rowPanel;
+    }
+
+    private JPanel createTableCellWrapper(Component component, int alignment) {
+        FlowLayout layout = new FlowLayout(
+                alignment == SwingConstants.CENTER ? FlowLayout.CENTER : FlowLayout.LEFT,
+                0,
+                0
+        );
+        JPanel panel = new JPanel(layout);
+        panel.setOpaque(false);
+        panel.add(component);
+        return panel;
+    }
+
+    private JPanel createTierPill(String tierName) {
+        String displayText = (tierName == null || tierName.isBlank()) ? "NULL" : tierName;
+        Color background = (tierName == null || tierName.isBlank()) ? new Color(229, 231, 235) : new Color(219, 234, 254);
+        Color foreground = (tierName == null || tierName.isBlank()) ? new Color(75, 85, 99) : new Color(30, 64, 175);
+
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        pill.setOpaque(false);
+
+        JPanel wrapper = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+            }
+        };
+        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        wrapper.setOpaque(false);
+
+        JLabel textLabel = new JLabel(displayText);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setForeground(foreground);
+
+        wrapper.add(textLabel);
+        pill.add(wrapper);
+        return pill;
+    }
+
+    private JPanel createStatusPill(String trangThai) {
+        boolean isActive = "ACTIVE".equalsIgnoreCase(trangThai);
+        Color background = isActive ? new Color(216, 255, 208) : new Color(254, 226, 226);
+        Color foreground = isActive ? new Color(44, 154, 16) : new Color(185, 28, 28);
+
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        pill.setOpaque(false);
+
+        JPanel wrapper = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+            }
+        };
+        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        wrapper.setOpaque(false);
+
+        JLabel dotLabel = new JLabel("\u2022");
+        dotLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        dotLabel.setForeground(foreground);
+
+        JLabel textLabel = new JLabel(isActive ? "Active" : "Inactive");
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        textLabel.setForeground(foreground);
+
+        wrapper.add(dotLabel);
+        wrapper.add(textLabel);
+        pill.add(wrapper);
+        return pill;
+    }
+
+    private JPanel createEmptyRow() {
+        JPanel rowPanel = new JPanel(new BorderLayout());
+        rowPanel.setBackground(Color.WHITE);
+        rowPanel.setBorder(new EmptyBorder(24, 26, 24, 26));
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+
+        JLabel messageLabel = new JLabel("Chưa có khách hàng nào phù hợp.");
+        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        messageLabel.setForeground(new Color(107, 114, 128));
+        rowPanel.add(messageLabel, BorderLayout.CENTER);
+        return rowPanel;
+    }
+
+    private JLabel createBodyLabel(String text, boolean bold) {
+        JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
+        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, bold ? 15 : 14));
+        label.setForeground(new Color(43, 47, 55));
+        return label;
     }
 
     private void refreshCustomers() {
@@ -236,28 +414,14 @@ public class ManageCustomerPreviewScreen extends JPanel {
     private void restoreSelection(String maKhachHang) {
         selectedCustomer = null;
         if (maKhachHang == null) {
-            table.clearSelection();
             return;
         }
-
-        for (int i = 0; i < customers.size(); i++) {
-            if (customers.get(i).getMaKhachHang().equals(maKhachHang)) {
-                table.setRowSelectionInterval(i, i);
-                selectedCustomer = customers.get(i);
+        for (CustomerVm customer : customers) {
+            if (customer.getMaKhachHang().equals(maKhachHang)) {
+                selectedCustomer = customer;
                 return;
             }
         }
-
-        table.clearSelection();
-    }
-
-    private void updateSelectedCustomerFromTable() {
-        int row = table.getSelectedRow();
-        if (row < 0 || row >= customers.size()) {
-            selectedCustomer = null;
-            return;
-        }
-        selectedCustomer = customers.get(row);
     }
 
     private void openCreateDialog() {
@@ -268,7 +432,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         CustomerResult<CustomerProfile> result = controller.create(request);
         if (!result.success()) {
-            AppDialog.showError(this, buildFriendlyError("Tạo khách hàng chưa thành công.", result.message()));
+            AppDialog.showError(this, normalizeError("Tạo khách hàng chưa thành công.", result.message()));
             return;
         }
 
@@ -283,22 +447,12 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         CustomerResult<CustomerProfile> profileResult = controller.getProfile(selectedCustomer.getMaKhachHang());
         if (!profileResult.success() || profileResult.data() == null) {
-            AppDialog.showError(this, buildFriendlyError("Không lấy được hồ sơ khách hàng.", profileResult.message()));
+            AppDialog.showError(this, normalizeError("Không lấy được hồ sơ khách hàng.", profileResult.message()));
             return;
         }
 
         CustomerProfileDialog.Action action = CustomerProfileDialog.show(this, profileResult.data());
-        if (action == null) {
-            return;
-        }
-
-        if (action == CustomerProfileDialog.Action.RESTORE) {
-            restoreSelectedCustomer();
-            return;
-        }
-
-        if (action == CustomerProfileDialog.Action.DELETE) {
-            deleteSelectedCustomer();
+        if (action == null || action != CustomerProfileDialog.Action.UPDATE) {
             return;
         }
 
@@ -309,7 +463,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         CustomerResult<CustomerProfile> updateResult = controller.update(selectedCustomer.getMaKhachHang(), request);
         if (!updateResult.success()) {
-            AppDialog.showError(this, buildFriendlyError("Cập nhật khách hàng chưa thành công.", updateResult.message()));
+            AppDialog.showError(this, normalizeError("Cập nhật khách hàng chưa thành công.", updateResult.message()));
             return;
         }
 
@@ -336,7 +490,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         CustomerResult<Void> result = controller.softDelete(selectedCustomer.getMaKhachHang());
         if (!result.success()) {
-            AppDialog.showError(this, buildFriendlyError("Không thể xóa khách hàng vào lúc này.", result.message()));
+            AppDialog.showError(this, normalizeError("Không thể xóa khách hàng lúc này.", result.message()));
             return;
         }
 
@@ -362,7 +516,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         CustomerResult<Void> result = controller.restore(selectedCustomer.getMaKhachHang());
         if (!result.success()) {
-            AppDialog.showError(this, buildFriendlyError("Không thể khôi phục khách hàng lúc này.", result.message()));
+            AppDialog.showError(this, normalizeError("Không thể khôi phục khách hàng lúc này.", result.message()));
             return;
         }
 
@@ -370,9 +524,9 @@ public class ManageCustomerPreviewScreen extends JPanel {
         refreshCustomers();
     }
 
-    private String buildFriendlyError(String userMessage, String detail) {
+    private String normalizeError(String fallback, String detail) {
         if (detail == null || detail.isBlank()) {
-            return userMessage;
+            return fallback;
         }
         String normalized = detail.trim();
         if (normalized.endsWith(".") || normalized.endsWith("!") || normalized.endsWith("?")) {
@@ -388,101 +542,33 @@ public class ManageCustomerPreviewScreen extends JPanel {
         return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
     }
 
-    private String compactCustomerCode(String maKhachHang) {
-        if (maKhachHang == null || maKhachHang.isBlank()) {
-            return "#C-0000";
-        }
-        String raw = maKhachHang.replace("KH_", "");
-        String shortCode = raw.length() > 4 ? raw.substring(raw.length() - 4) : raw;
-        return "#C-" + shortCode.toUpperCase();
-    }
-
-    private class ZebraCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
-        ) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            label.setBorder(new EmptyBorder(8, 14, 8, 14));
-            label.setFont(AppFonts.lexendBold(column == 0 ? 18f : 15f));
-            if (isSelected) {
-                label.setBackground(BRAND_GREEN_SOFT);
-                label.setForeground(TEXT_DARK);
-            } else {
-                label.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 251));
-                label.setForeground(TEXT_DARK);
+    private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
             }
-            return label;
-        }
+        };
+        button.setForeground(fg);
+        button.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(10, 22, 10, 22));
+        return button;
     }
 
-    private class TierBadgeRenderer implements TableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
-        ) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
-            panel.setOpaque(true);
-            panel.setBackground(isSelected ? BRAND_GREEN_SOFT : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 251)));
-
-            String status = customers.get(row).getTrangThai();
-            String tierText = "INACTIVE".equalsIgnoreCase(status) ? "SILVER" : "PLATINUM";
-            JLabel chip = new JLabel(tierText);
-            chip.setFont(AppFonts.lexendBold(11f));
-            chip.setOpaque(true);
-            chip.setBackground(new Color(229, 231, 235));
-            chip.setForeground(new Color(55, 65, 81));
-            chip.setBorder(new EmptyBorder(4, 10, 4, 10));
-            panel.add(chip);
-            return panel;
-        }
-    }
-
-    private class StatusBadgeRenderer implements TableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
-        ) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 12));
-            panel.setOpaque(true);
-            panel.setBackground(isSelected ? BRAND_GREEN_SOFT : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 251)));
-
-            String status = String.valueOf(value);
-            boolean active = "ACTIVE".equalsIgnoreCase(status);
-            JLabel statusLabel = new JLabel((active ? "\u25CF  ACTIVE" : "\u25CF  INACTIVE"));
-            statusLabel.setFont(AppFonts.lexendBold(12f));
-            statusLabel.setForeground(active ? new Color(34, 197, 94) : new Color(156, 163, 175));
-            panel.add(statusLabel);
-            return panel;
-        }
-    }
-
-    private class ActionsRenderer implements TableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column
-        ) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
-            panel.setOpaque(true);
-            panel.setBackground(isSelected ? BRAND_GREEN_SOFT : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 251)));
-            panel.add(actionPreviewButton("VIEW DETAILS", new Color(75, 85, 99), new Color(209, 213, 219), new Color(249, 250, 251)));
-            panel.add(actionPreviewButton("DELETE\nINFORMATION", new Color(185, 28, 28), new Color(254, 205, 211), new Color(255, 251, 252)));
-            return panel;
-        }
-    }
-
-    private JButton actionPreviewButton(String text, Color fg, Color border, Color bg) {
-        JButton btn = new JButton("<html><center>" + text.replace("\n", "<br>") + "</center></html>");
-        btn.setEnabled(false);
-        btn.setFont(AppFonts.lexendBold(11f));
-        btn.setForeground(fg);
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(border, 1, true),
-                BorderFactory.createEmptyBorder(6, 10, 6, 10)
-        ));
-        return btn;
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton button = createPillButton(text, bg, fg, true);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBorder(new EmptyBorder(7, 14, 7, 14));
+        return button;
     }
 
     public static JFrame createPreviewFrame() {

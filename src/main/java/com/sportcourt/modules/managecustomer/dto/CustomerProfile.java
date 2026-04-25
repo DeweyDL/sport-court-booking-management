@@ -8,6 +8,7 @@ public record CustomerProfile(
         String accountId,
         String hoTen,
         String sdt,
+        String diaChi,
         String emailHeThong,
         String username,
         String trangThai,

@@ -10,7 +10,7 @@ import java.awt.*;
 final class CustomerCreateDialog {
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_BLUE = new Color(37, 99, 235);
+    private static final Color BRAND_GREEN = new Color(34, 197, 94);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
@@ -29,16 +29,13 @@ final class CustomerCreateDialog {
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
-        JPanel header = new JPanel(new BorderLayout(0, 6));
+        JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
         JLabel title = new JLabel("Thêm khách hàng mới");
-        title.setFont(AppFonts.lexendBold(22f));
+        title.setFont(AppFonts.lexendBold(26f));
         title.setForeground(TEXT_DARK);
-        JLabel subtitle = new JLabel("Tạo nhanh hồ sơ khách hàng để sử dụng trong hệ thống.");
-        subtitle.setFont(AppFonts.lexendRegular(13f));
-        subtitle.setForeground(TEXT_MUTED);
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        header.add(title, BorderLayout.CENTER);
         root.add(header, BorderLayout.NORTH);
 
         JTextField txtHoTen = new JTextField();
@@ -110,35 +107,34 @@ final class CustomerCreateDialog {
     }
 
     private static JButton brandButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(AppFonts.lexendBold(13f));
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBackground(BRAND_BLUE);
-        btn.setOpaque(true);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(29, 78, 216), 1, true),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        btn.setBorderPainted(true);
-        btn.setContentAreaFilled(true);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btn = createPillButton(text, BRAND_GREEN, Color.WHITE);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         return btn;
     }
 
     private static JButton secondaryButton(String text) {
-        JButton btn = new JButton(text);
+        JButton btn = createPillButton(text, BUTTON_MUTED, TEXT_DARK);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
+        return btn;
+    }
+
+    private static JButton createPillButton(String text, Color background, Color foreground) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
         btn.setFont(AppFonts.lexendBold(13f));
-        btn.setForeground(TEXT_DARK);
+        btn.setForeground(foreground);
         btn.setFocusPainted(false);
-        btn.setBackground(BUTTON_MUTED);
-        btn.setOpaque(true);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(148, 163, 184), 1, true),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        btn.setBorderPainted(true);
-        btn.setContentAreaFilled(true);
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }

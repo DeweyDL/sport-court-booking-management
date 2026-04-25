@@ -51,7 +51,7 @@ final class CustomerVm {
                 "",
                 "",
                 summary.trangThai(),
-                "",
+                summary.hangKhachHang(),
                 summary.doanhThu()
         );
     }

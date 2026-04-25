@@ -45,6 +45,9 @@ final class CustomerEditDialog {
         JTextField txtMaKh = readonlyField(profile.maKhachHang());
         JTextField txtHoTen = editableField(profile.hoTen());
         JTextField txtSdt = editableField(profile.sdt());
+        JTextField txtEmail = editableField(profile.emailHeThong());
+        JTextField txtUsername = editableField(profile.username());
+        JTextField txtDiaChi = editableField(profile.diaChi());
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         cbTrangThai.setSelectedItem(profile.trangThai());
         cbTrangThai.setFont(AppFonts.lexendRegular(14f));
@@ -64,7 +67,10 @@ final class CustomerEditDialog {
         addField(card, g, 0, "Mã khách hàng", txtMaKh);
         addField(card, g, 1, "Họ tên", txtHoTen);
         addField(card, g, 2, "Số điện thoại", txtSdt);
-        addField(card, g, 3, "Trạng thái", cbTrangThai);
+        addField(card, g, 3, "Email hệ thống", txtEmail);
+        addField(card, g, 4, "Tên đăng nhập", txtUsername);
+        addField(card, g, 5, "Địa chỉ", txtDiaChi);
+        addField(card, g, 6, "Trạng thái", cbTrangThai);
         root.add(card, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
@@ -80,19 +86,29 @@ final class CustomerEditDialog {
         btnSave.addActionListener(e -> {
             String hoTen = txtHoTen.getText().trim();
             String sdt = txtSdt.getText().trim();
+            String email = txtEmail.getText().trim();
+            String username = txtUsername.getText().trim();
+            String diaChi = txtDiaChi.getText().trim();
             String trangThai = profile.trangThai();
 
             if (hoTen.isEmpty() || sdt.isEmpty()) {
                 JOptionPane.showMessageDialog(
                         dialog,
-                        "Họ tên và số điện thoại không được để trống.",
+                        "Họ tên và số điện thoại là bắt buộc.",
                         "Thông báo",
                         JOptionPane.WARNING_MESSAGE
                 );
                 return;
             }
 
-            result[0] = new UpdateCustomerRequest(hoTen, sdt, trangThai);
+            result[0] = new UpdateCustomerRequest(
+                    hoTen,
+                    sdt,
+                    trangThai,
+                    normalizeOptional(email),
+                    normalizeOptional(username),
+                    normalizeOptional(diaChi)
+            );
             dialog.dispose();
         });
 
@@ -117,6 +133,9 @@ final class CustomerEditDialog {
     private static JTextField readonlyField(String value) {
         JTextField field = baseField(value);
         field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
         field.setBackground(new Color(241, 245, 249));
         return field;
     }
@@ -135,20 +154,32 @@ final class CustomerEditDialog {
         return field;
     }
 
+    private static String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private static JButton button(String text, Color background, Color foreground) {
-        JButton btn = new JButton(text);
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
         btn.setFont(AppFonts.lexendBold(13f));
         btn.setForeground(foreground);
-        btn.setBackground(background);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        Color borderColor = Color.WHITE.equals(foreground) ? new Color(29, 78, 216) : new Color(148, 163, 184);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor, 1, true),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        btn.setBorderPainted(true);
-        btn.setContentAreaFilled(true);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }

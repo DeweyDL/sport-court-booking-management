@@ -7,6 +7,7 @@ public record CustomerSummary(
         String userId,
         String hoTen,
         String sdt,
+        String hangKhachHang,
         String trangThai,
         BigDecimal doanhThu
 ) {

@@ -88,15 +88,21 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
         if (isBlank(maKhachHang)) {
             return CustomerResult.fail("Thiếu mã khách hàng.");
         }
-        if (request == null || isBlank(request.hoTen()) || isBlank(request.sdt()) || isBlank(request.trangThai())) {
-            return CustomerResult.fail("Vui lòng nhập đầy đủ thông tin cập nhật.");
+        if (request == null
+                || isBlank(request.hoTen())
+                || isBlank(request.sdt())
+                || isBlank(request.trangThai())) {
+            return CustomerResult.fail("Họ tên và số điện thoại là bắt buộc.");
         }
 
         try {
             boolean updated = manageCustomerDao.updateCustomer(maKhachHang.trim(), new UpdateCustomerRequest(
                     request.hoTen().trim(),
                     request.sdt().trim(),
-                    request.trangThai().trim()
+                    request.trangThai().trim(),
+                    normalizeOptional(request.emailHeThong()),
+                    normalizeOptional(request.username()),
+                    normalizeOptional(request.diaChi())
             ));
             if (!updated) {
                 return CustomerResult.fail("Không tìm thấy khách hàng để cập nhật.");
@@ -169,5 +175,13 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
