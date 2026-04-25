@@ -1,11 +1,11 @@
-package com.sportcourt.auth.controller;
+package com.sportcourt.modules.auth.controller;
 
-import com.sportcourt.auth.dto.AuthResult;
-import com.sportcourt.auth.dto.LoginRequest;
-import com.sportcourt.auth.dto.RegisterRequest;
-import com.sportcourt.auth.dto.ResetPasswordRequest;
-import com.sportcourt.auth.service.AuthService;
-import com.sportcourt.auth.service.AuthServiceImpl;
+import com.sportcourt.modules.auth.dto.AuthResult;
+import com.sportcourt.modules.auth.dto.LoginRequest;
+import com.sportcourt.modules.auth.dto.RegisterRequest;
+import com.sportcourt.modules.auth.dto.ResetPasswordRequest;
+import com.sportcourt.modules.auth.service.AuthService;
+import com.sportcourt.modules.auth.service.AuthServiceImpl;
 
 public class AuthController {
     private final AuthService authService;

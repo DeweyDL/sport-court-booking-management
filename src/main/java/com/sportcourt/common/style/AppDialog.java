@@ -1,4 +1,4 @@
-package com.sportcourt.style;
+package com.sportcourt.common.style;
 
 import javax.swing.*;
 import java.awt.*;

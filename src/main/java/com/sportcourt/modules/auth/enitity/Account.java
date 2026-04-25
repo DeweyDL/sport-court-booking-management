@@ -1,4 +1,4 @@
-package com.sportcourt.auth.enitity;
+package com.sportcourt.modules.auth.enitity;
 
 import java.time.LocalDateTime;
 

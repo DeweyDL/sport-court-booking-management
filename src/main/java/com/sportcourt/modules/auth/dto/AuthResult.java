@@ -1,4 +1,4 @@
-package com.sportcourt.auth.dto;
+package com.sportcourt.modules.auth.dto;
 
 public record AuthResult(
         boolean success,

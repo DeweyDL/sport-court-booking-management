@@ -1,4 +1,4 @@
-package com.sportcourt.auth.util;
+package com.sportcourt.modules.auth.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

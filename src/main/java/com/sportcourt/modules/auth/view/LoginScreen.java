@@ -1,23 +1,18 @@
-package com.sportcourt.auth.view;
+package com.sportcourt.modules.auth.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import com.github.lgooddatepicker.components.DatePicker;
-import com.sportcourt.auth.controller.AuthController;
-import com.sportcourt.auth.dto.AuthResult;
-import com.sportcourt.auth.dto.LoginRequest;
-import com.sportcourt.auth.dto.RegisterRequest;
-import com.sportcourt.style.AppDialog;
-import com.sportcourt.style.AppFonts;
-import com.sportcourt.style.BackgroundPanel;
+import com.sportcourt.modules.auth.controller.AuthController;
+import com.sportcourt.modules.auth.dto.AuthResult;
+import com.sportcourt.modules.auth.dto.LoginRequest;
+import com.sportcourt.common.style.AppDialog;
+import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.BackgroundPanel;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
-import java.time.LocalDate;
 
 public class LoginScreen extends JFrame {
     private final AuthController authController = new AuthController();

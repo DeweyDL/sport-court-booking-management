@@ -1,10 +1,10 @@
-package com.sportcourt.auth.view;
+package com.sportcourt.modules.auth.view;
 
-import com.sportcourt.auth.controller.AuthController;
-import com.sportcourt.auth.dto.AuthResult;
-import com.sportcourt.auth.dto.ResetPasswordRequest;
-import com.sportcourt.style.AppDialog;
-import com.sportcourt.style.AppFonts;
+import com.sportcourt.modules.auth.controller.AuthController;
+import com.sportcourt.modules.auth.dto.AuthResult;
+import com.sportcourt.modules.auth.dto.ResetPasswordRequest;
+import com.sportcourt.common.style.AppDialog;
+import com.sportcourt.common.style.AppFonts;
 
 import javax.swing.*;
 import java.awt.*;

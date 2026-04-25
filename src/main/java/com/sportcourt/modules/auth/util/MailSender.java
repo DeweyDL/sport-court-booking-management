@@ -1,4 +1,4 @@
-package com.sportcourt.auth.util;
+package com.sportcourt.modules.auth.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;

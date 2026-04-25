@@ -1,4 +1,4 @@
-package com.sportcourt.auth.dto;
+package com.sportcourt.modules.auth.dto;
 
 import java.time.LocalDate;
 
