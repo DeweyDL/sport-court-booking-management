@@ -1,7 +1,7 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import com.sportcourt.area.view.QuanLyKhuVuc;
+import com.sportcourt.modules.area.view.QuanLyKhuVuc;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,7 +15,7 @@ public class Sidebar extends JFrame {
     private JPanel menuPanel;
     private JPanel bottomPanel;
 
-    private final Color SIDEBAR_BG = Color.decode("#303236");
+    private final Color SIDEBAR_BG = Color.decode("#2f3c33");
     private final Color SIDEBAR_HOVER_BG = Color.decode("#43464A");
     private final Color TEXT_NORMAL = Color.decode("#B0B3B8");
     private final Color NEON_GREEN = Color.decode("#99E828");
@@ -122,9 +122,9 @@ public class Sidebar extends JFrame {
     private JPanel createMenuButton(String text, String iconPath) {
         JButton button = new JButton(text);
         button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFont(new Font("Lexend", Font.PLAIN, 14));
+        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, 15));
         button.setContentAreaFilled(false);
-        button.setBorder(new EmptyBorder(12, 40, 12, 10));
+        button.setBorder(new EmptyBorder(12, 30, 12, 10));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -141,7 +141,7 @@ public class Sidebar extends JFrame {
             if (url != null) {
                 button.setIcon(new ImageIcon(new ImageIcon(url).getImage()
                         .getScaledInstance(20, 20, Image.SCALE_SMOOTH)));
-                button.setIconTextGap(15);
+                button.setIconTextGap(10);
             }
         } catch (Exception e) { }
 
@@ -159,7 +159,7 @@ public class Sidebar extends JFrame {
 
                 if (isActive) {
                     g2.setColor(NEON_GREEN);
-                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 10, getHeight() - 10, getHeight() - 10);
+                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 5, getHeight() - 10, getHeight() - 10);
                 } else if (isHover) {
                     g2.setColor(SIDEBAR_HOVER_BG);
                     g2.fillRect(0, 0, getWidth(), getHeight());
@@ -169,7 +169,7 @@ public class Sidebar extends JFrame {
         };
 
         wrapper.setOpaque(false);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
         wrapper.add(button, BorderLayout.CENTER);
 
         button.addActionListener(e -> {
