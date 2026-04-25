@@ -1,4 +1,4 @@
-package com.sportcourt.style;
+package com.sportcourt.common.style;
 
 import java.awt.*;
 import java.io.InputStream;

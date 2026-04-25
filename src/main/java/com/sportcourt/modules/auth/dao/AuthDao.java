@@ -1,7 +1,7 @@
-package com.sportcourt.auth.dao;
+package com.sportcourt.modules.auth.dao;
 
-import com.sportcourt.auth.dto.AuthPrincipal;
-import com.sportcourt.auth.dto.RegisterRequest;
+import com.sportcourt.modules.auth.dto.AuthPrincipal;
+import com.sportcourt.modules.auth.dto.RegisterRequest;
 
 import java.sql.SQLException;
 import java.util.Optional;

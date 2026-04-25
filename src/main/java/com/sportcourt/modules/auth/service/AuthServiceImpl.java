@@ -1,14 +1,14 @@
-package com.sportcourt.auth.service;
+package com.sportcourt.modules.auth.service;
 
-import com.sportcourt.auth.dao.AuthDao;
-import com.sportcourt.auth.dao.JdbcAuthDao;
-import com.sportcourt.auth.dto.AuthPrincipal;
-import com.sportcourt.auth.dto.AuthResult;
-import com.sportcourt.auth.dto.LoginRequest;
-import com.sportcourt.auth.dto.RegisterRequest;
-import com.sportcourt.auth.dto.ResetPasswordRequest;
-import com.sportcourt.auth.util.MailSender;
-import com.sportcourt.auth.util.Sha256Password;
+import com.sportcourt.modules.auth.dao.AuthDao;
+import com.sportcourt.modules.auth.dao.JdbcAuthDao;
+import com.sportcourt.modules.auth.dto.AuthPrincipal;
+import com.sportcourt.modules.auth.dto.AuthResult;
+import com.sportcourt.modules.auth.dto.LoginRequest;
+import com.sportcourt.modules.auth.dto.RegisterRequest;
+import com.sportcourt.modules.auth.dto.ResetPasswordRequest;
+import com.sportcourt.modules.auth.util.MailSender;
+import com.sportcourt.modules.auth.util.Sha256Password;
 
 import java.sql.SQLException;
 import java.util.Optional;

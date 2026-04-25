@@ -1,9 +1,9 @@
-package com.sportcourt.auth.service;
+package com.sportcourt.modules.auth.service;
 
-import com.sportcourt.auth.dto.AuthResult;
-import com.sportcourt.auth.dto.LoginRequest;
-import com.sportcourt.auth.dto.RegisterRequest;
-import com.sportcourt.auth.dto.ResetPasswordRequest;
+import com.sportcourt.modules.auth.dto.AuthResult;
+import com.sportcourt.modules.auth.dto.LoginRequest;
+import com.sportcourt.modules.auth.dto.RegisterRequest;
+import com.sportcourt.modules.auth.dto.ResetPasswordRequest;
 
 public interface AuthService {
     AuthResult login(LoginRequest request);
