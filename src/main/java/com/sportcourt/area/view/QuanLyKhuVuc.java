@@ -1,4 +1,4 @@
-package com.sportcourt.auth.view.admin;
+package com.sportcourt.area.view;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

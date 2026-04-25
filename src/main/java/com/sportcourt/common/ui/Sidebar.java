@@ -1,4 +1,4 @@
-package com.sportcourt.auth.view.admin;
+package com.sportcourt.common.admin;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
@@ -42,6 +42,7 @@ public class AdminManagement extends JFrame {
         mainContentPanel.add(createPage("QUẢN LÝ DỤNG CỤ"), "QUẢN LÝ DỤNG CỤ");
         mainContentPanel.add(createPage("QUẢN LÝ SẢN PHẨM DỊCH VỤ"), "QUẢN LÝ SẢN PHẨM DỊCH VỤ");
         mainContentPanel.add(createPage("QUẢN LÝ NHÂN VIÊN"), "QUẢN LÝ NHÂN VIÊN");
+
 
         add(mainContentPanel, BorderLayout.CENTER);
 
