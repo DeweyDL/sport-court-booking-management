@@ -1,6 +1,5 @@
-package com.sportcourt.modules.court.dao;
-
 import com.sportcourt.common.db.ConnectionUtils;
+import com.sportcourt.modules.court.dao.CourtDAO;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
 import com.sportcourt.modules.court.dto.CourtTableRow;
 import com.sportcourt.modules.court.entity.Court;
@@ -94,7 +93,6 @@ public class CourtDAOImpl implements CourtDAO {
             }
         }
     }
-
     @Override
     public Optional<Court> findIdByInBranch(String courtId, String branchId) throws SQLException {
         return Optional.empty();
