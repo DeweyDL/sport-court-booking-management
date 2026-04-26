@@ -11,11 +11,11 @@ import java.util.Optional;
 public interface CourtDAO {
     List<CourtTableRow> findByCriteria(CourtSearchCriteria criteria) throws SQLException;
 
-    Optional<Court> findIdByInBranch(String courtId, String branchId) throws SQLException;
+    Optional<Court> findByIdInBranch(String courtId, String branchId) throws SQLException;
 
     boolean existsById(String courtId) throws SQLException;
 
-    boolean areaBelongsToBranch(String AreaId, String branchId) throws SQLException;
+    boolean areaBelongsToBranch(String areaId, String branchId) throws SQLException;
 
     boolean hasActiveRental(String courtId, String branchId) throws SQLException;
 

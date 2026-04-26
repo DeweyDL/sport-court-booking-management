@@ -1,3 +1,5 @@
+package com.sportcourt.modules.court.dao;
+
 import com.sportcourt.common.db.ConnectionUtils;
 import com.sportcourt.modules.court.dao.CourtDAO;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
@@ -93,8 +95,9 @@ public class CourtDAOImpl implements CourtDAO {
             }
         }
     }
+
     @Override
-    public Optional<Court> findIdByInBranch(String courtId, String branchId) throws SQLException {
+    public Optional<Court> findByIdInBranch(String courtId, String branchId) throws SQLException {
         return Optional.empty();
     }
 
@@ -104,7 +107,7 @@ public class CourtDAOImpl implements CourtDAO {
     }
 
     @Override
-    public boolean areaBelongsToBranch(String AreaId, String branchId) throws SQLException {
+    public boolean areaBelongsToBranch(String areaId, String branchId) throws SQLException {
         return false;
     }
 
@@ -127,27 +130,29 @@ public class CourtDAOImpl implements CourtDAO {
     public boolean softDelete(String courtId, String branchId) throws SQLException {
         return false;
     }
-}
 
-private String resolveSortColumn(String sortBy) {
-    if (sortBy == null || sortBy.isBlank()) {
-        return "sc.MASAN";
+    private String resolveSortColumn(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "sc.MASAN";
+        }
+
+        return switch (sortBy) {
+            case "courtId" -> "sc.MASAN";
+            case "areaId" -> "sc.MAKV";
+            case "sportTypeName" -> "ltt.TEN";
+            case "status" -> "sc.TRANGTHAI";
+            case "createdAt" -> "sc.CREATED_AT";
+            default -> "sc.MASAN";
+        };
     }
 
-    return switch (sortBy) {
-        case "courtId" -> "sc.MASAN";
-        case "areaId" -> "sc.MAKV";
-        case "sportTypeName" -> "ltt.TEN";
-        case "status" -> "sc.TRANGTHAI";
-        case "createdAt" -> "sc.CREATED_AT";
-        default -> "sc.MASAN";
-    };
-}
+    private String resolveSortDirection(String sortDirection) {
+        if ("DESC".equalsIgnoreCase(sortDirection)) {
+            return "DESC";
+        }
 
-private String resolveSortDirection(String sortDirection) {
-    if ("DESC".equalsIgnoreCase(sortDirection)) {
-        return "DESC";
+        return "ASC";
     }
-
-    return "ASC";
 }
+
+
