@@ -1,12 +1,12 @@
-package com.sportcourt.modules.managecustomer.controller;
+package com.sportcourt.modules.customer.controller;
 
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerResult;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
-import com.sportcourt.modules.managecustomer.service.ManageCustomerService;
-import com.sportcourt.modules.managecustomer.service.ManageCustomerServiceImpl;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerResult;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.service.ManageCustomerService;
+import com.sportcourt.modules.customer.service.ManageCustomerServiceImpl;
 
 import java.util.List;
 
@@ -45,3 +45,4 @@ public class ManageCustomerController {
         return manageCustomerService.restoreCustomer(maKhachHang);
     }
 }
+

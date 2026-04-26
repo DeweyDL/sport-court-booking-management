@@ -1,4 +1,4 @@
-package com.sportcourt.modules.managecustomer.dto;
+package com.sportcourt.modules.customer.dto;
 
 import java.math.BigDecimal;
 
@@ -12,3 +12,4 @@ public record CustomerSummary(
         BigDecimal doanhThu
 ) {
 }
+

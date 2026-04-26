@@ -1,8 +1,8 @@
-package com.sportcourt.modules.managecustomer.view;
+package com.sportcourt.modules.customer.view;
 
 import com.sportcourt.common.style.AppFonts;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -46,7 +46,6 @@ final class CustomerEditDialog {
         JTextField txtHoTen = editableField(profile.hoTen());
         JTextField txtSdt = editableField(profile.sdt());
         JTextField txtEmail = editableField(profile.emailHeThong());
-        JTextField txtUsername = editableField(profile.username());
         JTextField txtDiaChi = editableField(profile.diaChi());
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         cbTrangThai.setSelectedItem(profile.trangThai());
@@ -68,9 +67,8 @@ final class CustomerEditDialog {
         addField(card, g, 1, "Họ tên", txtHoTen);
         addField(card, g, 2, "Số điện thoại", txtSdt);
         addField(card, g, 3, "Email hệ thống", txtEmail);
-        addField(card, g, 4, "Tên đăng nhập", txtUsername);
-        addField(card, g, 5, "Địa chỉ", txtDiaChi);
-        addField(card, g, 6, "Trạng thái", cbTrangThai);
+        addField(card, g, 4, "Địa chỉ", txtDiaChi);
+        addField(card, g, 5, "Trạng thái", cbTrangThai);
         root.add(card, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
@@ -87,7 +85,6 @@ final class CustomerEditDialog {
             String hoTen = txtHoTen.getText().trim();
             String sdt = txtSdt.getText().trim();
             String email = txtEmail.getText().trim();
-            String username = txtUsername.getText().trim();
             String diaChi = txtDiaChi.getText().trim();
             String trangThai = profile.trangThai();
 
@@ -106,7 +103,7 @@ final class CustomerEditDialog {
                     sdt,
                     trangThai,
                     normalizeOptional(email),
-                    normalizeOptional(username),
+                    normalizeOptional(sdt),
                     normalizeOptional(diaChi)
             );
             dialog.dispose();
@@ -184,3 +181,4 @@ final class CustomerEditDialog {
         return btn;
     }
 }
+

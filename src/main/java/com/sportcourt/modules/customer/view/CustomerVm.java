@@ -1,7 +1,7 @@
-package com.sportcourt.modules.managecustomer.view;
+package com.sportcourt.modules.customer.view;
 
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
 
 import java.math.BigDecimal;
 
@@ -106,3 +106,4 @@ final class CustomerVm {
         return doanhThu;
     }
 }
+

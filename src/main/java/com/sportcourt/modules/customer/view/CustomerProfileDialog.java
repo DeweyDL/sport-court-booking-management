@@ -1,7 +1,7 @@
-package com.sportcourt.modules.managecustomer.view;
+package com.sportcourt.modules.customer.view;
 
 import com.sportcourt.common.style.AppFonts;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -144,3 +144,4 @@ final class CustomerProfileDialog {
         return value == null ? "" : value.trim();
     }
 }
+

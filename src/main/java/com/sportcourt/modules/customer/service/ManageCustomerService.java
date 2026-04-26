@@ -1,10 +1,10 @@
-package com.sportcourt.modules.managecustomer.service;
+package com.sportcourt.modules.customer.service;
 
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerResult;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerResult;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.util.List;
 
@@ -21,3 +21,4 @@ public interface ManageCustomerService {
 
     CustomerResult<Void> restoreCustomer(String maKhachHang);
 }
+

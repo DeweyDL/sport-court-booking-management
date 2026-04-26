@@ -1,4 +1,4 @@
-package com.sportcourt.modules.managecustomer.dto;
+package com.sportcourt.modules.customer.dto;
 
 public record CustomerResult<T>(
         boolean success,
@@ -13,3 +13,4 @@ public record CustomerResult<T>(
         return new CustomerResult<>(false, message, null);
     }
 }
+

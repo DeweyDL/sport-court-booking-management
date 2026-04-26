@@ -1,7 +1,7 @@
-package com.sportcourt.modules.managecustomer.view;
+package com.sportcourt.modules.customer.view;
 
 import com.sportcourt.common.style.AppFonts;
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -139,3 +139,4 @@ final class CustomerCreateDialog {
         return btn;
     }
 }
+

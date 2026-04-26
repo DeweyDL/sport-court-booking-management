@@ -1,10 +1,10 @@
-package com.sportcourt.modules.managecustomer.dao;
+package com.sportcourt.modules.customer.dao;
 
 import com.sportcourt.common.db.ConnectionUtils;
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -152,7 +152,12 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 """;
         String updateAccount = """
                 UPDATE ACCOUNT a
-                SET a.USERNAME = NVL(?, a.USERNAME)
+                SET a.USERNAME = (
+                    SELECT u.SDT
+                    FROM USERS u
+                    WHERE u.USER_ID = a.USER_ID
+                      AND u.IS_DELETED = 0
+                )
                 WHERE a.USER_ID = (
                     SELECT kh.USER_ID
                     FROM KHACH_HANG kh
@@ -179,8 +184,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 userStmt.setString(5, maKhachHang);
                 int userUpdated = userStmt.executeUpdate();
 
-                accountStmt.setString(1, request.username());
-                accountStmt.setString(2, maKhachHang);
+                accountStmt.setString(1, maKhachHang);
                 int accountUpdated = accountStmt.executeUpdate();
 
                 customerStmt.setString(1, request.trangThai().trim());
@@ -316,3 +320,4 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
         }
     }
 }
+

@@ -1,4 +1,4 @@
-package com.sportcourt.modules.managecustomer.dto;
+package com.sportcourt.modules.customer.dto;
 
 public record UpdateCustomerRequest(
         String hoTen,
@@ -9,3 +9,4 @@ public record UpdateCustomerRequest(
         String diaChi
 ) {
 }
+

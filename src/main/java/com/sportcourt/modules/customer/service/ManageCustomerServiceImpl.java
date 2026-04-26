@@ -1,13 +1,13 @@
-package com.sportcourt.modules.managecustomer.service;
+package com.sportcourt.modules.customer.service;
 
 import com.sportcourt.modules.auth.util.Sha256Password;
-import com.sportcourt.modules.managecustomer.dao.JdbcManageCustomerDao;
-import com.sportcourt.modules.managecustomer.dao.ManageCustomerDao;
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerResult;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.dao.JdbcManageCustomerDao;
+import com.sportcourt.modules.customer.dao.ManageCustomerDao;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerResult;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -53,8 +53,14 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
 
     @Override
     public CustomerResult<CustomerProfile> createCustomer(CreateCustomerRequest request) {
-        if (request == null || isBlank(request.hoTen()) || isBlank(request.sdt())) {
-            return CustomerResult.fail("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+        if (request == null) {
+            return CustomerResult.fail("Chưa điền thông tin khách hàng.");
+        }
+        if (isBlank(request.hoTen())) {
+            return CustomerResult.fail("Chưa điền họ tên.");
+        }
+        if (isBlank(request.sdt())) {
+            return CustomerResult.fail("Chưa điền số điện thoại.");
         }
 
         String userId = generateId("USR");
@@ -79,20 +85,23 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
             );
             return getProfile(maKhachHang);
         } catch (SQLException e) {
-            return CustomerResult.fail("Thêm khách hàng thất bại: " + mapOracleError(e));
+            return CustomerResult.fail(mapOracleError(e));
         }
     }
 
     @Override
     public CustomerResult<CustomerProfile> updateCustomer(String maKhachHang, UpdateCustomerRequest request) {
         if (isBlank(maKhachHang)) {
-            return CustomerResult.fail("Thiếu mã khách hàng.");
+            return CustomerResult.fail("Chưa điền mã khách hàng.");
         }
-        if (request == null
-                || isBlank(request.hoTen())
-                || isBlank(request.sdt())
-                || isBlank(request.trangThai())) {
-            return CustomerResult.fail("Họ tên và số điện thoại là bắt buộc.");
+        if (request == null) {
+            return CustomerResult.fail("Chưa điền thông tin cập nhật.");
+        }
+        if (isBlank(request.hoTen())) {
+            return CustomerResult.fail("Chưa điền họ tên.");
+        }
+        if (isBlank(request.sdt())) {
+            return CustomerResult.fail("Chưa điền số điện thoại.");
         }
 
         try {
@@ -105,43 +114,43 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
                     normalizeOptional(request.diaChi())
             ));
             if (!updated) {
-                return CustomerResult.fail("Không tìm thấy khách hàng để cập nhật.");
+                return CustomerResult.fail("Khách hàng đã bị xóa, khôi phục lại để có thể cập nhật thông tin khách hàng.");
             }
             return getProfile(maKhachHang.trim());
         } catch (SQLException e) {
-            return CustomerResult.fail("Cập nhật thất bại: " + mapOracleError(e));
+            return CustomerResult.fail(mapOracleError(e));
         }
     }
 
     @Override
     public CustomerResult<Void> softDeleteCustomer(String maKhachHang) {
         if (isBlank(maKhachHang)) {
-            return CustomerResult.fail("Thiếu mã khách hàng.");
+            return CustomerResult.fail("Chưa điền mã khách hàng.");
         }
         try {
             boolean deleted = manageCustomerDao.softDeleteCustomer(maKhachHang.trim());
             if (!deleted) {
                 return CustomerResult.fail("Không tìm thấy khách hàng để xóa.");
             }
-            return CustomerResult.ok("Đã cập nhật trạng thái khách hàng.", null);
+            return CustomerResult.ok("Xóa thành công.", null);
         } catch (SQLException e) {
-            return CustomerResult.fail("Xóa khách hàng thất bại: " + mapOracleError(e));
+            return CustomerResult.fail(mapOracleError(e));
         }
     }
 
     @Override
     public CustomerResult<Void> restoreCustomer(String maKhachHang) {
         if (isBlank(maKhachHang)) {
-            return CustomerResult.fail("Thiếu mã khách hàng.");
+            return CustomerResult.fail("Chưa điền mã khách hàng.");
         }
         try {
             boolean restored = manageCustomerDao.restoreCustomer(maKhachHang.trim());
             if (!restored) {
                 return CustomerResult.fail("Không tìm thấy khách hàng để khôi phục.");
             }
-            return CustomerResult.ok("Đã khôi phục khách hàng.", null);
+            return CustomerResult.ok("Đã khôi phục tài khoản khách hàng.", null);
         } catch (SQLException e) {
-            return CustomerResult.fail("Khôi phục khách hàng thất bại: " + mapOracleError(e));
+            return CustomerResult.fail(mapOracleError(e));
         }
     }
 
@@ -156,19 +165,31 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
         }
         String upperMessage = message.toUpperCase();
         if (message.contains("ORA-00001")) {
-            return "Dữ liệu đã tồn tại (trùng số điện thoại hoặc tài khoản).";
+            return "Số điện thoại đã tồn tại";
         }
         if (message.contains("ORA-02290")) {
-            return "Dữ liệu không đúng định dạng theo ràng buộc hệ thống.";
+            if (upperMessage.contains("CK_USERS_SDT")) {
+                return "Số điện thoại sai định dạng.";
+            }
+            if (upperMessage.contains("CK_USERS_EMAIL")) {
+                return "Email sai định dạng.";
+            }
+            return "Dữ liệu sai định dạng.";
         }
         if (message.contains("ORA-12899")) {
             if (upperMessage.contains("\"USERS\".\"SDT\"")) {
-                return "Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 số.";
+                return "Số điện thoại không hợp lệ.";
             }
-            return "Thông tin nhập vào vượt quá độ dài cho phép.";
+            return "Dữ liệu không hợp lệ.";
         }
         if (message.contains("ORA-01400")) {
-            return "Thiếu dữ liệu bắt buộc.";
+            if (upperMessage.contains("\"USERS\".\"HOTEN\"")) {
+                return "Chưa điền họ tên.";
+            }
+            if (upperMessage.contains("\"USERS\".\"SDT\"")) {
+                return "Chưa điền số điện thoại.";
+            }
+            return "Dữ liệu không hợp lệ.";
         }
         return "Có lỗi xảy ra khi xử lý dữ liệu. Vui lòng thử lại.";
     }
@@ -185,3 +206,4 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 }
+

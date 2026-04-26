@@ -1,9 +1,9 @@
-package com.sportcourt.modules.managecustomer.dao;
+package com.sportcourt.modules.customer.dao;
 
-import com.sportcourt.modules.managecustomer.dto.CreateCustomerRequest;
-import com.sportcourt.modules.managecustomer.dto.CustomerProfile;
-import com.sportcourt.modules.managecustomer.dto.CustomerSummary;
-import com.sportcourt.modules.managecustomer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.customer.dto.CustomerProfile;
+import com.sportcourt.modules.customer.dto.CustomerSummary;
+import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -23,3 +23,4 @@ public interface ManageCustomerDao {
 
     boolean restoreCustomer(String maKhachHang) throws SQLException;
 }
+
