@@ -28,4 +28,9 @@ public class Branch {
     public void setHotline(String hotline) {
         this.hotline = hotline;
     }
+
+    @Override
+    public String toString() {
+        return maCn;
+    }
 }

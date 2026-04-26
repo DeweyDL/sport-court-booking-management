@@ -1,6 +1,27 @@
 package com.sportcourt.modules.staff.view;
-import com.sportcourt.modules.staff.dto.*;
-import javax.swing.*;
+
+import com.sportcourt.modules.staff.dto.StaffCreateRequest;
+import com.sportcourt.modules.staff.dto.StaffDetailResponse;
+import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 public class StaffFormDialog extends JDialog {
     private enum Mode {
@@ -8,10 +29,9 @@ public class StaffFormDialog extends JDialog {
         UPDATE
     }
 
-    private Mode mode;
-    private boolean submitted = false;
-
-    private StaffDetailResponse detail;
+    private final Mode mode;
+    private final StaffDetailResponse detail;
+    private boolean submitted;
 
     private JTextField txtHoTen;
     private JTextField txtNgaySinh;
@@ -25,6 +45,7 @@ public class StaffFormDialog extends JDialog {
     private JTextField txtCccd;
     private JCheckBox chkQuanLy;
 
+    private JPanel accountPanel;
     private JCheckBox chkCreateAccount;
     private JTextField txtUsername;
     private JPasswordField txtPassword;
@@ -36,10 +57,11 @@ public class StaffFormDialog extends JDialog {
     private StaffFormDialog(Mode mode, StaffDetailResponse detail) {
         this.mode = mode;
         this.detail = detail;
+        this.submitted = false;
 
         setModal(true);
         setTitle(mode == Mode.CREATE ? "Thêm mới nhân viên" : "Cập nhật thông tin nhân viên");
-        setSize(520, 620);
+        setSize(560, 680);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         initComponents();
@@ -48,14 +70,10 @@ public class StaffFormDialog extends JDialog {
 
         if (mode == Mode.UPDATE && detail != null) {
             fillData(detail);
+            hideAccountFields();
         }
 
-        if (mode == Mode.UPDATE) {
-            chkCreateAccount.setVisible(false);
-            txtUsername.setVisible(false);
-            txtPassword.setVisible(false);
-            txtRoleGroupId.setVisible(false);
-        }
+        toggleAccountFields();
     }
 
     public static StaffFormDialog createMode() {
@@ -84,8 +102,8 @@ public class StaffFormDialog extends JDialog {
         txtPassword = new JPasswordField();
         txtRoleGroupId = new JTextField();
 
-        btnSave = new JButton("Lưu");
-        btnCancel = new JButton("Huỷ");
+        btnSave = StaffTheme.primaryButton("Lưu");
+        btnCancel = StaffTheme.secondaryButton("Huỷ");
 
         txtNgaySinh.setToolTipText("Định dạng: yyyy-MM-dd");
         txtNgayVaoLam.setToolTipText("Định dạng: yyyy-MM-dd");
@@ -96,22 +114,24 @@ public class StaffFormDialog extends JDialog {
         JPanel formPanel = new JPanel(new GridBagLayout());
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
+        mainPanel.setBackground(StaffTheme.BACKGROUND);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        StaffTheme.applyCard(formPanel);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.insets = new Insets(7, 7, 7, 7);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
 
+        addSectionTitle(formPanel, gbc, row++, "Thông tin cá nhân");
         addRow(formPanel, gbc, row++, "Họ tên:", txtHoTen);
         addRow(formPanel, gbc, row++, "Ngày sinh:", txtNgaySinh);
         addRow(formPanel, gbc, row++, "Số điện thoại:", txtSdt);
         addRow(formPanel, gbc, row++, "Email:", txtEmail);
         addRow(formPanel, gbc, row++, "Địa chỉ:", txtDiaChi);
 
-        addSeparator(formPanel, gbc, row++, "Thông tin nhân viên");
-
+        addSectionTitle(formPanel, gbc, row++, "Thông tin nhân viên");
         addRow(formPanel, gbc, row++, "Mã chi nhánh:", txtMaCn);
         addRow(formPanel, gbc, row++, "Mã loại nhân viên:", txtMaLoaiNv);
         addRow(formPanel, gbc, row++, "Ngày vào làm:", txtNgayVaoLam);
@@ -122,16 +142,32 @@ public class StaffFormDialog extends JDialog {
         gbc.weightx = 1;
         formPanel.add(chkQuanLy, gbc);
 
-        addSeparator(formPanel, gbc, row++, "Tài khoản đăng nhập");
+        accountPanel = new JPanel(new GridBagLayout());
+        accountPanel.setOpaque(false);
 
-        gbc.gridx = 1;
+        GridBagConstraints accountGbc = new GridBagConstraints();
+        accountGbc.insets = new Insets(7, 7, 7, 7);
+        accountGbc.fill = GridBagConstraints.HORIZONTAL;
+
+        int accountRow = 0;
+        addSectionTitle(accountPanel, accountGbc, accountRow++, "Tài khoản đăng nhập");
+
+        accountGbc.gridx = 1;
+        accountGbc.gridy = accountRow++;
+        accountGbc.weightx = 1;
+        accountPanel.add(chkCreateAccount, accountGbc);
+
+        addRow(accountPanel, accountGbc, accountRow++, "Username:", txtUsername);
+        addRow(accountPanel, accountGbc, accountRow++, "Password:", txtPassword);
+        addRow(accountPanel, accountGbc, accountRow++, "Mã nhóm quyền:", txtRoleGroupId);
+
+        gbc.gridx = 0;
         gbc.gridy = row++;
-        formPanel.add(chkCreateAccount, gbc);
+        gbc.gridwidth = 2;
+        formPanel.add(accountPanel, gbc);
+        gbc.gridwidth = 1;
 
-        addRow(formPanel, gbc, row++, "Username:", txtUsername);
-        addRow(formPanel, gbc, row++, "Password:", txtPassword);
-        addRow(formPanel, gbc, row++, "Mã nhóm quyền:", txtRoleGroupId);
-
+        buttonPanel.setOpaque(false);
         buttonPanel.add(btnSave);
         buttonPanel.add(btnCancel);
 
@@ -144,23 +180,25 @@ public class StaffFormDialog extends JDialog {
     private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent component) {
         gbc.gridx = 0;
         gbc.gridy = row;
+        gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel(label), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = row;
+        gbc.gridwidth = 1;
         gbc.weightx = 1;
         panel.add(component, gbc);
     }
 
-    private void addSeparator(JPanel panel, GridBagConstraints gbc, int row, String title) {
+    private void addSectionTitle(JPanel panel, GridBagConstraints gbc, int row, String title) {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.gridwidth = 2;
         gbc.weightx = 1;
 
         JLabel label = new JLabel(title);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
+        label.setFont(StaffTheme.fontBold(15));
         panel.add(label, gbc);
 
         gbc.gridwidth = 1;
@@ -168,17 +206,22 @@ public class StaffFormDialog extends JDialog {
 
     private void initEvents() {
         btnSave.addActionListener(e -> handleSave());
+
         btnCancel.addActionListener(e -> {
             submitted = false;
             dispose();
         });
 
         chkCreateAccount.addActionListener(e -> toggleAccountFields());
-        toggleAccountFields();
+    }
+
+    private void hideAccountFields() {
+        chkCreateAccount.setSelected(false);
+        accountPanel.setVisible(false);
     }
 
     private void toggleAccountFields() {
-        boolean enabled = chkCreateAccount.isSelected();
+        boolean enabled = mode == Mode.CREATE && chkCreateAccount.isSelected();
 
         txtUsername.setEnabled(enabled);
         txtPassword.setEnabled(enabled);
@@ -186,16 +229,16 @@ public class StaffFormDialog extends JDialog {
     }
 
     private void fillData(StaffDetailResponse detail) {
-        txtHoTen.setText(detail.getHoTen());
+        txtHoTen.setText(safe(detail.getHoTen()));
         txtNgaySinh.setText(detail.getNgaySinh() == null ? "" : detail.getNgaySinh().toString());
-        txtSdt.setText(detail.getSdt());
-        txtEmail.setText(detail.getEmail());
-        txtDiaChi.setText(detail.getDiaChi());
+        txtSdt.setText(safe(detail.getSdt()));
+        txtEmail.setText(safe(detail.getEmail()));
+        txtDiaChi.setText(safe(detail.getDiaChi()));
 
-        txtMaCn.setText(detail.getMaCn());
-        txtMaLoaiNv.setText(detail.getMaLoaiNv());
+        txtMaCn.setText(safe(detail.getMaCn()));
+        txtMaLoaiNv.setText(safe(detail.getMaLoaiNv()));
         txtNgayVaoLam.setText(detail.getNgayVaoLam() == null ? "" : detail.getNgayVaoLam().toString());
-        txtCccd.setText(detail.getCccd());
+        txtCccd.setText(safe(detail.getCccd()));
         chkQuanLy.setSelected(detail.isQuanLy());
     }
 
@@ -219,6 +262,10 @@ public class StaffFormDialog extends JDialog {
             throw new RuntimeException("Họ tên không được để trống.");
         }
 
+        if (parseDate(txtNgaySinh.getText(), "Ngày sinh") == null) {
+            throw new RuntimeException("Ngày sinh không được để trống.");
+        }
+
         if (isBlank(txtSdt.getText())) {
             throw new RuntimeException("Số điện thoại không được để trống.");
         }
@@ -235,12 +282,13 @@ public class StaffFormDialog extends JDialog {
             throw new RuntimeException("Mã loại nhân viên không được để trống.");
         }
 
+        if (parseDate(txtNgayVaoLam.getText(), "Ngày vào làm") == null) {
+            throw new RuntimeException("Ngày vào làm không được để trống.");
+        }
+
         if (isBlank(txtCccd.getText())) {
             throw new RuntimeException("CCCD không được để trống.");
         }
-
-        parseDate(txtNgaySinh.getText(), "Ngày sinh");
-        parseDate(txtNgayVaoLam.getText(), "Ngày vào làm");
 
         if (mode == Mode.CREATE && chkCreateAccount.isSelected()) {
             if (isBlank(txtUsername.getText())) {
@@ -284,7 +332,7 @@ public class StaffFormDialog extends JDialog {
     }
 
     public StaffUpdateRequest getUpdateRequest() {
-        if (mode != Mode.UPDATE || !submitted) {
+        if (mode != Mode.UPDATE || !submitted || detail == null) {
             return null;
         }
 
@@ -321,5 +369,9 @@ public class StaffFormDialog extends JDialog {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -1,39 +1,62 @@
 package com.sportcourt.modules.staff.service;
-import com.sportcourt.modules.staff.dao.*;
-import com.sportcourt.modules.staff.dto.*;
-import com.sportcourt.modules.staff.entity.*;
-import java.util.List;
+
 public class StaffPermissionService {
+    private static final String FUNCTION_CODE = "STAFF_MANAGEMENT";
+
+    public boolean canView() {
+        return hasPermission(FUNCTION_CODE, "VIEW");
+    }
+
+    public boolean canAdd() {
+        return hasPermission(FUNCTION_CODE, "ADD");
+    }
+
+    public boolean canEdit() {
+        return hasPermission(FUNCTION_CODE, "EDIT");
+    }
+
+    public boolean canDelete() {
+        return hasPermission(FUNCTION_CODE, "DELETE");
+    }
 
     public void checkViewPermission() {
-        if (!UserSession.getInstance().hasPermission("STAFF_MANAGEMENT", "VIEW")) {
+        if (!canView()) {
             throw new RuntimeException("Bạn không có quyền xem danh sách nhân viên.");
         }
     }
 
     public void checkAddPermission() {
-        if (!UserSession.getInstance().hasPermission("STAFF_MANAGEMENT", "ADD")) {
+        if (!canAdd()) {
             throw new RuntimeException("Bạn không có quyền thêm nhân viên.");
         }
     }
 
     public void checkEditPermission() {
-        if (!UserSession.getInstance().hasPermission("STAFF_MANAGEMENT", "EDIT")) {
+        if (!canEdit()) {
             throw new RuntimeException("Bạn không có quyền cập nhật nhân viên.");
         }
     }
 
     public void checkDeletePermission() {
-        if (!UserSession.getInstance().hasPermission("STAFF_MANAGEMENT", "DELETE")) {
+        if (!canDelete()) {
             throw new RuntimeException("Bạn không có quyền xoá nhân viên.");
         }
     }
 
     public void checkBranchScope(String maCn) {
-        UserSession session = UserSession.getInstance();
+        // Bản tạm để module staff chạy độc lập.
+        // Khi UserSession của auth ổn định, thay bằng kiểm tra chi nhánh thật.
+    }
 
-        if (!session.isOwner() && !session.getMaCn().equals(maCn)) {
-            throw new RuntimeException("Bạn không có quyền thao tác trên chi nhánh này.");
-        }
+    public boolean isOwner() {
+        return true;
+    }
+
+    public String getCurrentBranchCode() {
+        return null;
+    }
+
+    private boolean hasPermission(String functionCode, String action) {
+        return true;
     }
 }

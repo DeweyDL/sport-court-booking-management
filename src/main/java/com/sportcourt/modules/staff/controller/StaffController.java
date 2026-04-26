@@ -1,9 +1,14 @@
 package com.sportcourt.modules.staff.controller;
-import com.sportcourt.modules.staff.dto.*;
+
+import com.sportcourt.modules.staff.dto.StaffCreateRequest;
+import com.sportcourt.modules.staff.dto.StaffDetailResponse;
+import com.sportcourt.modules.staff.dto.StaffResponse;
+import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
+import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
 import com.sportcourt.modules.staff.service.StaffService;
 import com.sportcourt.modules.staff.view.StaffManagementView;
-import java.util.List;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class StaffController {
@@ -37,6 +42,7 @@ public class StaffController {
             List<StaffResponse> result = staffService.searchStaff(criteria);
             view.showStaffTable(result);
         } catch (Exception ex) {
+            view.showStaffTable(new ArrayList<>());
             view.showError(ex.getMessage());
         }
     }
@@ -44,6 +50,7 @@ public class StaffController {
     private void addStaff() {
         try {
             StaffCreateRequest request = view.showCreateDialog();
+
             if (request == null) {
                 return;
             }
@@ -59,12 +66,15 @@ public class StaffController {
     private void updateStaff() {
         try {
             String maNv = view.getSelectedStaffId();
+
             if (maNv == null) {
                 view.showError("Vui lòng chọn nhân viên cần cập nhật.");
                 return;
             }
 
-            StaffUpdateRequest request = view.showUpdateDialog(maNv);
+            StaffDetailResponse detail = staffService.getStaffDetail(maNv);
+            StaffUpdateRequest request = view.showUpdateDialog(detail);
+
             if (request == null) {
                 return;
             }
@@ -80,6 +90,7 @@ public class StaffController {
     private void deleteStaff() {
         try {
             String maNv = view.getSelectedStaffId();
+
             if (maNv == null) {
                 view.showError("Vui lòng chọn nhân viên cần xoá.");
                 return;
@@ -100,12 +111,14 @@ public class StaffController {
     private void viewDetail() {
         try {
             String maNv = view.getSelectedStaffId();
+
             if (maNv == null) {
-                view.showError("Vui lòng chọn nhân viên cần xem.");
+                view.showError("Vui lòng chọn nhân viên cần xem chi tiết.");
                 return;
             }
 
-            view.showDetailDialog(staffService.getStaffDetail(maNv));
+            StaffDetailResponse detail = staffService.getStaffDetail(maNv);
+            view.showDetailDialog(detail);
         } catch (Exception ex) {
             view.showError(ex.getMessage());
         }

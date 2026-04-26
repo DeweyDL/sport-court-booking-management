@@ -1,6 +1,9 @@
 package com.sportcourt.modules.staff.view;
+
 import com.sportcourt.modules.staff.dto.StaffResponse;
+
 import javax.swing.table.AbstractTableModel;
+import java.util.ArrayList;
 import java.util.List;
 
 public class StaffTableModel extends AbstractTableModel {
@@ -11,11 +14,15 @@ public class StaffTableModel extends AbstractTableModel {
     private List<StaffResponse> data = new ArrayList<>();
 
     public void setData(List<StaffResponse> data) {
-        this.data = data;
+        this.data = data == null ? new ArrayList<>() : data;
         fireTableDataChanged();
     }
 
     public StaffResponse getStaffAt(int row) {
+        if (row < 0 || row >= data.size()) {
+            return null;
+        }
+
         return data.get(row);
     }
 
@@ -38,17 +45,27 @@ public class StaffTableModel extends AbstractTableModel {
     public Object getValueAt(int rowIndex, int columnIndex) {
         StaffResponse staff = data.get(rowIndex);
 
-        return switch (columnIndex) {
-            case 0 -> staff.getMaNv();
-            case 1 -> staff.getHoTen();
-            case 2 -> staff.getSdt();
-            case 3 -> staff.getEmail();
-            case 4 -> staff.getViTri();
-            case 5 -> staff.getDiaChiChiNhanh();
-            case 6 -> staff.getNgayVaoLam();
-            case 7 -> staff.getCccd();
-            case 8 -> staff.isQuanLy() ? "Có" : "Không";
-            default -> "";
-        };
+        switch (columnIndex) {
+            case 0:
+                return staff.getMaNv();
+            case 1:
+                return staff.getHoTen();
+            case 2:
+                return staff.getSdt();
+            case 3:
+                return staff.getEmail();
+            case 4:
+                return staff.getViTri();
+            case 5:
+                return staff.getDiaChiChiNhanh();
+            case 6:
+                return staff.getNgayVaoLam();
+            case 7:
+                return staff.getCccd();
+            case 8:
+                return staff.isQuanLy() ? "Có" : "Không";
+            default:
+                return "";
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.sportcourt.modules.staff.dto;
-import java.time.LocalDate;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class StaffDetailResponse {
     private String maNv;
@@ -11,11 +12,14 @@ public class StaffDetailResponse {
     private String sdt;
     private String email;
     private String diaChi;
+
     private String maCn;
     private String diaChiChiNhanh;
+
     private String maLoaiNv;
     private String viTri;
     private BigDecimal mucLuong;
+
     private LocalDate ngayVaoLam;
     private String cccd;
     private boolean quanLy;
@@ -52,20 +56,20 @@ public class StaffDetailResponse {
         this.ngaySinh = ngaySinh;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getSdt() {
         return sdt;
     }
 
     public void setSdt(String sdt) {
         this.sdt = sdt;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getDiaChi() {
@@ -114,5 +118,29 @@ public class StaffDetailResponse {
 
     public void setMucLuong(BigDecimal mucLuong) {
         this.mucLuong = mucLuong;
+    }
+
+    public LocalDate getNgayVaoLam() {
+        return ngayVaoLam;
+    }
+
+    public void setNgayVaoLam(LocalDate ngayVaoLam) {
+        this.ngayVaoLam = ngayVaoLam;
+    }
+
+    public String getCccd() {
+        return cccd;
+    }
+
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
+    }
+
+    public boolean isQuanLy() {
+        return quanLy;
+    }
+
+    public void setQuanLy(boolean quanLy) {
+        this.quanLy = quanLy;
     }
 }
