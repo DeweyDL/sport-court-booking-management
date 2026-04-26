@@ -13,9 +13,9 @@ import java.sql.*;
 
 public class CourtDAOImpl implements CourtDAO {
     @Override
-    public Optional<Object> findByCriteria(CourtSearchCriteria criteria) throws SQLException {
+    public List<CourtTableRow> findByCriteria(CourtSearchCriteria criteria) throws SQLException {
         String sql = """
-                SELECTV sc.MASAN,
+                SELECT  sc.MASAN,
                         sc.MAKV,
                         cn.MACN,
                         cn.TEN_CHI_NHANH,
@@ -54,12 +54,12 @@ public class CourtDAOImpl implements CourtDAO {
         }
 
         if (criteria.getAreaId() != null && !criteria.getAreaId().isBlank()) {
-            sql += "AND kv.MAKV = ?";
+            sql += "AND kv.MAKV = ? ";
             params.add(criteria.getAreaId());
         }
 
-        if (criteria.getStatus() != null & !criteria.getAreaId().isBlank()) {
-            sql += "AND sc.TRANGTHAI = ?";
+        if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+            sql += "AND sc.TRANGTHAI = ? ";
             params.add(criteria.getStatus());
         }
 
@@ -92,64 +92,64 @@ public class CourtDAOImpl implements CourtDAO {
                 }
                 return rows;
             }
-            return List.of();
-        }
-
-        @Override
-        public Optional<Court> findIdByInBranch (String courtId, String branchId) throws SQLException {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean existsById (String courtId) throws SQLException {
-            return false;
-        }
-
-        @Override
-        public boolean areaBelongToBranch (String AreaId, String branchId) throws SQLException {
-            return false;
-        }
-
-        @Override
-        public boolean hasActiveRental (String courtId, String branchId) throws SQLException {
-            return false;
-        }
-
-        @Override
-        public void insert (Court court) throws SQLException {
-
-        }
-
-        @Override
-        public boolean update (Court court, String branchId) throws SQLException {
-            return false;
-        }
-
-        @Override
-        public boolean softDelete (String courtId, String branchId) throws SQLException {
-            return false;
         }
     }
 
-    private String resolveSortColumn(String sortBy) {
-        if (sortBy == null || sortBy.isBlank()) {
-            return "sc.MASAN";
-        }
-
-        return switch (sortBy) {
-            case "courtId" -> "sc.MASAN";
-            case "areaId" -> "sc.MAKV";
-            case "sportTypeName" -> "ltt.TEN";
-            case "status" -> "sc.TRANGTHAI";
-            case "createdAt" -> "sc.CREATED_AT";
-            default -> "sc.MASAN";
-        };
+    @Override
+    public Optional<Court> findIdByInBranch(String courtId, String branchId) throws SQLException {
+        return Optional.empty();
     }
 
-    private String resolveSortDirection(String sortDirection) {
-        if ("DESC".equalsIgnoreCase(sortDirection)) {
-            return "DESC";
-        }
-
-        return "ASC";
+    @Override
+    public boolean existsById(String courtId) throws SQLException {
+        return false;
     }
+
+    @Override
+    public boolean areaBelongsToBranch(String AreaId, String branchId) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public boolean hasActiveRental(String courtId, String branchId) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public void insert(Court court) throws SQLException {
+
+    }
+
+    @Override
+    public boolean update(Court court, String branchId) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public boolean softDelete(String courtId, String branchId) throws SQLException {
+        return false;
+    }
+}
+
+private String resolveSortColumn(String sortBy) {
+    if (sortBy == null || sortBy.isBlank()) {
+        return "sc.MASAN";
+    }
+
+    return switch (sortBy) {
+        case "courtId" -> "sc.MASAN";
+        case "areaId" -> "sc.MAKV";
+        case "sportTypeName" -> "ltt.TEN";
+        case "status" -> "sc.TRANGTHAI";
+        case "createdAt" -> "sc.CREATED_AT";
+        default -> "sc.MASAN";
+    };
+}
+
+private String resolveSortDirection(String sortDirection) {
+    if ("DESC".equalsIgnoreCase(sortDirection)) {
+        return "DESC";
+    }
+
+    return "ASC";
+}
