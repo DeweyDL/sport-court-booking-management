@@ -98,37 +98,208 @@ public class CourtDAOImpl implements CourtDAO {
 
     @Override
     public Optional<Court> findByIdInBranch(String courtId, String branchId) throws SQLException {
-        return Optional.empty();
+        String sql = """
+            SELECT sc.MASAN,
+                   sc.MAKV,
+                   sc.TRANGTHAI,
+                   sc.CREATED_AT,
+                   sc.IS_DELETED
+            FROM SAN_CON sc
+            JOIN KHU_VUC kv
+                ON kv.MAKV = sc.MAKV
+                AND kv.IS_DELETED = 0
+            WHERE sc.MASAN = ?
+              AND kv.MACN = ?
+              AND sc.IS_DELETED = 0
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, courtId);
+            ps.setString(2, branchId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+
+                Court court = new Court();
+                court.setCourtId(rs.getString("MASAN"));
+                court.setAreaId(rs.getString("MAKV"));
+                court.setStatus(rs.getString("TRANGTHAI"));
+                court.setCreatedAt(createdAt == null ? null : createdAt.toLocalDateTime());
+                court.setIsDeleted(rs.getInt("IS_DELETED") == 1);
+
+                return Optional.of(court);
+            }
+        }
     }
 
     @Override
     public boolean existsById(String courtId) throws SQLException {
-        return false;
+        String sql = """
+            SELECT COUNT(*)
+            FROM SAN_CON
+            WHERE MASAN = ?
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, courtId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+        }
     }
 
     @Override
     public boolean areaBelongsToBranch(String areaId, String branchId) throws SQLException {
-        return false;
+        String sql = """
+            SELECT COUNT(*)
+            FROM KHU_VUC
+            WHERE MAKV = ?
+              AND MACN = ?
+              AND IS_DELETED = 0
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, areaId);
+            ps.setString(2, branchId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+        }
     }
 
     @Override
     public boolean hasActiveRental(String courtId, String branchId) throws SQLException {
-        return false;
+        String sql = """
+            SELECT COUNT(*)
+            FROM CHI_TIET_HOA_DON_THUE_SAN ct
+            JOIN SAN_CON sc
+                ON sc.MASAN = ct.MASAN
+                AND sc.IS_DELETED = 0
+            JOIN KHU_VUC kv
+                ON kv.MAKV = sc.MAKV
+                AND kv.IS_DELETED = 0
+            WHERE ct.MASAN = ?
+              AND kv.MACN = ?
+              AND ct.IS_DELETED = 0
+              AND ct.TRANGTHAI IN (?, ?, ?, ?)
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, courtId);
+            ps.setString(2, branchId);
+            ps.setString(3, "ĐÃ ĐẶT CHỜ CỌC");
+            ps.setString(4, "ĐÃ CỌC");
+            ps.setString(5, "ĐÃ XÁC NHẬN");
+            ps.setString(6, "ĐANG SỬ DỤNG");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
+            }
+        }
     }
 
     @Override
     public void insert(Court court) throws SQLException {
+        String sql = """
+            INSERT INTO SAN_CON (
+                MASAN,
+                MAKV,
+                TRANGTHAI
+            ) VALUES (
+                ?, ?, ?
+            )
+            """;
 
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, court.getCourtId());
+            ps.setString(2, court.getAreaId());
+            ps.setString(3, court.getStatus());
+
+            ps.executeUpdate();
+        }
     }
 
     @Override
     public boolean update(Court court, String branchId) throws SQLException {
-        return false;
+        String sql = """
+            UPDATE SAN_CON sc
+            SET sc.MAKV = ?,
+                sc.TRANGTHAI = ?
+            WHERE sc.MASAN = ?
+              AND sc.IS_DELETED = 0
+              AND EXISTS (
+                  SELECT 1
+                  FROM KHU_VUC old_kv
+                  WHERE old_kv.MAKV = sc.MAKV
+                    AND old_kv.MACN = ?
+                    AND old_kv.IS_DELETED = 0
+              )
+              AND EXISTS (
+                  SELECT 1
+                  FROM KHU_VUC new_kv
+                  WHERE new_kv.MAKV = ?
+                    AND new_kv.MACN = ?
+                    AND new_kv.IS_DELETED = 0
+              )
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, court.getAreaId());
+            ps.setString(2, court.getStatus());
+            ps.setString(3, court.getCourtId());
+            ps.setString(4, branchId);
+            ps.setString(5, court.getAreaId());
+            ps.setString(6, branchId);
+
+            return ps.executeUpdate() > 0;
+        }
     }
 
     @Override
     public boolean softDelete(String courtId, String branchId) throws SQLException {
-        return false;
+        String sql = """
+            UPDATE SAN_CON sc
+            SET sc.IS_DELETED = 1
+            WHERE sc.MASAN = ?
+              AND sc.IS_DELETED = 0
+              AND EXISTS (
+                  SELECT 1
+                  FROM KHU_VUC kv
+                  WHERE kv.MAKV = sc.MAKV
+                    AND kv.MACN = ?
+                    AND kv.IS_DELETED = 0
+              )
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, courtId);
+            ps.setString(2, branchId);
+
+            return ps.executeUpdate() > 0;
+        }
     }
 
     private String resolveSortColumn(String sortBy) {
