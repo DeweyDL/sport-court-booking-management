@@ -1,17 +1,97 @@
 package com.sportcourt.modules.court.dao;
 
+import com.sportcourt.common.db.ConnectionUtils;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
 import com.sportcourt.modules.court.dto.CourtTableRow;
 import com.sportcourt.modules.court.entity.Court;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.sql.*;
 
 public class CourtDAOImpl implements CourtDAO {
     @Override
     public List<CourtTableRow> findByCriteria(CourtSearchCriteria criteria) throws SQLException {
+        String sql = """
+                SELECTV sc.MASAN,
+                        sc.MAKV,
+                        ltt.TEN AS TEN_THE_THAO,
+                        cn.MACN,
+                        cn.TEN_CHI_NHANH,
+                        sc.TRANGTHAI,
+                        sc.CREATED_AT
+                        FROM SAN_CON sc
+                        JOIN KHU_VUC kv
+                            ON kv.MAKV = sc.MAKV
+                            AND kv.IS_DELETED = 0
+                        JOIN LOAI_THE_THAO ltt
+                            ON ltt.MATT = kv.MATT
+                            AND ltt.IS_DELETED = 0
+                        JOIN CHI_NHANH cn
+                            ON cn.MACN = kv.MACN
+                            AND cn.IS_DELETED = 0
+                        WHERE sc.IS_DELETED = 0
+                        AND kv.MACN = ?
+                """;
+        List<Object> params = new ArrayList<>();
+        params.add(criteria.getBranchId());
+        if (criteria.getKeyWord() != null && !criteria.getKeyWord().isBlank()) {
+            sql += ("""
+                    AND (
+                                      UPPER(sc.MASAN) LIKE UPPER(?)
+                                      OR UPPER(sc.MAKV) LIKE UPPER(?)
+                                      OR UPPER(ltt.TEN) LIKE UPPER(?)
+                                      OR UPPER(cn.TEN_CHI_NHANH) LIKE UPPER(?)
+                         )
+                    """);
+            String keyword = "%" + criteria.getKeyWord().trim() + "%";
+            params.add(keyword);
+            params.add(keyword);
+            params.add(keyword);
+            params.add(keyword);
+        }
 
+        if (criteria.getAreaId() != null && !criteria.getAreaId().isBlank()) {
+            sql += "AND kv.MAKV = ?";
+            params.add(criteria.getAreaId());
+        }
+
+        if (criteria.getStatus() != null & !criteria.getAreaId().isBlank()) {
+            sql += "AND sc.TRANGTHAI = ?";
+            params.add(criteria.getStatus());
+        }
+
+        sql += "ORDER BY ";
+        sql += resolveSortColumn(criteria.getSortBy());
+        sql += (" ");
+        sql += resolveSortDirection(criteria.getSortDirection());
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<CourtTableRow> rows = new ArrayList<>();
+                while (rs.next()) {
+                    Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+
+                    CourtTableRow row = new CourtTableRow(
+                            rs.getString("MASAN"),
+                            rs.getString("MAKV"),
+                            rs.getString("TEN_THE_THAO"),
+                            rs.getString("MACN"),
+                            rs.getString("TEN_CHI_NHANH"),
+                            rs.getString("TRANGTHAI"),
+                            createdAt == null ? null : createdAt.toLocalDateTime()
+                    );
+                    rows.add(row);
+                }
+                return rows;
+            }
         return List.of();
     }
 
@@ -49,4 +129,27 @@ public class CourtDAOImpl implements CourtDAO {
     public boolean softDelete(String courtId, String branchId) throws SQLException {
         return false;
     }
+}
+
+private String resolveSortColumn(String sortBy) {
+    if (sortBy == null || sortBy.isBlank()) {
+        return "sc.MASAN";
+    }
+
+    return switch (sortBy) {
+        case "courtId" -> "sc.MASAN";
+        case "areaId" -> "sc.MAKV";
+        case "sportTypeName" -> "ltt.TEN";
+        case "status" -> "sc.TRANGTHAI";
+        case "createdAt" -> "sc.CREATED_AT";
+        default -> "sc.MASAN";
+    };
+}
+
+private String resolveSortDirection(String sortDirection) {
+    if ("DESC".equalsIgnoreCase(sortDirection)) {
+        return "DESC";
+    }
+
+    return "ASC";
 }
