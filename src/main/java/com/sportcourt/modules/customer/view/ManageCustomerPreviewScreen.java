@@ -687,11 +687,15 @@ public class ManageCustomerPreviewScreen extends JPanel {
     }
 
     private JLabel createWrappedAddressLabel(String text) {
-        String value = text == null || text.isBlank() ? "--" : escapeHtml(text.trim());
-        JLabel label = new JLabel("<html><div style='width:" + ADDRESS_WRAP_WIDTH + "px;'>" + value + "</div></html>");
+        boolean hasAddress = text != null && !text.isBlank();
+        String value = hasAddress ? escapeHtml(text.trim()) : "--";
+        String content = hasAddress
+                ? "<html><div style='width:" + ADDRESS_WRAP_WIDTH + "px; text-align:left;'>" + value + "</div></html>"
+                : value;
+        JLabel label = new JLabel(content);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(new Color(43, 47, 55));
-        label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setHorizontalAlignment(hasAddress ? SwingConstants.LEFT : SwingConstants.CENTER);
         return label;
     }
 
