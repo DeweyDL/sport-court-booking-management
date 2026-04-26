@@ -1,0 +1,5 @@
+mail.host=smtp.gmail.com
+mail.port=587
+mail.username=your_email@gmail.com
+mail.appPassword=your_app_password
+mail.fromName=RentSta
