@@ -111,7 +111,8 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
                     request.trangThai().trim(),
                     normalizeOptional(request.emailHeThong()),
                     normalizeOptional(request.username()),
-                    normalizeOptional(request.diaChi())
+                    normalizeOptional(request.diaChi()),
+                    request.ngaySinh()
             ));
             if (!updated) {
                 return CustomerResult.fail("Khách hàng đã bị xóa, khôi phục lại để có thể cập nhật thông tin khách hàng.");

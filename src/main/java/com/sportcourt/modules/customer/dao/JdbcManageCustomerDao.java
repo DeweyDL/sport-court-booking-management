@@ -7,6 +7,7 @@ import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +21,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public List<CustomerSummary> findByName(String keyword) throws SQLException {
         String sql = """
                 SELECT kh.MAKH, kh.USER_ID, u.HOTEN, u.SDT, hkh.TEN_HANG AS HANG_KHACH_HANG, kh.TRANG_THAI, kh.DOANH_THU
+                       , u.DIACHI, u.NGAYSINH
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
                 LEFT JOIN HANG_KHACH_HANG hkh ON hkh.MA_HANG = kh.MA_HANG
@@ -42,6 +44,8 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                             rs.getString("USER_ID"),
                             rs.getString("HOTEN"),
                             rs.getString("SDT"),
+                            rs.getString("DIACHI"),
+                            toLocalDate(rs.getDate("NGAYSINH")),
                             rs.getString("HANG_KHACH_HANG"),
                             rs.getString("TRANG_THAI"),
                             rs.getBigDecimal("DOANH_THU")
@@ -56,7 +60,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public Optional<CustomerProfile> findProfileById(String maKhachHang) throws SQLException {
         String sql = """
                 SELECT kh.MAKH, kh.USER_ID, a.ACCOUNT_ID, u.HOTEN, u.SDT, u.DIACHI, u.EMAIL, a.USERNAME,
-                       kh.TRANG_THAI, kh.MA_HANG, kh.DOANH_THU
+                       u.NGAYSINH, kh.TRANG_THAI, kh.MA_HANG, kh.DOANH_THU
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
                 LEFT JOIN ACCOUNT a ON a.USER_ID = u.USER_ID AND a.IS_DELETED = 0
@@ -76,6 +80,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                         rs.getString("HOTEN"),
                         rs.getString("SDT"),
                         rs.getString("DIACHI"),
+                        toLocalDate(rs.getDate("NGAYSINH")),
                         rs.getString("EMAIL"),
                         rs.getString("USERNAME"),
                         rs.getString("TRANG_THAI"),
@@ -141,7 +146,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public boolean updateCustomer(String maKhachHang, UpdateCustomerRequest request) throws SQLException {
         String updateUser = """
                 UPDATE USERS u
-                SET u.HOTEN = ?, u.SDT = ?, u.EMAIL = NVL(?, u.EMAIL), u.DIACHI = NVL(?, u.DIACHI)
+                SET u.HOTEN = ?, u.SDT = ?, u.EMAIL = ?, u.DIACHI = ?, u.NGAYSINH = ?
                 WHERE u.USER_ID = (
                     SELECT kh.USER_ID
                     FROM KHACH_HANG kh
@@ -181,7 +186,12 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 userStmt.setString(2, request.sdt().trim());
                 userStmt.setString(3, request.emailHeThong());
                 userStmt.setString(4, request.diaChi());
-                userStmt.setString(5, maKhachHang);
+                if (request.ngaySinh() == null) {
+                    userStmt.setNull(5, Types.DATE);
+                } else {
+                    userStmt.setDate(5, Date.valueOf(request.ngaySinh()));
+                }
+                userStmt.setString(6, maKhachHang);
                 int userUpdated = userStmt.executeUpdate();
 
                 accountStmt.setString(1, maKhachHang);
@@ -318,6 +328,10 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 connection.setAutoCommit(true);
             }
         }
+    }
+
+    private static java.time.LocalDate toLocalDate(Date value) {
+        return value == null ? null : value.toLocalDate();
     }
 }
 

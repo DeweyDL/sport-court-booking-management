@@ -4,6 +4,7 @@ import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.CustomerSummary;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 final class CustomerVm {
     private final String maKhachHang;
@@ -11,6 +12,8 @@ final class CustomerVm {
     private final String accountId;
     private String hoTen;
     private String sdt;
+    private String diaChi;
+    private LocalDate ngaySinh;
     private String emailHeThong;
     private String username;
     private String trangThai;
@@ -23,6 +26,8 @@ final class CustomerVm {
             String accountId,
             String hoTen,
             String sdt,
+            String diaChi,
+            LocalDate ngaySinh,
             String emailHeThong,
             String username,
             String trangThai,
@@ -34,6 +39,8 @@ final class CustomerVm {
         this.accountId = accountId;
         this.hoTen = hoTen;
         this.sdt = sdt;
+        this.diaChi = diaChi;
+        this.ngaySinh = ngaySinh;
         this.emailHeThong = emailHeThong;
         this.username = username;
         this.trangThai = trangThai;
@@ -48,6 +55,8 @@ final class CustomerVm {
                 null,
                 summary.hoTen(),
                 summary.sdt(),
+                summary.diaChi(),
+                summary.ngaySinh(),
                 "",
                 "",
                 summary.trangThai(),
@@ -59,6 +68,8 @@ final class CustomerVm {
     void applyProfile(CustomerProfile profile) {
         this.hoTen = profile.hoTen();
         this.sdt = profile.sdt();
+        this.diaChi = profile.diaChi();
+        this.ngaySinh = profile.ngaySinh();
         this.emailHeThong = profile.emailHeThong();
         this.username = profile.username();
         this.trangThai = profile.trangThai();
@@ -88,6 +99,14 @@ final class CustomerVm {
 
     String getEmailHeThong() {
         return emailHeThong;
+    }
+
+    String getDiaChi() {
+        return diaChi;
+    }
+
+    LocalDate getNgaySinh() {
+        return ngaySinh;
     }
 
     String getUsername() {

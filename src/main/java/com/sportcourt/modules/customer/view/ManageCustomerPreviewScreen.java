@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +31,9 @@ import java.util.Locale;
 
 public class ManageCustomerPreviewScreen extends JPanel {
     private static final int TABLE_COLUMN_GAP = 0;
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int[] TABLE_COLUMN_WIDTHS = {120, 165, 140, 210, 110, 95, 110, 130, 180};
+    private static final int ADDRESS_WRAP_WIDTH = 190;
 
     private final ManageCustomerController controller = new ManageCustomerController();
     private final List<CustomerVm> customers = new ArrayList<>();
@@ -274,16 +279,18 @@ public class ManageCustomerPreviewScreen extends JPanel {
     }
 
     private JPanel createAlignedCustomerHeader() {
-        JPanel headerPanel = new JPanel(new GridLayout(1, 7, TABLE_COLUMN_GAP, 0));
+        JPanel headerPanel = new JPanel(new GridBagLayout());
         headerPanel.setBackground(new Color(241, 242, 246));
-        headerPanel.setBorder(new EmptyBorder(16, 26, 16, 26));
-        headerPanel.add(createHeaderLabel("MÃ KH", SwingConstants.LEFT));
-        headerPanel.add(createHeaderLabel("HỌ TÊN", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("SỐ ĐIỆN THOẠI", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("HẠNG", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("TRẠNG THÁI", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("DOANH THU", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("THAO TÁC", SwingConstants.CENTER));
+        headerPanel.setBorder(new EmptyBorder(14, 24, 14, 24));
+        addColumnCell(headerPanel, createHeaderLabel("MÃ KH", SwingConstants.LEFT), 0, SwingConstants.LEFT);
+        addColumnCell(headerPanel, createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), 1, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("SỐ ĐIỆN THOẠI", SwingConstants.CENTER), 2, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("ĐỊA CHỈ", SwingConstants.CENTER), 3, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("NGÀY SINH", SwingConstants.CENTER), 4, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("HẠNG", SwingConstants.CENTER), 5, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("TRẠNG THÁI", SwingConstants.CENTER), 6, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("DOANH THU", SwingConstants.CENTER), 7, SwingConstants.CENTER);
+        addColumnCell(headerPanel, createHeaderLabel("THAO TÁC", SwingConstants.CENTER), 8, SwingConstants.CENTER);
         return headerPanel;
     }
 
@@ -300,7 +307,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
     private JLabel createHeaderLabel(String text, int alignment) {
         JLabel label = new JLabel(text, alignment);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(new Color(94, 103, 82));
         return label;
     }
@@ -361,7 +368,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
         Comparator<CustomerVm> comparator;
         if (sortType != null && sortType.contains("Doanh thu")) {
             comparator = Comparator.comparing(
-                    (CustomerVm customer) -> customer.getDoanhThu() == null ? BigDecimal.ZERO : customer.getDoanhThu()
+                    (CustomerVm customer    ) -> customer.getDoanhThu() == null ? BigDecimal.ZERO : customer.getDoanhThu()
             ).thenComparing((CustomerVm customer) -> normalizedSortKey(customer.getHoTen()));
         } else if (sortType != null && sortType.contains("Trạng thái")) {
             comparator = Comparator.comparingInt((CustomerVm customer) -> statusOrder(customer.getTrangThai()))
@@ -477,14 +484,14 @@ public class ManageCustomerPreviewScreen extends JPanel {
         actionGroup.add(statusBtn);
         actionGroup.add(Box.createHorizontalStrut(10));
 
-        JButton detailBtn = createMiniActionButton("Xem chi tiết", new Color(239, 246, 255), new Color(29, 78, 216));
+        JButton detailBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
         Dimension detailButtonSize = new Dimension(96, 30);
         detailBtn.setPreferredSize(detailButtonSize);
         detailBtn.setMinimumSize(detailButtonSize);
         detailBtn.setMaximumSize(detailButtonSize);
         detailBtn.addActionListener(event -> {
             selectedCustomer = customer;
-            openProfileForSelectedCustomer();
+            openEditForSelectedCustomer();
         });
         actionGroup.add(detailBtn);
         JPanel actionCell = createTableCellWrapper(actionGroup, SwingConstants.CENTER);
@@ -494,22 +501,25 @@ public class ManageCustomerPreviewScreen extends JPanel {
     }
 
     private JPanel createAlignedCustomerRow(CustomerVm customer) {
-        JPanel rowPanel = new JPanel(new GridLayout(1, 7, TABLE_COLUMN_GAP, 0));
+        JPanel rowPanel = new JPanel(new GridBagLayout());
         rowPanel.setBackground(Color.WHITE);
         rowPanel.setBorder(new CompoundBorder(
                 new MatteBorder(0, 0, 1, 0, new Color(236, 236, 239)),
-                new EmptyBorder(18, 26, 18, 26)
+                new EmptyBorder(14, 24, 14, 24)
         ));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        rowPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel maKhLabel = createBodyLabel(customer.getMaKhachHang(), true);
         maKhLabel.setForeground(new Color(29, 78, 216));
-        rowPanel.add(createTableCellWrapper(maKhLabel, SwingConstants.LEFT));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getHoTen(), false), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getSdt(), false), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createTierPill(customer.getMaHang()), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(formatCurrency(customer.getDoanhThu()), false), SwingConstants.CENTER));
+        addColumnCell(rowPanel, createTableCellWrapper(maKhLabel, SwingConstants.LEFT), 0, SwingConstants.LEFT);
+        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(customer.getHoTen(), false), SwingConstants.CENTER), 1, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(customer.getSdt(), false), SwingConstants.CENTER), 2, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createWrappedAddressLabel(customer.getDiaChi()), SwingConstants.CENTER), 3, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(formatDate(customer.getNgaySinh()), false), SwingConstants.CENTER), 4, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createTierPill(customer.getMaHang()), SwingConstants.CENTER), 5, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER), 6, SwingConstants.CENTER);
+        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(formatCurrency(customer.getDoanhThu()), false), SwingConstants.CENTER), 7, SwingConstants.CENTER);
 
         JPanel actionGroup = new JPanel();
         actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
@@ -519,7 +529,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
         JButton statusBtn = inactive
                 ? createMiniActionButton("Khôi phục", new Color(220, 252, 231), new Color(22, 101, 52))
                 : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension actionButtonSize = new Dimension(88, 30);
+        Dimension actionButtonSize = new Dimension(80, 28);
         statusBtn.setPreferredSize(actionButtonSize);
         statusBtn.setMinimumSize(actionButtonSize);
         statusBtn.setMaximumSize(actionButtonSize);
@@ -532,40 +542,62 @@ public class ManageCustomerPreviewScreen extends JPanel {
             }
         });
         actionGroup.add(statusBtn);
-        actionGroup.add(Box.createHorizontalStrut(10));
+        actionGroup.add(Box.createHorizontalStrut(6));
 
-        JButton detailBtn = createMiniActionButton("Xem chi tiết", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension detailButtonSize = new Dimension(96, 30);
+        JButton detailBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+        Dimension detailButtonSize = new Dimension(86, 28);
         detailBtn.setPreferredSize(detailButtonSize);
         detailBtn.setMinimumSize(detailButtonSize);
         detailBtn.setMaximumSize(detailButtonSize);
         detailBtn.addActionListener(event -> {
             selectedCustomer = customer;
-            openProfileForSelectedCustomer();
+            openEditForSelectedCustomer();
         });
         actionGroup.add(detailBtn);
-        rowPanel.add(createTableCellWrapper(actionGroup, SwingConstants.CENTER));
+        addColumnCell(rowPanel, createTableCellWrapper(actionGroup, SwingConstants.CENTER), 8, SwingConstants.CENTER);
         return rowPanel;
     }
 
+    private void addColumnCell(JPanel panel, Component component, int columnIndex, int alignment) {
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = columnIndex;
+        g.gridy = 0;
+        g.weightx = 0;
+        g.fill = GridBagConstraints.NONE;
+        g.insets = new Insets(0, 4, 0, 4);
+        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
+        JPanel bounded = new JPanel(new BorderLayout());
+        bounded.setOpaque(false);
+        bounded.setPreferredSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getPreferredSize().height));
+        bounded.setMinimumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getMinimumSize().height));
+        bounded.setMaximumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], Integer.MAX_VALUE));
+        bounded.add(component, BorderLayout.CENTER);
+        panel.add(bounded, g);
+    }
+
     private JPanel createTableCellWrapper(Component component, int alignment) {
-        FlowLayout layout = new FlowLayout(
-                alignment == SwingConstants.CENTER ? FlowLayout.CENTER : FlowLayout.LEFT,
-                0,
-                0
-        );
-        JPanel panel = new JPanel(layout);
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
-        panel.add(component);
+        panel.setMinimumSize(new Dimension(0, 0));
+
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.gridy = 0;
+        g.weightx = 1.0;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
+        panel.add(component, g);
         return panel;
     }
 
     private JPanel createTierPill(String tierName) {
         String displayText = (tierName == null || tierName.isBlank()) ? "CHƯA CÓ" : tierName;
-        Color background = (tierName == null || tierName.isBlank()) ? new Color(229, 231, 235) : new Color(219, 234, 254);
-        Color foreground = (tierName == null || tierName.isBlank()) ? new Color(75, 85, 99) : new Color(30, 64, 175);
+        boolean hasTier = tierName != null && !tierName.isBlank();
+        Color background = hasTier ? new Color(219, 234, 254) : new Color(229, 231, 235);
+        Color foreground = hasTier ? new Color(30, 64, 175) : new Color(75, 85, 99);
+        Dimension fixedTierSize = new Dimension(90, 30);
 
-        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         pill.setOpaque(false);
 
         JPanel wrapper = new JPanel() {
@@ -578,8 +610,11 @@ public class ManageCustomerPreviewScreen extends JPanel {
                 g2.dispose();
             }
         };
-        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 5));
+        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 6));
         wrapper.setOpaque(false);
+        wrapper.setPreferredSize(fixedTierSize);
+        wrapper.setMinimumSize(fixedTierSize);
+        wrapper.setMaximumSize(fixedTierSize);
 
         JLabel textLabel = new JLabel(displayText);
         textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -640,8 +675,23 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
     private JLabel createBodyLabel(String text, boolean bold) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, bold ? 15 : 14));
+        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
         label.setForeground(new Color(43, 47, 55));
+        return label;
+    }
+
+    private JLabel createCenteredBodyLabel(String text, boolean bold) {
+        JLabel label = createBodyLabel(text, bold);
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        return label;
+    }
+
+    private JLabel createWrappedAddressLabel(String text) {
+        String value = text == null || text.isBlank() ? "--" : escapeHtml(text.trim());
+        JLabel label = new JLabel("<html><div style='width:" + ADDRESS_WRAP_WIDTH + "px;'>" + value + "</div></html>");
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(43, 47, 55));
+        label.setHorizontalAlignment(SwingConstants.CENTER);
         return label;
     }
 
@@ -678,7 +728,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
         refreshCustomers();
     }
 
-    private void openProfileForSelectedCustomer() {
+    private void openEditForSelectedCustomer() {
         if (selectedCustomer == null) {
             return;
         }
@@ -686,11 +736,6 @@ public class ManageCustomerPreviewScreen extends JPanel {
         CustomerResult<CustomerProfile> profileResult = controller.getProfile(selectedCustomer.getMaKhachHang());
         if (!profileResult.success() || profileResult.data() == null) {
             AppDialog.showError(this, normalizeError("Không lấy được hồ sơ khách hàng.", profileResult.message()));
-            return;
-        }
-
-        CustomerProfileDialog.Action action = CustomerProfileDialog.show(this, profileResult.data());
-        if (action == null || action != CustomerProfileDialog.Action.UPDATE) {
             return;
         }
 
@@ -780,6 +825,17 @@ public class ManageCustomerPreviewScreen extends JPanel {
         return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
     }
 
+    private String formatDate(LocalDate date) {
+        return date == null ? "" : DATE_FORMAT.format(date);
+    }
+
+    private String escapeHtml(String value) {
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
     private Icon scaleIcon(String path, int width, int height) {
         URL resource = getClass().getResource(path);
         if (resource == null) {
@@ -814,8 +870,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        button.setBorder(new EmptyBorder(7, 14, 7, 14));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBorder(new EmptyBorder(6, 10, 6, 10));
         return button;
     }
 

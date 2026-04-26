@@ -4,10 +4,12 @@ import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 final class CustomerCreateDialog {
+    private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
     private static final Color BRAND_GREEN = new Color(34, 197, 94);
@@ -58,7 +60,7 @@ final class CustomerCreateDialog {
         JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
         JButton btnCancel = secondaryButton("Hủy");
-        JButton btnConfirm = brandButton("Tạo khách hàng");
+        JButton btnConfirm = brandButton("Thêm khách hàng");
         actions.add(btnCancel);
         actions.add(btnConfirm);
         root.add(actions, BorderLayout.SOUTH);
@@ -100,9 +102,10 @@ final class CustomerCreateDialog {
         g.gridy = row * 2 + 1;
         field.setFont(AppFonts.lexendRegular(14f));
         field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
+        field.setBackground(Color.WHITE);
         form.add(field, g);
     }
 
@@ -137,6 +140,36 @@ final class CustomerCreateDialog {
         btn.setContentAreaFilled(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
+    }
+
+    private static final class RoundedLineBorder extends AbstractBorder {
+        private final Color color;
+        private final int arc;
+
+        private RoundedLineBorder(Color color, int arc) {
+            this.color = color;
+            this.arc = arc;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.dispose();
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c) {
+            return new Insets(1, 1, 1, 1);
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c, Insets insets) {
+            insets.set(1, 1, 1, 1);
+            return insets;
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package com.sportcourt.modules.customer.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public record CustomerProfile(
         String maKhachHang,
@@ -9,6 +10,7 @@ public record CustomerProfile(
         String hoTen,
         String sdt,
         String diaChi,
+        LocalDate ngaySinh,
         String emailHeThong,
         String username,
         String trangThai,

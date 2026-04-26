@@ -6,8 +6,11 @@ import com.sportcourt.modules.customer.dto.CustomerProfile;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 final class CustomerProfileDialog {
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     enum Action {
         UPDATE
     }
@@ -60,10 +63,11 @@ final class CustomerProfileDialog {
         addField(card, g, 2, "Số điện thoại", profile.sdt());
         addField(card, g, 3, "Email hệ thống", safeEmailText(profile.emailHeThong()));
         addField(card, g, 4, "Tên đăng nhập", safeText(profile.username()));
-        addField(card, g, 5, "Địa chỉ", safeText(profile.diaChi()));
-        addField(card, g, 6, "Trạng thái", safeText(profile.trangThai()));
-        addField(card, g, 7, "Mã hạng", safeText(profile.maHang()));
-        addField(card, g, 8, "Doanh thu", profile.doanhThu() == null ? "0 VNĐ" : profile.doanhThu() + " VNĐ");
+        addField(card, g, 5, "Địa chỉ", emptyIfMissing(profile.diaChi()));
+        addField(card, g, 6, "Ngày sinh", formatDate(profile.ngaySinh()));
+        addField(card, g, 7, "Trạng thái", safeText(profile.trangThai()));
+        addField(card, g, 8, "Mã hạng", safeText(profile.maHang()));
+        addField(card, g, 9, "Doanh thu", profile.doanhThu() == null ? "0 VNĐ" : profile.doanhThu() + " VNĐ");
 
         JScrollPane scrollPane = new JScrollPane(card);
         scrollPane.setBorder(null);
@@ -142,6 +146,14 @@ final class CustomerProfileDialog {
 
     private static String safeEmailText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String emptyIfMissing(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String formatDate(LocalDate date) {
+        return date == null ? "" : DATE_FORMAT.format(date);
     }
 }
 
