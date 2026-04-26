@@ -1,28 +1,70 @@
 package com.sportcourt.modules.staff.service;
-import com.sportcourt.modules.staff.dao.*;
-import com.sportcourt.modules.staff.dto.*;
-import com.sportcourt.modules.staff.entity.*;
+
+import com.sportcourt.common.db.ConnectionUtils;
+import com.sportcourt.modules.staff.dao.StaffAccountDAO;
+import com.sportcourt.modules.staff.dao.StaffDAO;
+import com.sportcourt.modules.staff.dto.StaffCreateRequest;
+import com.sportcourt.modules.staff.dto.StaffDetailResponse;
+import com.sportcourt.modules.staff.dto.StaffResponse;
+import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
+import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
+import com.sportcourt.modules.staff.entity.Staff;
+import com.sportcourt.modules.staff.entity.User;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StaffService {
-    private final StaffDAO staffDAO = new StaffDAO();
-    private final StaffValidator validator = new StaffValidator();
-    private final StaffPermissionService permissionService = new StaffPermissionService();
+    private static final AtomicInteger USER_COUNTER = new AtomicInteger(1);
+    private static final AtomicInteger STAFF_COUNTER = new AtomicInteger(1);
+    private static final AtomicInteger ACCOUNT_COUNTER = new AtomicInteger(1);
+    private static final AtomicInteger ACCOUNT_GROUP_COUNTER = new AtomicInteger(1);
+
+    private final StaffDAO staffDAO;
+    private final StaffAccountDAO staffAccountDAO;
+    private final StaffValidator validator;
+    private final StaffPermissionService permissionService;
+
+    public StaffService() {
+        this.staffDAO = new StaffDAO();
+        this.staffAccountDAO = new StaffAccountDAO();
+        this.validator = new StaffValidator();
+        this.permissionService = new StaffPermissionService();
+    }
 
     public List<StaffResponse> searchStaff(StaffSearchCriteria criteria) {
         permissionService.checkViewPermission();
 
-        if (!UserSession.getInstance().isOwner()) {
-            criteria.setMaCn(UserSession.getInstance().getMaCn());
+        if (criteria == null) {
+            criteria = new StaffSearchCriteria();
         }
 
-        return staffDAO.search(criteria);
+        if (!permissionService.isOwner()) {
+            String currentBranch = permissionService.getCurrentBranchCode();
+
+            if (currentBranch != null && !currentBranch.trim().isEmpty()) {
+                criteria.setMaCn(currentBranch);
+            }
+        }
+
+        List<StaffResponse> result = staffDAO.search(criteria);
+        return result == null ? new ArrayList<>() : result;
     }
 
     public StaffDetailResponse getStaffDetail(String maNv) {
         permissionService.checkViewPermission();
 
+        if (isBlank(maNv)) {
+            throw new RuntimeException("Vui lòng chọn nhân viên cần xem.");
+        }
+
         StaffDetailResponse detail = staffDAO.findDetailById(maNv);
+
         if (detail == null) {
             throw new RuntimeException("Không tìm thấy nhân viên.");
         }
@@ -52,7 +94,7 @@ public class StaffService {
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             User user = mapToUser(request);
@@ -61,10 +103,30 @@ public class StaffService {
             staffDAO.insertUser(conn, user);
             staffDAO.insertStaff(conn, staff);
 
+            if (request.isCreateAccount()) {
+                String accountId = nextAccountId();
+                String accountRoleGroupId = nextAccountRoleGroupId();
+
+                staffAccountDAO.insertAccount(
+                        conn,
+                        accountId,
+                        user.getUserId(),
+                        request.getUsername(),
+                        hashPassword(request.getPassword())
+                );
+
+                staffAccountDAO.assignRoleGroup(
+                        conn,
+                        accountRoleGroupId,
+                        accountId,
+                        request.getRoleGroupId()
+                );
+            }
+
             conn.commit();
         } catch (Exception e) {
             rollback(conn);
-            throw new RuntimeException("Thêm nhân viên thất bại.", e);
+            throw new RuntimeException("Thêm nhân viên thất bại: " + e.getMessage(), e);
         } finally {
             close(conn);
         }
@@ -75,6 +137,7 @@ public class StaffService {
         validator.validateUpdate(request);
 
         StaffDetailResponse current = staffDAO.findDetailById(request.getMaNv());
+
         if (current == null) {
             throw new RuntimeException("Không tìm thấy nhân viên cần cập nhật.");
         }
@@ -97,7 +160,7 @@ public class StaffService {
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             User user = mapToUser(request);
@@ -109,7 +172,7 @@ public class StaffService {
             conn.commit();
         } catch (Exception e) {
             rollback(conn);
-            throw new RuntimeException("Cập nhật nhân viên thất bại.", e);
+            throw new RuntimeException("Cập nhật nhân viên thất bại: " + e.getMessage(), e);
         } finally {
             close(conn);
         }
@@ -118,7 +181,12 @@ public class StaffService {
     public void deleteStaff(String maNv) {
         permissionService.checkDeletePermission();
 
+        if (isBlank(maNv)) {
+            throw new RuntimeException("Vui lòng chọn nhân viên cần xoá.");
+        }
+
         StaffDetailResponse current = staffDAO.findDetailById(maNv);
+
         if (current == null) {
             throw new RuntimeException("Không tìm thấy nhân viên cần xoá.");
         }
@@ -128,15 +196,16 @@ public class StaffService {
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             staffDAO.softDeleteStaff(conn, maNv);
+            staffAccountDAO.lockAccountByUserId(conn, current.getUserId());
 
             conn.commit();
         } catch (Exception e) {
             rollback(conn);
-            throw new RuntimeException("Xoá nhân viên thất bại.", e);
+            throw new RuntimeException("Xoá nhân viên thất bại: " + e.getMessage(), e);
         } finally {
             close(conn);
         }
@@ -144,40 +213,49 @@ public class StaffService {
 
     private User mapToUser(StaffCreateRequest request) {
         User user = new User();
-        user.setUserId(IdGenerator.nextUserId());
+
+        user.setUserId(nextUserId());
         user.setHoTen(request.getHoTen());
         user.setSdt(request.getSdt());
         user.setEmail(request.getEmail());
         user.setNgaySinh(request.getNgaySinh());
         user.setDiaChi(request.getDiaChi());
+        user.setDeleted(false);
+
         return user;
     }
 
     private Staff mapToStaff(StaffCreateRequest request, String userId) {
         Staff staff = new Staff();
-        staff.setMaNv(IdGenerator.nextStaffId());
+
+        staff.setMaNv(nextStaffId());
         staff.setUserId(userId);
         staff.setMaCn(request.getMaCn());
         staff.setMaLoaiNv(request.getMaLoaiNv());
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
+        staff.setDeleted(false);
+
         return staff;
     }
 
     private User mapToUser(StaffUpdateRequest request) {
         User user = new User();
+
         user.setUserId(request.getUserId());
         user.setHoTen(request.getHoTen());
         user.setSdt(request.getSdt());
         user.setEmail(request.getEmail());
         user.setNgaySinh(request.getNgaySinh());
         user.setDiaChi(request.getDiaChi());
+
         return user;
     }
 
     private Staff mapToStaff(StaffUpdateRequest request) {
         Staff staff = new Staff();
+
         staff.setMaNv(request.getMaNv());
         staff.setUserId(request.getUserId());
         staff.setMaCn(request.getMaCn());
@@ -185,6 +263,73 @@ public class StaffService {
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
+
         return staff;
+    }
+
+    private String nextUserId() {
+        return nextId("U", USER_COUNTER);
+    }
+
+    private String nextStaffId() {
+        return nextId("NV", STAFF_COUNTER);
+    }
+
+    private String nextAccountId() {
+        return nextId("ACC", ACCOUNT_COUNTER);
+    }
+
+    private String nextAccountRoleGroupId() {
+        return nextId("ARG", ACCOUNT_GROUP_COUNTER);
+    }
+
+    private String nextId(String prefix, AtomicInteger counter) {
+        long time = System.currentTimeMillis();
+        return prefix + time + String.format("%03d", counter.getAndIncrement());
+    }
+
+    private String hashPassword(String password) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encoded = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder builder = new StringBuilder();
+
+            for (byte b : encoded) {
+                builder.append(String.format("%02x", b));
+            }
+
+            return builder.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể mã hóa mật khẩu.", e);
+        }
+    }
+
+    private void rollback(Connection conn) {
+        if (conn == null) {
+            return;
+        }
+
+        try {
+            conn.rollback();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    private void close(Connection conn) {
+        if (conn == null) {
+            return;
+        }
+
+        try {
+            conn.setAutoCommit(true);
+        } catch (SQLException ignored) {
+        }
+
+        ConnectionUtils.close(conn, null, null);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

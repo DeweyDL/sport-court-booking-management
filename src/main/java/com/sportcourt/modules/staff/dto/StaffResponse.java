@@ -1,5 +1,7 @@
 package com.sportcourt.modules.staff.dto;
+
 import java.time.LocalDate;
+
 public class StaffResponse {
     private String maNv;
     private String hoTen;
@@ -10,7 +12,7 @@ public class StaffResponse {
     private String diaChiChiNhanh;
     private LocalDate ngayVaoLam;
     private String cccd;
-    private boolean isQuanLy;
+    private boolean quanLy;
 
     public String getMaNv() {
         return maNv;
@@ -85,12 +87,10 @@ public class StaffResponse {
     }
 
     public boolean isQuanLy() {
-        return isQuanLy;
+        return quanLy;
     }
 
-    public void setQuanLy(boolean isQuanLy) {
-        isQuanLy = isQuanLy;
+    public void setQuanLy(boolean quanLy) {
+        this.quanLy = quanLy;
     }
 }
-
-

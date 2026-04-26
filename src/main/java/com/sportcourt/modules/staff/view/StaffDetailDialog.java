@@ -1,10 +1,21 @@
 package com.sportcourt.modules.staff.view;
-import com.sportcourt.modules.staff.dto.*;
-import javax.swing.*;
 
+import com.sportcourt.modules.staff.dto.StaffDetailResponse;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 
 public class StaffDetailDialog extends JDialog {
-    private StaffDetailResponse detail;
+    private final StaffDetailResponse detail;
 
     private JLabel lblMaNv;
     private JLabel lblHoTen;
@@ -29,7 +40,7 @@ public class StaffDetailDialog extends JDialog {
 
         setModal(true);
         setTitle("Chi tiết nhân viên");
-        setSize(520, 560);
+        setSize(540, 580);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         initComponents();
@@ -55,7 +66,7 @@ public class StaffDetailDialog extends JDialog {
         lblCccd = new JLabel();
         lblQuanLy = new JLabel();
 
-        btnClose = new JButton("Đóng");
+        btnClose = StaffTheme.secondaryButton("Đóng");
     }
 
     private void initLayout() {
@@ -63,16 +74,17 @@ public class StaffDetailDialog extends JDialog {
         JPanel contentPanel = new JPanel(new GridBagLayout());
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
+        mainPanel.setBackground(StaffTheme.BACKGROUND);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        StaffTheme.applyCard(contentPanel);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(7, 7, 7, 7);
+        gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
 
         addSectionTitle(contentPanel, gbc, row++, "Thông tin cá nhân");
-
         addRow(contentPanel, gbc, row++, "Mã nhân viên:", lblMaNv);
         addRow(contentPanel, gbc, row++, "Họ tên:", lblHoTen);
         addRow(contentPanel, gbc, row++, "Ngày sinh:", lblNgaySinh);
@@ -81,7 +93,6 @@ public class StaffDetailDialog extends JDialog {
         addRow(contentPanel, gbc, row++, "Địa chỉ:", lblDiaChi);
 
         addSectionTitle(contentPanel, gbc, row++, "Thông tin công việc");
-
         addRow(contentPanel, gbc, row++, "Mã chi nhánh:", lblMaCn);
         addRow(contentPanel, gbc, row++, "Địa chỉ chi nhánh:", lblDiaChiChiNhanh);
         addRow(contentPanel, gbc, row++, "Mã loại nhân viên:", lblMaLoaiNv);
@@ -91,6 +102,7 @@ public class StaffDetailDialog extends JDialog {
         addRow(contentPanel, gbc, row++, "CCCD:", lblCccd);
         addRow(contentPanel, gbc, row++, "Là quản lý:", lblQuanLy);
 
+        buttonPanel.setOpaque(false);
         buttonPanel.add(btnClose);
 
         mainPanel.add(new JScrollPane(contentPanel), BorderLayout.CENTER);
@@ -106,7 +118,7 @@ public class StaffDetailDialog extends JDialog {
         gbc.weightx = 1;
 
         JLabel label = new JLabel(title);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 15f));
+        label.setFont(StaffTheme.fontBold(15));
         panel.add(label, gbc);
 
         gbc.gridwidth = 1;
@@ -118,7 +130,7 @@ public class StaffDetailDialog extends JDialog {
         gbc.weightx = 0;
 
         JLabel label = new JLabel(title);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
+        label.setFont(StaffTheme.fontBold(13));
         panel.add(label, gbc);
 
         gbc.gridx = 1;
@@ -129,6 +141,10 @@ public class StaffDetailDialog extends JDialog {
     }
 
     private void fillData() {
+        if (detail == null) {
+            return;
+        }
+
         lblMaNv.setText(safe(detail.getMaNv()));
         lblHoTen.setText(safe(detail.getHoTen()));
         lblNgaySinh.setText(detail.getNgaySinh() == null ? "" : detail.getNgaySinh().toString());

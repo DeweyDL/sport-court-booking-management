@@ -1,5 +1,7 @@
 package com.sportcourt.modules.staff.dto;
+
 import java.time.LocalDate;
+
 public class StaffUpdateRequest {
     private String maNv;
     private String userId;
@@ -80,19 +82,20 @@ public class StaffUpdateRequest {
         this.maCn = maCn;
     }
 
+    public String getMaLoaiNv() {
+        return maLoaiNv;
+    }
+
+    public void setMaLoaiNv(String maLoaiNv) {
+        this.maLoaiNv = maLoaiNv;
+    }
+
     public LocalDate getNgayVaoLam() {
         return ngayVaoLam;
     }
 
     public void setNgayVaoLam(LocalDate ngayVaoLam) {
         this.ngayVaoLam = ngayVaoLam;
-    }
-
-    public String getMaLoaiNv() {
-        return maLoaiNv;
-    }
-    public void setMaLoaiNv(String maLoaiNv) {
-        this.maLoaiNv = maLoaiNv;
     }
 
     public String getCccd() {

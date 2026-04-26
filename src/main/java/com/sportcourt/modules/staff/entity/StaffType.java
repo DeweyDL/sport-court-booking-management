@@ -1,6 +1,5 @@
 package com.sportcourt.modules.staff.entity;
 
-
 import java.math.BigDecimal;
 
 public class StaffType {
@@ -32,4 +31,8 @@ public class StaffType {
         this.mucLuong = mucLuong;
     }
 
+    @Override
+    public String toString() {
+        return maLoaiNv;
+    }
 }

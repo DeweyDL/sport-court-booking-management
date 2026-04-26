@@ -1,18 +1,20 @@
 package com.sportcourt.modules.staff.entity;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Staff {
     private String maNv;
     private String maCn;
-    private String maLNV;
+    private String maLoaiNv;
     private String userId;
     private LocalDate ngayVaoLam;
-    private String CCCD;
+    private String cccd;
     private boolean quanLy;
     private LocalDateTime createdAt;
     private boolean deleted;
-    private Users user;
+
+    private User user;
     private StaffType staffType;
     private Branch branch;
 
@@ -32,12 +34,12 @@ public class Staff {
         this.maCn = maCn;
     }
 
-    public String getMaLNV() {
-        return maLNV;
+    public String getMaLoaiNv() {
+        return maLoaiNv;
     }
 
-    public void setMaLNV(String maLNV) {
-        this.maLNV = maLNV;
+    public void setMaLoaiNv(String maLoaiNv) {
+        this.maLoaiNv = maLoaiNv;
     }
 
     public String getUserId() {
@@ -56,12 +58,12 @@ public class Staff {
         this.ngayVaoLam = ngayVaoLam;
     }
 
-    public String getCCCD() {
-        return CCCD;
+    public String getCccd() {
+        return cccd;
     }
 
-    public void setCCCD(String CCCD) {
-        this.CCCD = CCCD;
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
     }
 
     public boolean isQuanLy() {
@@ -88,11 +90,11 @@ public class Staff {
         this.deleted = deleted;
     }
 
-    public Users getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(Users user) {
+    public void setUser(User user) {
         this.user = user;
     }
 
@@ -112,7 +114,3 @@ public class Staff {
         this.branch = branch;
     }
 }
-
-
-
-
