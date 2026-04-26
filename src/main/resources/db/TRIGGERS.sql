@@ -425,3 +425,20 @@ BEGIN
     END IF;
 END;
 /
+
+CREATE UNIQUE INDEX UQ_CTHD_THUE_SAN_ACTIVE
+    ON CHI_TIET_HOA_DON_THUE_SAN (
+                                  CASE
+                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MASAN
+                                      ELSE NULL
+                                      END,
+                                  CASE
+                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MAKG
+                                      ELSE NULL
+                                      END,
+                                  CASE
+                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN NGAYTHUE
+                                      ELSE NULL
+                                      END
+        );
+/
