@@ -20,7 +20,10 @@ public class StaffController {
         this.staffService = new StaffService();
 
         initEvents();
-        loadInitialData();
+
+        // Không tự load DB khi vừa mở màn hình.
+        // Tránh lỗi popup DB làm đứng giao diện trước khi bấm thêm nhân viên.
+        view.showStaffTable(new ArrayList<>());
     }
 
     private void initEvents() {
@@ -30,10 +33,6 @@ public class StaffController {
         view.setDeleteAction(e -> deleteStaff());
         view.setRefreshAction(e -> searchStaff());
         view.setViewDetailAction(e -> viewDetail());
-    }
-
-    private void loadInitialData() {
-        searchStaff();
     }
 
     private void searchStaff() {
