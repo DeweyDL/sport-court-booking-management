@@ -5,6 +5,8 @@ import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.service.StaffService;
 import com.sportcourt.modules.staff.view.StaffManagementView;
 
+import javax.swing.JPanel;
+
 public class StaffController {
     private final StaffManagementView view;
     private final StaffService staffService;
@@ -17,13 +19,18 @@ public class StaffController {
         searchStaff();
     }
 
+    public static JPanel createPanel() {
+        StaffManagementView view = new StaffManagementView();
+        new StaffController(view);
+        return view;
+    }
+
     private void initActions() {
         view.setSearchAction(e -> searchStaff());
         view.setAddAction(e -> addStaff());
         view.setUpdateAction(e -> updateStaff());
         view.setDeleteAction(e -> deleteStaff());
         view.setRestoreAction(e -> restoreStaff());
-        view.setViewDetailAction(e -> viewDetailStaff());
         view.setRefreshAction(e -> searchStaff());
     }
 
@@ -106,22 +113,6 @@ public class StaffController {
             staffService.restoreStaff(maNv);
             view.showMessage("Khôi phục nhân viên thành công.");
             searchStaff();
-        } catch (Exception ex) {
-            view.showError(ex.getMessage());
-        }
-    }
-
-    private void viewDetailStaff() {
-        String maNv = view.getSelectedStaffId();
-
-        if (maNv == null) {
-            view.showError("Vui lòng chọn nhân viên cần xem.");
-            return;
-        }
-
-        try {
-            StaffDetailResponse detail = staffService.getStaffDetail(maNv);
-            view.showDetailDialog(detail);
         } catch (Exception ex) {
             view.showError(ex.getMessage());
         }
