@@ -7,12 +7,14 @@ public class StaffResponse {
     private String hoTen;
     private String sdt;
     private String email;
-    private String viTri;
     private String maCn;
     private String diaChiChiNhanh;
+    private String viTri;
     private LocalDate ngayVaoLam;
     private String cccd;
     private boolean quanLy;
+    private String trangThai;
+    private boolean deleted;
 
     public String getMaNv() {
         return maNv;
@@ -46,14 +48,6 @@ public class StaffResponse {
         this.email = email;
     }
 
-    public String getViTri() {
-        return viTri;
-    }
-
-    public void setViTri(String viTri) {
-        this.viTri = viTri;
-    }
-
     public String getMaCn() {
         return maCn;
     }
@@ -68,6 +62,14 @@ public class StaffResponse {
 
     public void setDiaChiChiNhanh(String diaChiChiNhanh) {
         this.diaChiChiNhanh = diaChiChiNhanh;
+    }
+
+    public String getViTri() {
+        return viTri;
+    }
+
+    public void setViTri(String viTri) {
+        this.viTri = viTri;
     }
 
     public LocalDate getNgayVaoLam() {
@@ -92,5 +94,21 @@ public class StaffResponse {
 
     public void setQuanLy(boolean quanLy) {
         this.quanLy = quanLy;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }
