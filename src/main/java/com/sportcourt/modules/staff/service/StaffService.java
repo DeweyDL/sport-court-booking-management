@@ -149,7 +149,7 @@ public class StaffService {
             conn.setAutoCommit(false);
 
             User user = mapToUser(request);
-            Staff staff = mapToStaff(request);
+            Staff staff = mapToStaff(request, conn);
 
             staffDAO.updateUser(conn, user);
             staffDAO.updateStaff(conn, staff);
@@ -194,6 +194,28 @@ public class StaffService {
         }
     }
 
+    public void restoreStaff(String maNv) {
+        if (isBlank(maNv)) {
+            throw new RuntimeException("Vui lòng chọn nhân viên cần khôi phục.");
+        }
+
+        Connection conn = null;
+
+        try {
+            conn = ConnectionUtils.getMyConnection();
+            conn.setAutoCommit(false);
+
+            staffDAO.restoreStaff(conn, maNv.trim());
+
+            conn.commit();
+        } catch (Exception e) {
+            rollback(conn);
+            throw new RuntimeException("Khôi phục nhân viên thất bại: " + e.getMessage(), e);
+        } finally {
+            close(conn);
+        }
+    }
+
     private User mapToUser(StaffCreateRequest request) {
         User user = new User();
 
@@ -213,10 +235,7 @@ public class StaffService {
 
         staff.setMaNv(staffDAO.nextStaffId(conn));
         staff.setUserId(userId);
-
-        // Lấy đúng mã loại nhân viên do người dùng nhập ở form.
-        staff.setMaLoaiNv(request.getMaLoaiNv());
-
+        staff.setMaLoaiNv(resolveStaffTypeId(conn, request.getMaLoaiNv(), request.isQuanLy()));
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
@@ -238,20 +257,25 @@ public class StaffService {
         return user;
     }
 
-    private Staff mapToStaff(StaffUpdateRequest request) {
+    private Staff mapToStaff(StaffUpdateRequest request, Connection conn) {
         Staff staff = new Staff();
 
         staff.setMaNv(request.getMaNv());
         staff.setUserId(request.getUserId());
-
-        // Lấy đúng mã loại nhân viên do người dùng nhập ở form cập nhật.
-        staff.setMaLoaiNv(request.getMaLoaiNv());
-
+        staff.setMaLoaiNv(resolveStaffTypeId(conn, request.getMaLoaiNv(), request.isQuanLy()));
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
 
         return staff;
+    }
+
+    private String resolveStaffTypeId(Connection conn, String currentMaLoaiNv, boolean quanLy) {
+        if (!isBlank(currentMaLoaiNv)) {
+            return currentMaLoaiNv.trim();
+        }
+
+        return staffDAO.findDefaultStaffTypeId(conn, quanLy);
     }
 
     private String nextUserId() {

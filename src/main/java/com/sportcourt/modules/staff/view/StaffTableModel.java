@@ -2,16 +2,30 @@ package com.sportcourt.modules.staff.view;
 
 import com.sportcourt.modules.staff.dto.StaffResponse;
 
+import javax.swing.JLabel;
 import javax.swing.table.AbstractTableModel;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StaffTableModel extends AbstractTableModel {
     private final String[] columns = {
-            "Mã NV", "Họ tên", "SĐT", "Email", "Vị trí", "Chi nhánh", "Ngày vào làm", "CCCD", "Quản lý"
+            "MÃ NV",
+            "HỌ TÊN",
+            "SĐT",
+            "EMAIL",
+            "CHỨC VỤ",
+            "NGÀY VÀO LÀM",
+            "TRẠNG THÁI",
+            "THAO TÁC"
     };
 
     private List<StaffResponse> data = new ArrayList<>();
+    private JLabel footerLabel;
+
+    public void setFooterLabel(JLabel footerLabel) {
+        this.footerLabel = footerLabel;
+    }
 
     public void setData(List<StaffResponse> data) {
         this.data = data == null ? new ArrayList<>() : data;
@@ -47,25 +61,50 @@ public class StaffTableModel extends AbstractTableModel {
 
         switch (columnIndex) {
             case 0:
-                return staff.getMaNv();
+                return safe(staff.getMaNv());
             case 1:
-                return staff.getHoTen();
+                return safe(staff.getHoTen());
             case 2:
-                return staff.getSdt();
+                return safe(staff.getSdt());
             case 3:
-                return staff.getEmail();
+                return safe(staff.getEmail());
             case 4:
-                return staff.getViTri();
+                return normalizeRole(staff);
             case 5:
-                return staff.getDiaChiChiNhanh();
+                if (staff.getNgayVaoLam() == null) {
+                    return "--";
+                }
+                return staff.getNgayVaoLam().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
             case 6:
-                return staff.getNgayVaoLam();
+                return safe(staff.getTrangThai());
             case 7:
-                return staff.getCccd();
-            case 8:
-                return staff.isQuanLy() ? "Có" : "Không";
+                return "";
             default:
                 return "";
         }
+    }
+
+    private String normalizeRole(StaffResponse staff) {
+        String value = staff.getViTri();
+
+        if (value == null || value.trim().isEmpty()) {
+            return staff.isQuanLy() ? "QUẢN LÝ" : "NHÂN VIÊN";
+        }
+
+        String lower = value.toLowerCase();
+
+        if (lower.contains("quan") || lower.contains("quản")) {
+            return "QUẢN LÝ";
+        }
+
+        if (lower.contains("nhan") || lower.contains("nhân")) {
+            return "NHÂN VIÊN";
+        }
+
+        return value.trim().toUpperCase();
+    }
+
+    private String safe(String value) {
+        return value == null || value.trim().isEmpty() ? "--" : value;
     }
 }
