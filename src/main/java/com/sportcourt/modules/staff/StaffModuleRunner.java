@@ -1,5 +1,7 @@
 package com.sportcourt.modules.staff;
 
+import com.sportcourt.modules.staff.controller.StaffController;
+
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -14,7 +16,7 @@ public class StaffModuleRunner {
             }
 
             JFrame frame = new JFrame("Quản lý nhân viên");
-            JPanel panel = StaffModule.createPanel();
+            JPanel panel = StaffController.createPanel();
 
             frame.setContentPane(panel);
             frame.setSize(1200, 720);

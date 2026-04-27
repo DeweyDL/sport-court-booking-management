@@ -143,4 +143,6 @@ public class StaffDetailResponse {
     public void setQuanLy(boolean quanLy) {
         this.quanLy = quanLy;
     }
+
+
 }
