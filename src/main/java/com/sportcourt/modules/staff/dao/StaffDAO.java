@@ -23,16 +23,11 @@ public class StaffDAO {
         }
 
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT nv.MANV, u.HOTEN, u.SDT, u.EMAIL, lnv.VITRI, ");
-        sql.append("nv.MACN, cn.DIACHI AS DIACHI_CHI_NHANH, nv.NVL, nv.CCCD, nv.IS_QL ");
+        sql.append("SELECT nv.MANV, u.HOTEN, u.SDT, u.EMAIL, nv.NVL, nv.CCCD, nv.IS_QL ");
         sql.append("FROM NHAN_VIEN nv ");
         sql.append("JOIN USERS u ON nv.USER_ID = u.USER_ID ");
-        sql.append("JOIN LOAI_NHAN_VIEN lnv ON nv.MALNV = lnv.MALNV ");
-        sql.append("JOIN CHI_NHANH cn ON nv.MACN = cn.MACN ");
         sql.append("WHERE nv.IS_DELETED = 0 ");
         sql.append("AND u.IS_DELETED = 0 ");
-        sql.append("AND lnv.IS_DELETED = 0 ");
-        sql.append("AND cn.IS_DELETED = 0 ");
 
         List<Object> params = new ArrayList<>();
 
@@ -49,16 +44,6 @@ public class StaffDAO {
             params.add(keyword);
             params.add(keyword);
             params.add(keyword);
-        }
-
-        if (!isBlank(criteria.getMaCn())) {
-            sql.append("AND nv.MACN = ? ");
-            params.add(criteria.getMaCn().trim());
-        }
-
-        if (!isBlank(criteria.getMaLoaiNv())) {
-            sql.append("AND nv.MALNV = ? ");
-            params.add(criteria.getMaLoaiNv().trim());
         }
 
         if (criteria.getQuanLy() != null) {
@@ -86,7 +71,7 @@ public class StaffDAO {
 
             return result;
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể tra cứu nhân viên.", e);
+            throw new RuntimeException("Không thể tra cứu nhân viên. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(conn, ps, rs);
         }
@@ -97,13 +82,10 @@ public class StaffDAO {
             return null;
         }
 
-        String sql = "SELECT nv.MANV, nv.USER_ID, u.HOTEN, u.NGAYSINH, u.SDT, u.EMAIL, u.DIACHI, "
-                + "nv.MACN, cn.DIACHI AS DIACHI_CHI_NHANH, nv.MALNV, "
-                + "lnv.VITRI, lnv.MUCLUONG, nv.NVL, nv.CCCD, nv.IS_QL "
+        String sql = "SELECT nv.MANV, nv.USER_ID, nv.MALNV, u.HOTEN, u.NGAYSINH, "
+                + "u.SDT, u.EMAIL, u.DIACHI, nv.NVL, nv.CCCD, nv.IS_QL "
                 + "FROM NHAN_VIEN nv "
                 + "JOIN USERS u ON nv.USER_ID = u.USER_ID "
-                + "JOIN LOAI_NHAN_VIEN lnv ON nv.MALNV = lnv.MALNV "
-                + "JOIN CHI_NHANH cn ON nv.MACN = cn.MACN "
                 + "WHERE nv.MANV = ? "
                 + "AND nv.IS_DELETED = 0 "
                 + "AND u.IS_DELETED = 0";
@@ -124,9 +106,97 @@ public class StaffDAO {
 
             return null;
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể lấy chi tiết nhân viên.", e);
+            throw new RuntimeException("Không thể lấy chi tiết nhân viên. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(conn, ps, rs);
+        }
+    }
+
+    public String nextStaffId(Connection conn) {
+        for (int i = 1; i <= 9999; i++) {
+            String nextId = String.format("NV%02d", i);
+
+            if (!existsStaffId(conn, nextId)) {
+                return nextId;
+            }
+        }
+
+        throw new RuntimeException("Không thể sinh mã nhân viên mới.");
+    }
+
+    private boolean existsStaffId(Connection conn, String maNv) {
+        String sql = "SELECT COUNT(*) FROM NHAN_VIEN WHERE MANV = ?";
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, maNv);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+
+            return false;
+        } catch (SQLException e) {
+            throw new RuntimeException("Không thể kiểm tra mã nhân viên. Chi tiết: " + e.getMessage(), e);
+        } finally {
+            ConnectionUtils.close(null, ps, rs);
+        }
+    }
+
+    public String findStaffTypeIdByRole(Connection conn, boolean quanLy) {
+        String keyword1 = quanLy ? "%quan%" : "%nhan%";
+        String keyword2 = quanLy ? "%quản%" : "%nhân%";
+
+        String sql = "SELECT MALNV "
+                + "FROM LOAI_NHAN_VIEN "
+                + "WHERE IS_DELETED = 0 "
+                + "AND (LOWER(VITRI) LIKE ? OR LOWER(VITRI) LIKE ?) "
+                + "AND ROWNUM = 1";
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, keyword1);
+            ps.setString(2, keyword2);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("MALNV");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Không thể tìm loại nhân viên. Chi tiết: " + e.getMessage(), e);
+        } finally {
+            ConnectionUtils.close(null, ps, rs);
+        }
+
+        return findFirstActiveStaffTypeId(conn);
+    }
+
+    private String findFirstActiveStaffTypeId(Connection conn) {
+        String sql = "SELECT MALNV FROM LOAI_NHAN_VIEN WHERE IS_DELETED = 0 AND ROWNUM = 1";
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("MALNV");
+            }
+
+            throw new RuntimeException("Chưa có dữ liệu trong bảng LOAI_NHAN_VIEN.");
+        } catch (SQLException e) {
+            throw new RuntimeException("Không thể lấy mã loại nhân viên. Chi tiết: " + e.getMessage(), e);
+        } finally {
+            ConnectionUtils.close(null, ps, rs);
         }
     }
 
@@ -202,10 +272,9 @@ public class StaffDAO {
             ps.setString(4, user.getEmail());
             ps.setDate(5, user.getNgaySinh() == null ? null : Date.valueOf(user.getNgaySinh()));
             ps.setString(6, user.getDiaChi());
-
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể thêm thông tin người dùng.", e);
+            throw new RuntimeException("Không thể thêm thông tin người dùng. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(null, ps, null);
         }
@@ -213,24 +282,22 @@ public class StaffDAO {
 
     public void insertStaff(Connection conn, Staff staff) {
         String sql = "INSERT INTO NHAN_VIEN ("
-                + "MANV, MACN, MALNV, USER_ID, NVL, CCCD, IS_QL, CREATED_AT, IS_DELETED"
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, SYSDATE, 0)";
+                + "MANV, USER_ID, MALNV, NVL, CCCD, IS_QL, CREATED_AT, IS_DELETED"
+                + ") VALUES (?, ?, ?, ?, ?, ?, SYSDATE, 0)";
 
         PreparedStatement ps = null;
 
         try {
             ps = conn.prepareStatement(sql);
             ps.setString(1, staff.getMaNv());
-            ps.setString(2, staff.getMaCn());
+            ps.setString(2, staff.getUserId());
             ps.setString(3, staff.getMaLoaiNv());
-            ps.setString(4, staff.getUserId());
-            ps.setDate(5, staff.getNgayVaoLam() == null ? null : Date.valueOf(staff.getNgayVaoLam()));
-            ps.setString(6, staff.getCccd());
-            ps.setInt(7, staff.isQuanLy() ? 1 : 0);
-
+            ps.setDate(4, staff.getNgayVaoLam() == null ? null : Date.valueOf(staff.getNgayVaoLam()));
+            ps.setString(5, staff.getCccd());
+            ps.setInt(6, staff.isQuanLy() ? 1 : 0);
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể thêm nhân viên.", e);
+            throw new RuntimeException("Không thể thêm nhân viên. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(null, ps, null);
         }
@@ -259,7 +326,7 @@ public class StaffDAO {
                 throw new RuntimeException("Không tìm thấy người dùng cần cập nhật.");
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể cập nhật thông tin người dùng.", e);
+            throw new RuntimeException("Không thể cập nhật thông tin người dùng. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(null, ps, null);
         }
@@ -267,7 +334,7 @@ public class StaffDAO {
 
     public void updateStaff(Connection conn, Staff staff) {
         String sql = "UPDATE NHAN_VIEN "
-                + "SET MACN = ?, MALNV = ?, NVL = ?, CCCD = ?, IS_QL = ? "
+                + "SET MALNV = ?, NVL = ?, CCCD = ?, IS_QL = ? "
                 + "WHERE MANV = ? "
                 + "AND IS_DELETED = 0";
 
@@ -275,12 +342,11 @@ public class StaffDAO {
 
         try {
             ps = conn.prepareStatement(sql);
-            ps.setString(1, staff.getMaCn());
-            ps.setString(2, staff.getMaLoaiNv());
-            ps.setDate(3, staff.getNgayVaoLam() == null ? null : Date.valueOf(staff.getNgayVaoLam()));
-            ps.setString(4, staff.getCccd());
-            ps.setInt(5, staff.isQuanLy() ? 1 : 0);
-            ps.setString(6, staff.getMaNv());
+            ps.setString(1, staff.getMaLoaiNv());
+            ps.setDate(2, staff.getNgayVaoLam() == null ? null : Date.valueOf(staff.getNgayVaoLam()));
+            ps.setString(3, staff.getCccd());
+            ps.setInt(4, staff.isQuanLy() ? 1 : 0);
+            ps.setString(5, staff.getMaNv());
 
             int affectedRows = ps.executeUpdate();
 
@@ -288,7 +354,7 @@ public class StaffDAO {
                 throw new RuntimeException("Không tìm thấy nhân viên cần cập nhật.");
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể cập nhật nhân viên.", e);
+            throw new RuntimeException("Không thể cập nhật nhân viên. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(null, ps, null);
         }
@@ -312,7 +378,7 @@ public class StaffDAO {
                 throw new RuntimeException("Không tìm thấy nhân viên cần xoá.");
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể xoá nhân viên.", e);
+            throw new RuntimeException("Không thể xoá nhân viên. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(null, ps, null);
         }
@@ -335,7 +401,7 @@ public class StaffDAO {
 
             return 0;
         } catch (SQLException e) {
-            throw new RuntimeException("Không thể kiểm tra dữ liệu tồn tại.", e);
+            throw new RuntimeException("Không thể kiểm tra dữ liệu tồn tại. Chi tiết: " + e.getMessage(), e);
         } finally {
             ConnectionUtils.close(conn, ps, rs);
         }
@@ -360,15 +426,15 @@ public class StaffDAO {
         response.setHoTen(rs.getString("HOTEN"));
         response.setSdt(rs.getString("SDT"));
         response.setEmail(rs.getString("EMAIL"));
-        response.setViTri(rs.getString("VITRI"));
-        response.setMaCn(rs.getString("MACN"));
-        response.setDiaChiChiNhanh(rs.getString("DIACHI_CHI_NHANH"));
+        response.setCccd(rs.getString("CCCD"));
+        response.setQuanLy(rs.getInt("IS_QL") == 1);
 
         Date ngayVaoLam = rs.getDate("NVL");
         response.setNgayVaoLam(ngayVaoLam == null ? null : ngayVaoLam.toLocalDate());
 
-        response.setCccd(rs.getString("CCCD"));
-        response.setQuanLy(rs.getInt("IS_QL") == 1);
+        response.setMaCn("");
+        response.setDiaChiChiNhanh("");
+        response.setViTri(response.isQuanLy() ? "Quản lý" : "Nhân viên");
 
         return response;
     }
@@ -378,6 +444,7 @@ public class StaffDAO {
 
         response.setMaNv(rs.getString("MANV"));
         response.setUserId(rs.getString("USER_ID"));
+        response.setMaLoaiNv(rs.getString("MALNV"));
         response.setHoTen(rs.getString("HOTEN"));
 
         Date ngaySinh = rs.getDate("NGAYSINH");
@@ -387,18 +454,16 @@ public class StaffDAO {
         response.setEmail(rs.getString("EMAIL"));
         response.setDiaChi(rs.getString("DIACHI"));
 
-        response.setMaCn(rs.getString("MACN"));
-        response.setDiaChiChiNhanh(rs.getString("DIACHI_CHI_NHANH"));
-
-        response.setMaLoaiNv(rs.getString("MALNV"));
-        response.setViTri(rs.getString("VITRI"));
-        response.setMucLuong(rs.getBigDecimal("MUCLUONG"));
-
         Date ngayVaoLam = rs.getDate("NVL");
         response.setNgayVaoLam(ngayVaoLam == null ? null : ngayVaoLam.toLocalDate());
 
         response.setCccd(rs.getString("CCCD"));
         response.setQuanLy(rs.getInt("IS_QL") == 1);
+
+        response.setMaCn("");
+        response.setDiaChiChiNhanh("");
+        response.setViTri(response.isQuanLy() ? "Quản lý" : "Nhân viên");
+        response.setMucLuong(null);
 
         return response;
     }

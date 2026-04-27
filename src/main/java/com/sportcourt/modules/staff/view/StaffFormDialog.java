@@ -5,22 +5,33 @@ import com.sportcourt.modules.staff.dto.StaffDetailResponse;
 import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
 
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dialog;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.RenderingHints;
+import java.awt.Window;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 
 public class StaffFormDialog extends JDialog {
@@ -29,30 +40,32 @@ public class StaffFormDialog extends JDialog {
         UPDATE
     }
 
+    private static final Color PAGE_BG = new Color(246, 247, 251);
+    private static final Color CARD_BG = Color.WHITE;
+    private static final Color BORDER = new Color(226, 232, 240);
+    private static final Color TEXT_DARK = new Color(17, 24, 39);
+    private static final Color GREEN = new Color(34, 197, 94);
+    private static final Color GREEN_DARK = new Color(22, 163, 74);
+    private static final Color CANCEL_BG = new Color(226, 232, 240);
+
     private final Mode mode;
     private final StaffDetailResponse detail;
     private boolean submitted;
 
     private JTextField txtHoTen;
-    private JTextField txtNgaySinh;
     private JTextField txtSdt;
-    private JTextField txtEmail;
-    private JTextField txtDiaChi;
-
-    private JTextField txtMaCn;
-    private JTextField txtMaLoaiNv;
-    private JTextField txtNgayVaoLam;
     private JTextField txtCccd;
-    private JCheckBox chkQuanLy;
+    private JTextField txtEmail;
+    private JTextField txtMaLoaiNv;
 
-    private JPanel accountPanel;
-    private JCheckBox chkCreateAccount;
-    private JTextField txtUsername;
-    private JPasswordField txtPassword;
-    private JTextField txtRoleGroupId;
+    private DatePickerField dateNgaySinh;
+    private DatePickerField dateNgayVaoLam;
 
-    private JButton btnSave;
+    private JRadioButton rdoQuanLy;
+    private JRadioButton rdoNhanVien;
+
     private JButton btnCancel;
+    private JButton btnSave;
 
     private StaffFormDialog(Mode mode, StaffDetailResponse detail) {
         this.mode = mode;
@@ -60,8 +73,9 @@ public class StaffFormDialog extends JDialog {
         this.submitted = false;
 
         setModal(true);
-        setTitle(mode == Mode.CREATE ? "Thêm mới nhân viên" : "Cập nhật thông tin nhân viên");
-        setSize(560, 680);
+        setTitle(mode == Mode.CREATE ? "Thêm nhân viên" : "Cập nhật nhân viên");
+        setSize(560, 690);
+        setResizable(false);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         initComponents();
@@ -70,10 +84,7 @@ public class StaffFormDialog extends JDialog {
 
         if (mode == Mode.UPDATE && detail != null) {
             fillData(detail);
-            hideAccountFields();
         }
-
-        toggleAccountFields();
     }
 
     public static StaffFormDialog createMode() {
@@ -85,164 +96,132 @@ public class StaffFormDialog extends JDialog {
     }
 
     private void initComponents() {
-        txtHoTen = new JTextField();
-        txtNgaySinh = new JTextField();
-        txtSdt = new JTextField();
-        txtEmail = new JTextField();
-        txtDiaChi = new JTextField();
+        txtHoTen = createTextField();
+        txtSdt = createTextField();
+        txtCccd = createTextField();
+        txtEmail = createTextField();
+        txtMaLoaiNv = createTextField();
 
-        txtMaCn = new JTextField();
-        txtMaLoaiNv = new JTextField();
-        txtNgayVaoLam = new JTextField();
-        txtCccd = new JTextField();
-        chkQuanLy = new JCheckBox("Là quản lý chi nhánh");
+        dateNgaySinh = new DatePickerField();
+        dateNgayVaoLam = new DatePickerField();
 
-        chkCreateAccount = new JCheckBox("Tạo tài khoản đăng nhập");
-        txtUsername = new JTextField();
-        txtPassword = new JPasswordField();
-        txtRoleGroupId = new JTextField();
+        rdoQuanLy = createRoleRadio("Quản lý");
+        rdoNhanVien = createRoleRadio("Nhân viên");
+        rdoNhanVien.setSelected(true);
 
-        btnSave = StaffTheme.primaryButton("Lưu");
-        btnCancel = StaffTheme.secondaryButton("Huỷ");
+        ButtonGroup roleGroup = new ButtonGroup();
+        roleGroup.add(rdoQuanLy);
+        roleGroup.add(rdoNhanVien);
 
-        txtNgaySinh.setToolTipText("Định dạng: yyyy-MM-dd");
-        txtNgayVaoLam.setToolTipText("Định dạng: yyyy-MM-dd");
+        btnCancel = new RoundedButton("Hủy", CANCEL_BG, TEXT_DARK);
+        btnSave = new RoundedButton(
+                mode == Mode.CREATE ? "Tạo nhân viên" : "Lưu thay đổi",
+                GREEN,
+                Color.WHITE
+        );
     }
 
     private void initLayout() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(PAGE_BG);
+        root.setBorder(BorderFactory.createEmptyBorder(18, 22, 18, 22));
 
-        mainPanel.setBackground(StaffTheme.BACKGROUND);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        StaffTheme.applyCard(formPanel);
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createEmptyBorder(18, 26, 18, 26));
+
+        JLabel title = new JLabel(mode == Mode.CREATE ? "Thêm nhân viên mới" : "Cập nhật nhân viên");
+        title.setFont(fontBold(25));
+        title.setForeground(TEXT_DARK);
+        title.setHorizontalAlignment(JLabel.CENTER);
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(CARD_BG);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(7, 7, 7, 7);
+        gbc.insets = new Insets(4, 0, 4, 0);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.weightx = 1;
 
         int row = 0;
+        row = addInput(form, gbc, row, "Họ và tên nhân viên", txtHoTen);
+        row = addInput(form, gbc, row, "Số điện thoại", txtSdt);
+        row = addInput(form, gbc, row, "Căn cước công dân", txtCccd);
+        row = addInput(form, gbc, row, "Email", txtEmail);
+        row = addInput(form, gbc, row, "Ngày sinh", dateNgaySinh);
+        row = addInput(form, gbc, row, "Mã loại nhân viên", txtMaLoaiNv);
+        row = addInput(form, gbc, row, "Ngày vào làm", dateNgayVaoLam);
 
-        addSectionTitle(formPanel, gbc, row++, "Thông tin cá nhân");
-        addRow(formPanel, gbc, row++, "Họ tên:", txtHoTen);
-        addRow(formPanel, gbc, row++, "Ngày sinh:", txtNgaySinh);
-        addRow(formPanel, gbc, row++, "Số điện thoại:", txtSdt);
-        addRow(formPanel, gbc, row++, "Email:", txtEmail);
-        addRow(formPanel, gbc, row++, "Địa chỉ:", txtDiaChi);
+        JLabel lblRole = new JLabel("Chức vụ");
+        lblRole.setFont(fontBold(13));
+        lblRole.setForeground(TEXT_DARK);
 
-        addSectionTitle(formPanel, gbc, row++, "Thông tin nhân viên");
-        addRow(formPanel, gbc, row++, "Mã chi nhánh:", txtMaCn);
-        addRow(formPanel, gbc, row++, "Mã loại nhân viên:", txtMaLoaiNv);
-        addRow(formPanel, gbc, row++, "Ngày vào làm:", txtNgayVaoLam);
-        addRow(formPanel, gbc, row++, "CCCD:", txtCccd);
-
-        gbc.gridx = 1;
         gbc.gridy = row++;
-        gbc.weightx = 1;
-        formPanel.add(chkQuanLy, gbc);
+        gbc.insets = new Insets(6, 0, 6, 0);
+        form.add(lblRole, gbc);
 
-        accountPanel = new JPanel(new GridBagLayout());
-        accountPanel.setOpaque(false);
+        JPanel rolePanel = new JPanel(new GridLayout(1, 2, 12, 0));
+        rolePanel.setBackground(CARD_BG);
+        rolePanel.add(wrapRoleRadio(rdoQuanLy));
+        rolePanel.add(wrapRoleRadio(rdoNhanVien));
 
-        GridBagConstraints accountGbc = new GridBagConstraints();
-        accountGbc.insets = new Insets(7, 7, 7, 7);
-        accountGbc.fill = GridBagConstraints.HORIZONTAL;
-
-        int accountRow = 0;
-        addSectionTitle(accountPanel, accountGbc, accountRow++, "Tài khoản đăng nhập");
-
-        accountGbc.gridx = 1;
-        accountGbc.gridy = accountRow++;
-        accountGbc.weightx = 1;
-        accountPanel.add(chkCreateAccount, accountGbc);
-
-        addRow(accountPanel, accountGbc, accountRow++, "Username:", txtUsername);
-        addRow(accountPanel, accountGbc, accountRow++, "Password:", txtPassword);
-        addRow(accountPanel, accountGbc, accountRow++, "Mã nhóm quyền:", txtRoleGroupId);
-
-        gbc.gridx = 0;
         gbc.gridy = row++;
-        gbc.gridwidth = 2;
-        formPanel.add(accountPanel, gbc);
-        gbc.gridwidth = 1;
+        gbc.insets = new Insets(0, 0, 14, 0);
+        form.add(rolePanel, gbc);
 
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(btnSave);
-        buttonPanel.add(btnCancel);
+        JPanel buttons = new JPanel(new GridLayout(1, 2, 18, 0));
+        buttons.setBackground(CARD_BG);
+        buttons.add(btnCancel);
+        buttons.add(btnSave);
 
-        mainPanel.add(new JScrollPane(formPanel), BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        card.add(title, BorderLayout.NORTH);
+        card.add(form, BorderLayout.CENTER);
+        card.add(buttons, BorderLayout.SOUTH);
 
-        setContentPane(mainPanel);
+        root.add(card, BorderLayout.CENTER);
+        setContentPane(root);
     }
 
-    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent component) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
-        panel.add(new JLabel(label), gbc);
+    private int addInput(JPanel form, GridBagConstraints gbc, int row, String label, JComponent input) {
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(fontBold(13));
+        lbl.setForeground(TEXT_DARK);
 
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.gridwidth = 1;
-        gbc.weightx = 1;
-        panel.add(component, gbc);
-    }
+        gbc.gridy = row++;
+        gbc.insets = new Insets(4, 0, 4, 0);
+        form.add(lbl, gbc);
 
-    private void addSectionTitle(JPanel panel, GridBagConstraints gbc, int row, String title) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1;
+        gbc.gridy = row++;
+        gbc.insets = new Insets(0, 0, 6, 0);
+        form.add(input, gbc);
 
-        JLabel label = new JLabel(title);
-        label.setFont(StaffTheme.fontBold(15));
-        panel.add(label, gbc);
-
-        gbc.gridwidth = 1;
+        return row;
     }
 
     private void initEvents() {
-        btnSave.addActionListener(e -> handleSave());
-
         btnCancel.addActionListener(e -> {
             submitted = false;
             dispose();
         });
 
-        chkCreateAccount.addActionListener(e -> toggleAccountFields());
+        btnSave.addActionListener(e -> handleSubmit());
+
+        btnSave.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btnSave.setBackground(GREEN_DARK);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btnSave.setBackground(GREEN);
+            }
+        });
     }
 
-    private void hideAccountFields() {
-        chkCreateAccount.setSelected(false);
-        accountPanel.setVisible(false);
-    }
-
-    private void toggleAccountFields() {
-        boolean enabled = mode == Mode.CREATE && chkCreateAccount.isSelected();
-
-        txtUsername.setEnabled(enabled);
-        txtPassword.setEnabled(enabled);
-        txtRoleGroupId.setEnabled(enabled);
-    }
-
-    private void fillData(StaffDetailResponse detail) {
-        txtHoTen.setText(safe(detail.getHoTen()));
-        txtNgaySinh.setText(detail.getNgaySinh() == null ? "" : detail.getNgaySinh().toString());
-        txtSdt.setText(safe(detail.getSdt()));
-        txtEmail.setText(safe(detail.getEmail()));
-        txtDiaChi.setText(safe(detail.getDiaChi()));
-
-        txtMaCn.setText(safe(detail.getMaCn()));
-        txtMaLoaiNv.setText(safe(detail.getMaLoaiNv()));
-        txtNgayVaoLam.setText(detail.getNgayVaoLam() == null ? "" : detail.getNgayVaoLam().toString());
-        txtCccd.setText(safe(detail.getCccd()));
-        chkQuanLy.setSelected(detail.isQuanLy());
-    }
-
-    private void handleSave() {
+    private void handleSubmit() {
         try {
             validateForm();
             submitted = true;
@@ -258,50 +237,36 @@ public class StaffFormDialog extends JDialog {
     }
 
     private void validateForm() {
-        if (isBlank(txtHoTen.getText())) {
-            throw new RuntimeException("Họ tên không được để trống.");
-        }
+        require(txtHoTen, "Họ và tên nhân viên");
+        require(txtSdt, "Số điện thoại");
+        require(txtCccd, "Căn cước công dân");
+        require(txtEmail, "Email");
+        require(txtMaLoaiNv, "Mã loại nhân viên");
 
-        if (parseDate(txtNgaySinh.getText(), "Ngày sinh") == null) {
+        if (dateNgaySinh.getDate("Ngày sinh") == null) {
             throw new RuntimeException("Ngày sinh không được để trống.");
         }
 
-        if (isBlank(txtSdt.getText())) {
-            throw new RuntimeException("Số điện thoại không được để trống.");
-        }
-
-        if (isBlank(txtEmail.getText())) {
-            throw new RuntimeException("Email không được để trống.");
-        }
-
-        if (isBlank(txtMaCn.getText())) {
-            throw new RuntimeException("Mã chi nhánh không được để trống.");
-        }
-
-        if (isBlank(txtMaLoaiNv.getText())) {
-            throw new RuntimeException("Mã loại nhân viên không được để trống.");
-        }
-
-        if (parseDate(txtNgayVaoLam.getText(), "Ngày vào làm") == null) {
+        if (dateNgayVaoLam.getDate("Ngày vào làm") == null) {
             throw new RuntimeException("Ngày vào làm không được để trống.");
         }
 
-        if (isBlank(txtCccd.getText())) {
-            throw new RuntimeException("CCCD không được để trống.");
+        if (!txtSdt.getText().trim().matches("^0\\d{9}$")) {
+            throw new RuntimeException("Số điện thoại phải gồm 10 số và bắt đầu bằng 0.");
         }
 
-        if (mode == Mode.CREATE && chkCreateAccount.isSelected()) {
-            if (isBlank(txtUsername.getText())) {
-                throw new RuntimeException("Username không được để trống.");
-            }
+        if (!txtCccd.getText().trim().matches("\\d{12}")) {
+            throw new RuntimeException("Căn cước công dân phải gồm đúng 12 chữ số.");
+        }
 
-            if (txtPassword.getPassword().length == 0) {
-                throw new RuntimeException("Password không được để trống.");
-            }
+        if (!txtEmail.getText().trim().matches("^[A-Za-z0-9._%+-]+@gmail\\.com$")) {
+            throw new RuntimeException("Email phải có định dạng Gmail, ví dụ: nhanvien@gmail.com.");
+        }
+    }
 
-            if (isBlank(txtRoleGroupId.getText())) {
-                throw new RuntimeException("Mã nhóm quyền không được để trống.");
-            }
+    private void require(JTextField field, String name) {
+        if (field.getText() == null || field.getText().trim().isEmpty()) {
+            throw new RuntimeException(name + " không được để trống.");
         }
     }
 
@@ -311,22 +276,23 @@ public class StaffFormDialog extends JDialog {
         }
 
         StaffCreateRequest request = new StaffCreateRequest();
+
         request.setHoTen(txtHoTen.getText().trim());
-        request.setNgaySinh(parseDate(txtNgaySinh.getText(), "Ngày sinh"));
         request.setSdt(txtSdt.getText().trim());
-        request.setEmail(txtEmail.getText().trim());
-        request.setDiaChi(txtDiaChi.getText().trim());
-
-        request.setMaCn(txtMaCn.getText().trim());
-        request.setMaLoaiNv(txtMaLoaiNv.getText().trim());
-        request.setNgayVaoLam(parseDate(txtNgayVaoLam.getText(), "Ngày vào làm"));
         request.setCccd(txtCccd.getText().trim());
-        request.setQuanLy(chkQuanLy.isSelected());
+        request.setEmail(txtEmail.getText().trim());
+        request.setNgaySinh(dateNgaySinh.getDate("Ngày sinh"));
 
-        request.setCreateAccount(chkCreateAccount.isSelected());
-        request.setUsername(txtUsername.getText().trim());
-        request.setPassword(new String(txtPassword.getPassword()));
-        request.setRoleGroupId(txtRoleGroupId.getText().trim());
+        request.setDiaChi(null);
+        request.setMaCn(null);
+        request.setMaLoaiNv(txtMaLoaiNv.getText().trim());
+        request.setNgayVaoLam(dateNgayVaoLam.getDate("Ngày vào làm"));
+        request.setQuanLy(rdoQuanLy.isSelected());
+
+        request.setCreateAccount(false);
+        request.setUsername(null);
+        request.setPassword(null);
+        request.setRoleGroupId(null);
 
         return request;
     }
@@ -337,41 +303,277 @@ public class StaffFormDialog extends JDialog {
         }
 
         StaffUpdateRequest request = new StaffUpdateRequest();
+
         request.setMaNv(detail.getMaNv());
         request.setUserId(detail.getUserId());
 
         request.setHoTen(txtHoTen.getText().trim());
-        request.setNgaySinh(parseDate(txtNgaySinh.getText(), "Ngày sinh"));
         request.setSdt(txtSdt.getText().trim());
-        request.setEmail(txtEmail.getText().trim());
-        request.setDiaChi(txtDiaChi.getText().trim());
-
-        request.setMaCn(txtMaCn.getText().trim());
-        request.setMaLoaiNv(txtMaLoaiNv.getText().trim());
-        request.setNgayVaoLam(parseDate(txtNgayVaoLam.getText(), "Ngày vào làm"));
         request.setCccd(txtCccd.getText().trim());
-        request.setQuanLy(chkQuanLy.isSelected());
+        request.setEmail(txtEmail.getText().trim());
+        request.setNgaySinh(dateNgaySinh.getDate("Ngày sinh"));
+
+        request.setDiaChi(null);
+        request.setMaCn(null);
+        request.setMaLoaiNv(txtMaLoaiNv.getText().trim());
+        request.setNgayVaoLam(dateNgayVaoLam.getDate("Ngày vào làm"));
+        request.setQuanLy(rdoQuanLy.isSelected());
 
         return request;
     }
 
-    private LocalDate parseDate(String value, String fieldName) {
-        if (isBlank(value)) {
-            return null;
-        }
+    private void fillData(StaffDetailResponse detail) {
+        txtHoTen.setText(safe(detail.getHoTen()));
+        txtSdt.setText(safe(detail.getSdt()));
+        txtCccd.setText(safe(detail.getCccd()));
+        txtEmail.setText(safe(detail.getEmail()));
 
-        try {
-            return LocalDate.parse(value.trim());
-        } catch (DateTimeParseException ex) {
-            throw new RuntimeException(fieldName + " phải có định dạng yyyy-MM-dd.");
+        dateNgaySinh.setDate(detail.getNgaySinh());
+        dateNgayVaoLam.setDate(detail.getNgayVaoLam());
+
+        txtMaLoaiNv.setText(safe(detail.getMaLoaiNv()));
+
+        if (detail.isQuanLy()) {
+            rdoQuanLy.setSelected(true);
+        } else {
+            rdoNhanVien.setSelected(true);
         }
     }
 
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+    private JTextField createTextField() {
+        JTextField field = new JTextField();
+        field.setPreferredSize(new java.awt.Dimension(390, 36));
+        field.setFont(fontPlain(14));
+        field.setForeground(TEXT_DARK);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(0, 12, 0, 12)
+        ));
+
+        return field;
+    }
+
+    private JRadioButton createRoleRadio(String text) {
+        JRadioButton radio = new JRadioButton(text);
+        radio.setFont(fontBold(14));
+        radio.setForeground(TEXT_DARK);
+        radio.setOpaque(false);
+        radio.setFocusPainted(false);
+        radio.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return radio;
+    }
+
+    private JPanel wrapRoleRadio(JRadioButton radio) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        panel.add(radio, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private Font fontPlain(int size) {
+        return new Font("Segoe UI", Font.PLAIN, size);
+    }
+
+    private Font fontBold(int size) {
+        return new Font("Segoe UI", Font.BOLD, size);
     }
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private class DatePickerField extends JPanel {
+        private final JTextField textField;
+        private final JButton btnPick;
+        private final JButton btnClear;
+
+        DatePickerField() {
+            setLayout(new BorderLayout(8, 0));
+            setOpaque(false);
+
+            textField = createTextField();
+            textField.setEditable(false);
+            textField.setBackground(Color.WHITE);
+
+            btnPick = new JButton("Chọn");
+            btnPick.setFont(fontPlain(13));
+            btnPick.setPreferredSize(new java.awt.Dimension(68, 36));
+            btnPick.setFocusPainted(false);
+            btnPick.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            btnClear = new JButton("Xóa");
+            btnClear.setFont(fontPlain(13));
+            btnClear.setPreferredSize(new java.awt.Dimension(56, 36));
+            btnClear.setFocusPainted(false);
+            btnClear.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            JPanel rightPanel = new JPanel(new GridLayout(1, 2, 8, 0));
+            rightPanel.setOpaque(false);
+            rightPanel.add(btnPick);
+            rightPanel.add(btnClear);
+
+            add(textField, BorderLayout.CENTER);
+            add(rightPanel, BorderLayout.EAST);
+
+            btnPick.addActionListener(e -> showDateDialog());
+            btnClear.addActionListener(e -> textField.setText(""));
+        }
+
+        void setDate(LocalDate date) {
+            textField.setText(date == null ? "" : date.toString());
+        }
+
+        LocalDate getDate(String fieldName) {
+            if (textField.getText() == null || textField.getText().trim().isEmpty()) {
+                return null;
+            }
+
+            try {
+                return LocalDate.parse(textField.getText().trim());
+            } catch (DateTimeParseException ex) {
+                throw new RuntimeException(fieldName + " không hợp lệ.");
+            }
+        }
+
+        private void showDateDialog() {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            JDialog dialog = new JDialog(owner, "Chọn ngày", Dialog.ModalityType.APPLICATION_MODAL);
+            dialog.setSize(380, 360);
+            dialog.setResizable(false);
+            dialog.setLocationRelativeTo(this);
+
+            JPanel root = new JPanel(new BorderLayout(8, 8));
+            root.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+            root.setBackground(Color.WHITE);
+
+            LocalDate currentDate = getSafeCurrentDate();
+            YearMonth[] currentMonth = {YearMonth.from(currentDate)};
+
+            JComboBox<Integer> cboYear = new JComboBox<>();
+            int currentYear = LocalDate.now().getYear();
+
+            for (int year = currentYear - 80; year <= currentYear + 10; year++) {
+                cboYear.addItem(year);
+            }
+
+            JComboBox<Integer> cboMonth = new JComboBox<>();
+            for (int month = 1; month <= 12; month++) {
+                cboMonth.addItem(month);
+            }
+
+            cboYear.setSelectedItem(currentMonth[0].getYear());
+            cboMonth.setSelectedItem(currentMonth[0].getMonthValue());
+
+            JPanel selectorPanel = new JPanel(new GridLayout(1, 2, 8, 0));
+            selectorPanel.setBackground(Color.WHITE);
+            selectorPanel.add(cboYear);
+            selectorPanel.add(cboMonth);
+
+            JPanel grid = new JPanel(new GridLayout(0, 7, 4, 4));
+            grid.setBackground(Color.WHITE);
+
+            Runnable rebuild = () -> {
+                Integer year = (Integer) cboYear.getSelectedItem();
+                Integer month = (Integer) cboMonth.getSelectedItem();
+
+                if (year == null || month == null) {
+                    return;
+                }
+
+                currentMonth[0] = YearMonth.of(year, month);
+                rebuildCalendarGrid(grid, currentMonth[0], dialog);
+            };
+
+            cboYear.addActionListener(e -> rebuild.run());
+            cboMonth.addActionListener(e -> rebuild.run());
+
+            rebuild.run();
+
+            root.add(selectorPanel, BorderLayout.NORTH);
+            root.add(grid, BorderLayout.CENTER);
+
+            dialog.setContentPane(root);
+            dialog.setVisible(true);
+        }
+
+        private LocalDate getSafeCurrentDate() {
+            if (textField.getText() == null || textField.getText().trim().isEmpty()) {
+                return LocalDate.now();
+            }
+
+            try {
+                return LocalDate.parse(textField.getText().trim());
+            } catch (Exception ex) {
+                return LocalDate.now();
+            }
+        }
+
+        private void rebuildCalendarGrid(JPanel grid, YearMonth month, JDialog dialog) {
+            grid.removeAll();
+
+            String[] days = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
+
+            for (String day : days) {
+                JLabel label = new JLabel(day, SwingConstants.CENTER);
+                label.setFont(fontBold(12));
+                grid.add(label);
+            }
+
+            LocalDate firstDay = month.atDay(1);
+            int blankCount = firstDay.getDayOfWeek().getValue() - 1;
+
+            for (int i = 0; i < blankCount; i++) {
+                grid.add(new JLabel(""));
+            }
+
+            for (int day = 1; day <= month.lengthOfMonth(); day++) {
+                int selectedDay = day;
+                JButton button = new JButton(String.valueOf(day));
+                button.setFocusPainted(false);
+                button.setBackground(Color.WHITE);
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                button.addActionListener(e -> {
+                    LocalDate selectedDate = month.atDay(selectedDay);
+                    textField.setText(selectedDate.toString());
+                    dialog.dispose();
+                });
+
+                grid.add(button);
+            }
+
+            grid.revalidate();
+            grid.repaint();
+        }
+    }
+
+    private static class RoundedButton extends JButton {
+        RoundedButton(String text, Color background, Color foreground) {
+            super(text);
+
+            setBackground(background);
+            setForeground(foreground);
+            setFont(new Font("Segoe UI", Font.BOLD, 13));
+            setPreferredSize(new java.awt.Dimension(190, 42));
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D graphics = (Graphics2D) g.create();
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setColor(getBackground());
+            graphics.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+            graphics.dispose();
+
+            super.paintComponent(g);
+        }
     }
 }

@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class StaffService {
     private static final AtomicInteger USER_COUNTER = new AtomicInteger(1);
-    private static final AtomicInteger STAFF_COUNTER = new AtomicInteger(1);
     private static final AtomicInteger ACCOUNT_COUNTER = new AtomicInteger(1);
     private static final AtomicInteger ACCOUNT_GROUP_COUNTER = new AtomicInteger(1);
 
@@ -44,14 +43,6 @@ public class StaffService {
             criteria = new StaffSearchCriteria();
         }
 
-        if (!permissionService.isOwner()) {
-            String currentBranch = permissionService.getCurrentBranchCode();
-
-            if (currentBranch != null && !currentBranch.trim().isEmpty()) {
-                criteria.setMaCn(currentBranch);
-            }
-        }
-
         List<StaffResponse> result = staffDAO.search(criteria);
         return result == null ? new ArrayList<>() : result;
     }
@@ -69,15 +60,12 @@ public class StaffService {
             throw new RuntimeException("Không tìm thấy nhân viên.");
         }
 
-        permissionService.checkBranchScope(detail.getMaCn());
-
         return detail;
     }
 
     public void createStaff(StaffCreateRequest request) {
         permissionService.checkAddPermission();
         validator.validateCreate(request);
-        permissionService.checkBranchScope(request.getMaCn());
 
         if (staffDAO.existsByPhone(request.getSdt(), null)) {
             throw new RuntimeException("Số điện thoại đã tồn tại.");
@@ -88,7 +76,7 @@ public class StaffService {
         }
 
         if (staffDAO.existsByCccd(request.getCccd(), null)) {
-            throw new RuntimeException("CCCD đã tồn tại.");
+            throw new RuntimeException("Căn cước công dân đã tồn tại.");
         }
 
         Connection conn = null;
@@ -98,7 +86,7 @@ public class StaffService {
             conn.setAutoCommit(false);
 
             User user = mapToUser(request);
-            Staff staff = mapToStaff(request, user.getUserId());
+            Staff staff = mapToStaff(request, user.getUserId(), conn);
 
             staffDAO.insertUser(conn, user);
             staffDAO.insertStaff(conn, staff);
@@ -142,9 +130,6 @@ public class StaffService {
             throw new RuntimeException("Không tìm thấy nhân viên cần cập nhật.");
         }
 
-        permissionService.checkBranchScope(current.getMaCn());
-        permissionService.checkBranchScope(request.getMaCn());
-
         if (staffDAO.existsByPhone(request.getSdt(), current.getUserId())) {
             throw new RuntimeException("Số điện thoại đã tồn tại.");
         }
@@ -154,7 +139,7 @@ public class StaffService {
         }
 
         if (staffDAO.existsByCccd(request.getCccd(), request.getMaNv())) {
-            throw new RuntimeException("CCCD đã tồn tại.");
+            throw new RuntimeException("Căn cước công dân đã tồn tại.");
         }
 
         Connection conn = null;
@@ -191,8 +176,6 @@ public class StaffService {
             throw new RuntimeException("Không tìm thấy nhân viên cần xoá.");
         }
 
-        permissionService.checkBranchScope(current.getMaCn());
-
         Connection conn = null;
 
         try {
@@ -225,13 +208,15 @@ public class StaffService {
         return user;
     }
 
-    private Staff mapToStaff(StaffCreateRequest request, String userId) {
+    private Staff mapToStaff(StaffCreateRequest request, String userId, Connection conn) {
         Staff staff = new Staff();
 
-        staff.setMaNv(nextStaffId());
+        staff.setMaNv(staffDAO.nextStaffId(conn));
         staff.setUserId(userId);
-        staff.setMaCn(request.getMaCn());
+
+        // Lấy đúng mã loại nhân viên do người dùng nhập ở form.
         staff.setMaLoaiNv(request.getMaLoaiNv());
+
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
@@ -258,8 +243,10 @@ public class StaffService {
 
         staff.setMaNv(request.getMaNv());
         staff.setUserId(request.getUserId());
-        staff.setMaCn(request.getMaCn());
+
+        // Lấy đúng mã loại nhân viên do người dùng nhập ở form cập nhật.
         staff.setMaLoaiNv(request.getMaLoaiNv());
+
         staff.setNgayVaoLam(request.getNgayVaoLam());
         staff.setCccd(request.getCccd());
         staff.setQuanLy(request.isQuanLy());
@@ -268,24 +255,18 @@ public class StaffService {
     }
 
     private String nextUserId() {
-        return nextId("U", USER_COUNTER);
-    }
-
-    private String nextStaffId() {
-        return nextId("NV", STAFF_COUNTER);
+        long time = System.currentTimeMillis();
+        return "U" + time + String.format("%03d", USER_COUNTER.getAndIncrement());
     }
 
     private String nextAccountId() {
-        return nextId("ACC", ACCOUNT_COUNTER);
+        long time = System.currentTimeMillis();
+        return "ACC" + time + String.format("%03d", ACCOUNT_COUNTER.getAndIncrement());
     }
 
     private String nextAccountRoleGroupId() {
-        return nextId("ARG", ACCOUNT_GROUP_COUNTER);
-    }
-
-    private String nextId(String prefix, AtomicInteger counter) {
         long time = System.currentTimeMillis();
-        return prefix + time + String.format("%03d", counter.getAndIncrement());
+        return "ARG" + time + String.format("%03d", ACCOUNT_GROUP_COUNTER.getAndIncrement());
     }
 
     private String hashPassword(String password) {
