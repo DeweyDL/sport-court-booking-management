@@ -1,5 +1,6 @@
 package com.sportcourt.modules.auth.view;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.modules.auth.controller.AuthController;
 import com.sportcourt.modules.auth.dto.AuthResult;
 import com.sportcourt.modules.auth.dto.LoginRequest;
@@ -216,7 +217,7 @@ public class LoginScreen extends JFrame {
 
     public static void main(String[] args) {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel(new FlatLightLaf());
         } catch (Exception e) {
             e.printStackTrace();
         }
