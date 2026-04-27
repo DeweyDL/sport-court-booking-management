@@ -23,6 +23,10 @@ public interface KhuVucDao {
 
     List<SanCon> findSanConByKhuVuc(String maKv) throws SQLException;
 
+    String generateNextMaKv() throws SQLException;
+
+    String findDefaultChiNhanhId() throws SQLException;
+
     void createKhuVuc(KhuVucCreateRequest request) throws SQLException;
 
     void saveKhuVucChanges(KhuVucUpdateRequest request) throws SQLException;

@@ -10,9 +10,13 @@ public class AreaImagePreviewPanel extends JPanel {
     private Image image;
 
     public AreaImagePreviewPanel() {
-        setPreferredSize(new Dimension(360, 240));
-        setMaximumSize(new Dimension(360, 240));
-        setMinimumSize(new Dimension(360, 240));
+        this(360, 240);
+    }
+
+    public AreaImagePreviewPanel(int width, int height) {
+        setPreferredSize(new Dimension(width, height));
+        setMaximumSize(new Dimension(width, height));
+        setMinimumSize(new Dimension(width, height));
         setOpaque(false);
         setAlignmentX(Component.CENTER_ALIGNMENT);
     }

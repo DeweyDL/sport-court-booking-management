@@ -25,6 +25,10 @@ public interface KhuVucService {
 
     Optional<Path> getAreaImagePath(String maKv);
 
+    String generateNextMaKv();
+
+    String getDefaultChiNhanhId();
+
     Path saveAreaImage(String maKv, Path sourceFile);
 
     void createKhuVuc(KhuVucCreateRequest request);

@@ -14,28 +14,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-// Màn danh sách khu vực. File này phụ trách toolbar, tìm kiếm, danh sách và điều hướng sang màn chi tiết.
-public class QuanLyKhuVuc extends JPanel {
+// Màn danh sách khu vực, hiển thị popup thêm và sửa.
+public class AreaManagement extends JPanel {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final String LIST_CARD = "LIST";
-    private static final String DETAIL_CARD = "DETAIL";
-    private static final String EDIT_CARD = "EDIT";
-    private static final String CREATE_CARD = "CREATE";
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
     private final KhuVucController khuVucController = new KhuVucController();
-    private final CardLayout contentCardLayout = new CardLayout();
-    private final JPanel contentPanel = new JPanel(contentCardLayout);
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
-    private final ChiTietKhuVuc chiTietKhuVuc = new ChiTietKhuVuc(khuVucController, this::showListView, this::showEditView);
-    private final SuaKhuVuc suaKhuVuc = new SuaKhuVuc(khuVucController, this::showListView, this::showDetailView);
-    private final ThemKhuVuc themKhuVuc = new ThemKhuVuc(khuVucController, this::showListView, this::showDetailView);
 
-    public QuanLyKhuVuc() {
+    // Đã sửa lại tham số khởi tạo cho AreaAdd giống AreaChange
+    private final AreaChange suaKhuVuc = new AreaChange(khuVucController, ignored -> loadKhuVucData(searchField.getText()));
+    private final AreaAdd themKhuVuc = new AreaAdd(khuVucController, ignored -> loadKhuVucData(searchField.getText()));
+
+    public AreaManagement() {
         setLayout(new BorderLayout());
         setBackground(new Color(245, 247, 250));
         setBorder(new EmptyBorder(100, 70, 50, 70));
@@ -43,12 +38,8 @@ public class QuanLyKhuVuc extends JPanel {
         searchDebounceTimer = new Timer(300, event -> loadKhuVucData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
-        contentPanel.setOpaque(false);
-        contentPanel.add(createListPage(), LIST_CARD);
-        contentPanel.add(chiTietKhuVuc, DETAIL_CARD);
-        contentPanel.add(suaKhuVuc, EDIT_CARD);
-        contentPanel.add(themKhuVuc, CREATE_CARD);
-        add(contentPanel, BorderLayout.CENTER);
+        // Bỏ CardLayout, add trực tiếp ListPage
+        add(createListPage(), BorderLayout.CENTER);
 
         loadKhuVucData(null);
     }
@@ -61,7 +52,6 @@ public class QuanLyKhuVuc extends JPanel {
         return page;
     }
 
-    // Header gồm title và ô tìm kiếm.
     private JPanel createHeaderSection() {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
@@ -85,21 +75,19 @@ public class QuanLyKhuVuc extends JPanel {
         searchField.setBorder(null);
         searchField.setOpaque(false);
         bindSearchListener();
+
         headerPanel.add(titleLabel);
         headerPanel.add(subtitleLabel);
         return headerPanel;
     }
 
-    // Khối nội dung danh sách gồm toolbar, bảng dữ liệu và footer.
     private JPanel createMainContentSection() {
-        // Sử dụng anonymous class để override paintComponent giúp bo góc toàn bộ khối
         JPanel container = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                // Bo góc 50px như yêu cầu trong mã gốc
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 50, 50);
                 g2.dispose();
             }
@@ -108,7 +96,6 @@ public class QuanLyKhuVuc extends JPanel {
             protected void paintChildren(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Tạo hình khối bo góc để clip (cắt) các component con không bị tràn ra ngoài góc bo
                 Shape shape = new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setClip(shape);
                 super.paintChildren(g2);
@@ -116,7 +103,7 @@ public class QuanLyKhuVuc extends JPanel {
             }
         };
 
-        container.setOpaque(false); // Quan trọng: set false để không vẽ nền vuông mặc định
+        container.setOpaque(false);
         container.setBackground(Color.WHITE);
         container.setBorder(new EmptyBorder(20, 0, 20, 0));
 
@@ -181,9 +168,9 @@ public class QuanLyKhuVuc extends JPanel {
         innerPanel.setOpaque(false);
         innerPanel.setPreferredSize(new Dimension(360, 45));
         innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
+
         searchWrapper.add(innerPanel, BorderLayout.CENTER);
         return searchWrapper;
     }
@@ -220,7 +207,6 @@ public class QuanLyKhuVuc extends JPanel {
         searchDebounceTimer.restart();
     }
 
-    // Tải danh sách khu vực ở background thread để UI không bị đứng.
     private void loadKhuVucData(String keyword) {
         infoLabel.setText("Đang tải dữ liệu...");
 
@@ -327,11 +313,11 @@ public class QuanLyKhuVuc extends JPanel {
         JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
         deleteButton.addActionListener(event -> confirmDelete(khuVuc));
 
-        JButton detailButton = createPillButton("Xem chi tiết", new Color(243, 244, 246), new Color(31, 41, 55), false);
-        detailButton.addActionListener(event -> showDetailView(khuVuc));
+        JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        editButton.addActionListener(event -> showEditView(khuVuc.maKv()));
 
         actionContainer.add(deleteButton);
-        actionContainer.add(detailButton);
+        actionContainer.add(editButton);
         row.add(createAlignedCellPanel(actionContainer, 5, rowBackground));
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -379,7 +365,6 @@ public class QuanLyKhuVuc extends JPanel {
         return panel;
     }
 
-    // Xóa mềm khu vực rồi tải lại danh sách. Truy vấn danh sách chỉ lấy IS_DELETED = 0 nên bản ghi sẽ biến mất khỏi UI.
     private void confirmDelete(KhuVuc khuVuc) {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
@@ -407,28 +392,13 @@ public class QuanLyKhuVuc extends JPanel {
         }
     }
 
-    private void showDetailView(KhuVuc khuVuc) {
-        showDetailView(khuVuc.maKv());
-    }
-
-    private void showDetailView(String maKv) {
-        chiTietKhuVuc.showDetail(maKv);
-        contentCardLayout.show(contentPanel, DETAIL_CARD);
-        loadKhuVucData(searchField.getText());
-    }
-
     private void showEditView(String maKv) {
-        suaKhuVuc.showEditor(maKv);
-        contentCardLayout.show(contentPanel, EDIT_CARD);
+        suaKhuVuc.showEditor(this, maKv);
     }
 
+    // Đã sửa lại hàm gọi popup AreaAdd
     private void showCreateView() {
-        themKhuVuc.prepareCreateForm();
-        contentCardLayout.show(contentPanel, CREATE_CARD);
-    }
-
-    private void showListView() {
-        contentCardLayout.show(contentPanel, LIST_CARD);
+        themKhuVuc.showCreator(this);
     }
 
     private String formatDate(LocalDateTime dateTime) {

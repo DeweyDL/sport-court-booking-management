@@ -79,6 +79,24 @@ public class KhuVucServiceImpl implements KhuVucService {
     }
 
     @Override
+    public String generateNextMaKv() {
+        try {
+            return khuVucDao.generateNextMaKv();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the sinh ma khu vuc moi: " + exception.getMessage(), exception);
+        }
+    }
+
+    @Override
+    public String getDefaultChiNhanhId() {
+        try {
+            return khuVucDao.findDefaultChiNhanhId();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Khong the xac dinh chi nhanh mac dinh: " + exception.getMessage(), exception);
+        }
+    }
+
+    @Override
     public Path saveAreaImage(String maKv, Path sourceFile) {
         return AreaImageStorage.saveImage(maKv, sourceFile);
     }

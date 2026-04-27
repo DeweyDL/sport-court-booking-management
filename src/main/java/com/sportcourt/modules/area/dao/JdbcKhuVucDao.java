@@ -5,8 +5,8 @@ import com.sportcourt.modules.area.enitity.KhuVuc;
 import com.sportcourt.modules.area.enitity.KhuVucCreateRequest;
 import com.sportcourt.modules.area.enitity.KhuVucUpdateRequest;
 import com.sportcourt.modules.area.enitity.LoaiTheThao;
-import com.sportcourt.modules.area.enitity.SanConDraft;
 import com.sportcourt.modules.area.enitity.SanCon;
+import com.sportcourt.modules.area.enitity.SanConDraft;
 import com.sportcourt.modules.area.util.AreaSqlLoader;
 import com.sportcourt.common.db.ConnectionUtils;
 
@@ -145,6 +145,44 @@ public class JdbcKhuVucDao implements KhuVucDao {
     }
 
     @Override
+    public String generateNextMaKv() throws SQLException {
+        String sql = """
+                SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MAKV, '\\d+$'))), 0) + 1 AS NEXT_ID
+                FROM KHU_VUC
+                WHERE REGEXP_LIKE(MAKV, '^KV\\d+$')
+                """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next()) {
+                return "KV%03d".formatted(resultSet.getInt("NEXT_ID"));
+            }
+        }
+        throw new SQLException("Khong the sinh ma khu vuc moi.");
+    }
+
+    @Override
+    public String findDefaultChiNhanhId() throws SQLException {
+        String sql = """
+                SELECT MACN
+                FROM CHI_NHANH
+                WHERE IS_DELETED = 0
+                ORDER BY MACN ASC
+                FETCH FIRST 1 ROWS ONLY
+                """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next()) {
+                return resultSet.getString("MACN");
+            }
+        }
+        throw new SQLException("Khong tim thay chi nhanh nao de tao khu vuc.");
+    }
+
+    @Override
     public void createKhuVuc(KhuVucCreateRequest request) throws SQLException {
         String insertKhuVucSql = """
                 INSERT INTO KHU_VUC (MAKV, MACN, MATT, SO_LUONG_SAN, CREATED_AT, IS_DELETED)
@@ -189,19 +227,8 @@ public class JdbcKhuVucDao implements KhuVucDao {
     public void saveKhuVucChanges(KhuVucUpdateRequest request) throws SQLException {
         String updateKhuVucSql = """
                 UPDATE KHU_VUC
-                SET MATT = ?,
-                    SO_LUONG_SAN = ?
+                SET MATT = ?
                 WHERE MAKV = ?
-                  AND IS_DELETED = 0
-                """;
-        String insertSanConSql = """
-                INSERT INTO SAN_CON (MASAN, MAKV, TRANGTHAI, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, ?, SYSDATE, 0)
-                """;
-        String deleteSanConSql = """
-                UPDATE SAN_CON
-                SET IS_DELETED = 1
-                WHERE MASAN = ?
                   AND IS_DELETED = 0
                 """;
 
@@ -209,30 +236,13 @@ public class JdbcKhuVucDao implements KhuVucDao {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
 
-            try (PreparedStatement updateKhuVucStatement = connection.prepareStatement(updateKhuVucSql);
-                 PreparedStatement insertSanConStatement = connection.prepareStatement(insertSanConSql);
-                 PreparedStatement deleteSanConStatement = connection.prepareStatement(deleteSanConSql)) {
+            try (PreparedStatement updateKhuVucStatement = connection.prepareStatement(updateKhuVucSql)) {
                 updateKhuVucStatement.setString(1, request.maTt());
-                updateKhuVucStatement.setInt(2, request.soLuongSan());
-                updateKhuVucStatement.setString(3, request.maKv());
+                updateKhuVucStatement.setString(2, request.maKv());
 
                 if (updateKhuVucStatement.executeUpdate() == 0) {
                     throw new SQLException("Khong tim thay khu vuc de cap nhat: " + request.maKv());
                 }
-
-                for (SanConDraft sanConDraft : request.newSanCons()) {
-                    insertSanConStatement.setString(1, sanConDraft.maSan());
-                    insertSanConStatement.setString(2, request.maKv());
-                    insertSanConStatement.setString(3, sanConDraft.trangThai());
-                    insertSanConStatement.addBatch();
-                }
-                insertSanConStatement.executeBatch();
-
-                for (String maSan : request.deletedSanConIds()) {
-                    deleteSanConStatement.setString(1, maSan);
-                    deleteSanConStatement.addBatch();
-                }
-                deleteSanConStatement.executeBatch();
 
                 connection.commit();
             } catch (SQLException exception) {

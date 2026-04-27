@@ -49,6 +49,14 @@ public class KhuVucController {
         return khuVucService.getAreaImagePath(maKv);
     }
 
+    public String generateNextMaKv() {
+        return khuVucService.generateNextMaKv();
+    }
+
+    public String getDefaultChiNhanhId() {
+        return khuVucService.getDefaultChiNhanhId();
+    }
+
     public Path saveAreaImage(String maKv, Path sourceFile) {
         return khuVucService.saveAreaImage(maKv, sourceFile);
     }

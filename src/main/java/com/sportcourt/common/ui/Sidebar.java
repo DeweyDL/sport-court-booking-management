@@ -1,7 +1,7 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import com.sportcourt.modules.area.view.QuanLyKhuVuc;
+import com.sportcourt.modules.area.view.AreaManagement;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -39,7 +39,7 @@ public class Sidebar extends JFrame {
         // Thêm các trang tương ứng
         mainContentPanel.add(createPage("TRANG CHỦ"), "TRANG CHỦ");
         mainContentPanel.add(createPage("BÁO CÁO DOANH THU"), "BÁO CÁO DOANH THU");
-        mainContentPanel.add(new QuanLyKhuVuc(), "QUẢN LÝ CHI NHÁNH");
+        mainContentPanel.add(new AreaManagement(), "QUẢN LÝ CHI NHÁNH");
         mainContentPanel.add(createPage("QUẢN LÝ KHÁCH HÀNG"), "QUẢN LÝ KHÁCH HÀNG");
         mainContentPanel.add(createPage("QUẢN LÝ DỤNG CỤ"), "QUẢN LÝ DỤNG CỤ");
         mainContentPanel.add(createPage("QUẢN LÝ SẢN PHẨM DỊCH VỤ"), "QUẢN LÝ SẢN PHẨM DỊCH VỤ");
@@ -218,6 +218,7 @@ public class Sidebar extends JFrame {
         activeWrapper.repaint();
         activeButton.setForeground(TEXT_ACTIVE);
     }
+
 
     private JPanel createPage(String title) {
         JPanel panel = new JPanel(new GridBagLayout());
