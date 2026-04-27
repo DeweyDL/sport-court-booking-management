@@ -1,49 +1,4 @@
 --RB53
-CREATE OR REPLACE PROCEDURE PRC_TINH_TONG_GIA_TRI_HOA_DON(
-    P_MAHD IN HOA_DON.MAHD%TYPE
-)
-AS
-    V_TONGTIENTHUESAN NUMBER(12, 2) := 0;
-    V_TONGTIENDICHVU  NUMBER(12, 2) := 0;
-BEGIN
-    SELECT NVL(SUM(BG.GIA), 0)
-    INTO V_TONGTIENTHUESAN
-    FROM CHI_TIET_HOA_DON_THUE_SAN CT
-             JOIN SAN_CON SC
-                  ON SC.MASAN = CT.MASAN
-                      AND SC.IS_DELETED = 0
-             JOIN BANG_GIA BG
-                  ON BG.MAKV = SC.MAKV
-                      AND BG.MAKG = CT.MAKG
-                      AND BG.IS_DELETED = 0
-    WHERE CT.MAHD = P_MAHD
-      AND CT.IS_DELETED = 0
-      AND CT.TRANGTHAI <> 'ĐÃ HUỶ';
-
-    SELECT NVL(SUM(
-                       CASE
-                           WHEN CT.MASP IS NOT NULL THEN CT.SL * SP.GIA
-                           WHEN CT.MADC IS NOT NULL THEN CT.SL * DC.GIA
-                           ELSE 0
-                           END
-               ), 0)
-    INTO V_TONGTIENDICHVU
-    FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG CT
-             LEFT JOIN SAN_PHAM SP
-                       ON SP.MASP = CT.MASP
-                           AND SP.IS_DELETED = 0
-             LEFT JOIN DUNG_CU_THE_THAO DC
-                       ON DC.MADC = CT.MADC
-                           AND DC.IS_DELETED = 0
-    WHERE CT.MAHD = P_MAHD
-      AND CT.IS_DELETED = 0;
-
-    UPDATE HOA_DON
-    SET TONGGIATRI = V_TONGTIENTHUESAN + V_TONGTIENDICHVU
-    WHERE MAHD = P_MAHD;
-END;
-/
-
 CREATE OR REPLACE TRIGGER TRG_FIUD_CTHD_THUE_SAN_RECALC_TONG_GIA_TRI_HOA_DON
     FOR INSERT OR UPDATE OR DELETE
     ON CHI_TIET_HOA_DON_THUE_SAN
@@ -426,19 +381,9 @@ BEGIN
 END;
 /
 
-CREATE UNIQUE INDEX UQ_CTHD_THUE_SAN_ACTIVE
-    ON CHI_TIET_HOA_DON_THUE_SAN (
-                                  CASE
-                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MASAN
-                                      ELSE NULL
-                                      END,
-                                  CASE
-                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MAKG
-                                      ELSE NULL
-                                      END,
-                                  CASE
-                                      WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN NGAYTHUE
-                                      ELSE NULL
-                                      END
-        );
-/
+CREATE UNIQUE INDEX UQ_CTHD_LICH_SAN_HOP_LE
+ON CHI_TIET_HOA_DON_THUE_SAN (
+    CASE WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MASAN END,
+    CASE WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN TRUNC(NGAYTHUE) END,
+    CASE WHEN IS_DELETED = 0 AND TRANGTHAI <> 'ĐÃ HUỶ' THEN MABG END
+);

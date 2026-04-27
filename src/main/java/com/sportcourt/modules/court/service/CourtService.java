@@ -6,9 +6,12 @@ import com.sportcourt.modules.court.entity.Court;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public interface CourtService {
     List<CourtTableRow> search(CourtSearchCriteria criteria) throws SQLException;
+
+    Optional<CourtTableRow> findDetail(String courtId, String branchId) throws SQLException;
 
     void create(Court court, String branchId) throws SQLException;
 

@@ -13,6 +13,8 @@ public interface CourtDAO {
 
     Optional<Court> findByIdInBranch(String courtId, String branchId) throws SQLException;
 
+    Optional<CourtTableRow> findDetail(String courtId, String branchId) throws SQLException;
+
     boolean existsById(String courtId) throws SQLException;
 
     boolean areaBelongsToBranch(String areaId, String branchId) throws SQLException;

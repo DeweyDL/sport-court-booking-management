@@ -97,6 +97,59 @@ public class CourtDAOImpl implements CourtDAO {
     }
 
     @Override
+    public Optional<CourtTableRow> findDetail(String courtId, String branchId) throws SQLException {
+        String sql = """
+            SELECT  sc.MASAN,
+                    sc.MAKV,
+                    cn.MACN,
+                    cn.TEN_CHI_NHANH,
+                    ltt.TEN AS TEN_THE_THAO,
+                    sc.TRANGTHAI,
+                    sc.CREATED_AT
+            FROM SAN_CON sc
+            JOIN KHU_VUC kv
+                ON kv.MAKV = sc.MAKV
+                AND kv.IS_DELETED = 0
+            JOIN LOAI_THE_THAO ltt
+                ON ltt.MATT = kv.MATT
+                AND ltt.IS_DELETED = 0
+            JOIN CHI_NHANH cn
+                ON cn.MACN = kv.MACN
+                AND cn.IS_DELETED = 0
+            WHERE sc.IS_DELETED = 0
+              AND sc.MASAN = ?
+              AND kv.MACN = ?
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, courtId);
+            ps.setString(2, branchId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                Timestamp createdAt = rs.getTimestamp("CREATED_AT");
+
+                CourtTableRow row = new CourtTableRow(
+                        rs.getString("MASAN"),
+                        rs.getString("MAKV"),
+                        rs.getString("TEN_THE_THAO"),
+                        rs.getString("MACN"),
+                        rs.getString("TEN_CHI_NHANH"),
+                        rs.getString("TRANGTHAI"),
+                        createdAt == null ? null : createdAt.toLocalDateTime()
+                );
+
+                return Optional.of(row);
+            }
+        }
+    }
+
+    @Override
     public Optional<Court> findByIdInBranch(String courtId, String branchId) throws SQLException {
         String sql = """
             SELECT sc.MASAN,

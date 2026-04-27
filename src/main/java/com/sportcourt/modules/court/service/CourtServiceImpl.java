@@ -1,14 +1,16 @@
 package com.sportcourt.modules.court.service;
 
 
+import com.sportcourt.common.db.ConnectionUtils;
 import com.sportcourt.modules.court.dao.CourtDAO;
 import com.sportcourt.modules.court.dao.CourtDAOImpl;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
 import com.sportcourt.modules.court.dto.CourtTableRow;
 import com.sportcourt.modules.court.entity.Court;
 
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
+import java.util.Optional;
 
 public class CourtServiceImpl implements CourtService {
     private final CourtDAO courtDAO;
@@ -32,6 +34,19 @@ public class CourtServiceImpl implements CourtService {
         }
 
         return courtDAO.findByCriteria(criteria);
+    }
+
+    @Override
+    public Optional<CourtTableRow> findDetail(String courtId, String branchId) throws SQLException {
+        if (isBlank(courtId)) {
+            throw new IllegalArgumentException("Vui lòng chọn sân con cần xem chi tiết.");
+        }
+
+        if (isBlank(branchId)) {
+            throw new IllegalArgumentException("Không xác định được chi nhánh hiện tại.");
+        }
+
+        return courtDAO.findDetail(courtId, branchId);
     }
 
     @Override

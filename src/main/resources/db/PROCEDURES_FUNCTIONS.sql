@@ -5,7 +5,6 @@ AS
     V_MAKH          HOA_DON.MAKH%TYPE;
     V_GIAMGIA       HOA_DON.GIAMGIA%TYPE  := 0;
     V_TIEN_COC      HOA_DON.TIEN_COC%TYPE := 0;
-    V_MA_HANG       KHACH_HANG.MA_HANG%TYPE;
     V_CHIET_KHAU    NUMBER(12, 2)         := 0;
     V_TIEN_THUE_SAN NUMBER(12, 2)         := 0;
     V_TIEN_DICH_VU  NUMBER(12, 2)         := 0;
@@ -14,64 +13,35 @@ AS
     V_GIAM_HOA_DON  NUMBER(12, 2)         := 0;
     V_TONG_TIEN     NUMBER(12, 2)         := 0;
 BEGIN
-
     SELECT MAKH, NVL(GIAMGIA, 0), NVL(TIEN_COC, 0)
     INTO V_MAKH, V_GIAMGIA, V_TIEN_COC
     FROM HOA_DON
     WHERE MAHD = P_MAHD
       AND IS_DELETED = 0;
 
-    SELECT NVL(SUM(BG.GIA), 0)
+    SELECT NVL(SUM(CT.DON_GIA_THUE), 0)
     INTO V_TIEN_THUE_SAN
     FROM CHI_TIET_HOA_DON_THUE_SAN CT
-             JOIN SAN_CON SC
-                  ON SC.MASAN = CT.MASAN
-                      AND SC.IS_DELETED = 0
-             JOIN BANG_GIA BG
-                  ON BG.MAKV = SC.MAKV
-                      AND BG.MAKG = CT.MAKG
-                      AND BG.IS_DELETED = 0
     WHERE CT.MAHD = P_MAHD
       AND CT.IS_DELETED = 0
       AND CT.TRANGTHAI <> 'ĐÃ HUỶ';
 
-    SELECT NVL(SUM(
-                       CASE
-                           WHEN CT.MASP IS NOT NULL THEN CT.SL * SP.GIA
-                           WHEN CT.MADC IS NOT NULL THEN CT.SL * DC.GIA
-                           ELSE 0
-                           END
-               ), 0)
+    SELECT NVL(SUM(CT.SL * CT.DON_GIA), 0)
     INTO V_TIEN_DICH_VU
     FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG CT
-             LEFT JOIN SAN_PHAM SP
-                       ON SP.MASP = CT.MASP
-                           AND SP.IS_DELETED = 0
-             LEFT JOIN DUNG_CU_THE_THAO DC
-                       ON DC.MADC = CT.MADC
-                           AND DC.IS_DELETED = 0
     WHERE CT.MAHD = P_MAHD
-      AND CT.IS_DELETED = 0;
+      AND CT.IS_DELETED = 0
+      AND CT.TRANGTHAI <> 'ĐÃ HUỶ';
 
     BEGIN
-        SELECT KH.MA_HANG
-        INTO V_MA_HANG
+        SELECT NVL(HK.CHIET_KHAU, 0)
+        INTO V_CHIET_KHAU
         FROM KHACH_HANG KH
+                 LEFT JOIN HANG_KHACH_HANG HK
+                           ON HK.MA_HANG = KH.MA_HANG
+                               AND HK.IS_DELETED = 0
         WHERE KH.MAKH = V_MAKH
           AND KH.IS_DELETED = 0;
-
-        IF V_MA_HANG IS NOT NULL THEN
-            BEGIN
-                SELECT NVL(HK.CHIET_KHAU, 0)
-                INTO V_CHIET_KHAU
-                FROM HANG_KHACH_HANG HK
-                WHERE HK.MA_HANG = V_MA_HANG
-                  AND HK.IS_DELETED = 0;
-            EXCEPTION
-                WHEN NO_DATA_FOUND THEN
-                    V_CHIET_KHAU := 0;
-            END;
-        END IF;
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
             V_CHIET_KHAU := 0;
@@ -89,8 +59,9 @@ BEGIN
     UPDATE HOA_DON
     SET TONGGIATRI = V_TONG_GIA_TRI,
         TONGTIEN   = V_TONG_TIEN
-    WHERE MAHD = P_MAHD;
-    EXCEPTION
+    WHERE MAHD = P_MAHD
+      AND IS_DELETED = 0;
+EXCEPTION
     WHEN NO_DATA_FOUND THEN
         NULL;
 END;

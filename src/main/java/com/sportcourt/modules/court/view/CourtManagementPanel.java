@@ -45,6 +45,13 @@ public class CourtManagementPanel extends JPanel {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
+    private static final String LIST_CARD = "LIST";
+    private static final String DETAIL_CARD = "DETAIL";
+
+    private final CardLayout contentCardLayout = new CardLayout();
+    private final JPanel contentPanel = new JPanel(contentCardLayout);
+    private final CourtDetailPanel courtDetailPanel =
+            new CourtDetailPanel(courtService, this::showListView, this::showEditView);
     private String currentBranchId = "CN_TEST_01";
 
     public CourtManagementPanel() {
@@ -57,7 +64,11 @@ public class CourtManagementPanel extends JPanel {
         searchDebounceTimer = new Timer(300, event -> loadCourtData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
-        add(createListPage(), BorderLayout.CENTER);
+        contentPanel.setOpaque(false);
+        contentPanel.add(createListPage(), LIST_CARD);
+        contentPanel.add(courtDetailPanel, DETAIL_CARD);
+
+        add(contentPanel, BorderLayout.CENTER);
 
         loadCourtData(null);
     }
@@ -430,7 +441,7 @@ public class CourtManagementPanel extends JPanel {
         deleteButton.addActionListener(event -> confirmDelete(court));
 
         JButton detailButton = createPillButton(
-                "Xem chi tiết",
+                "Chỉnh sửa",
                 new Color(243, 244, 246),
                 new Color(31, 41, 55),
                 false
@@ -588,12 +599,8 @@ public class CourtManagementPanel extends JPanel {
     }
 
     private void showDetailView(CourtTableRow court) {
-        JOptionPane.showMessageDialog(
-                this,
-                "Xem chi tiết sân con: " + court.getCourtId(),
-                "Chi tiết sân con",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        courtDetailPanel.showDetail(court.getCourtId(), currentBranchId);
+        contentCardLayout.show(contentPanel, DETAIL_CARD);
     }
 
     private void showCreateView() {
@@ -601,6 +608,20 @@ public class CourtManagementPanel extends JPanel {
                 this,
                 "Màn thêm sân con sẽ làm ở bước tiếp theo.",
                 "Thêm sân con",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    private void showListView() {
+        contentCardLayout.show(contentPanel, LIST_CARD);
+        loadCourtData(searchField.getText());
+    }
+
+    private void showEditView(CourtTableRow court) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Màn sửa sân con sẽ làm ở bước tiếp theo: " + court.getCourtId(),
+                "Sửa sân con",
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
