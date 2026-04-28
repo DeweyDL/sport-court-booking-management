@@ -45,12 +45,20 @@ public class CourtTableRow {
         this.areaId = areaId;
     }
 
-    public String getSportName() {
+    public String getSportTypeName() {
         return sportTypeName;
     }
 
-    public void setSportName(String sportName) {
-        this.sportTypeName = sportName;
+    public void setSportTypeName(String sportTypeName) {
+        this.sportTypeName = sportTypeName;
+    }
+
+    public String getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     public String getBranchName() {

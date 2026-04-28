@@ -1,14 +1,12 @@
 package com.sportcourt.modules.court.service;
 
-
-import com.sportcourt.common.db.ConnectionUtils;
 import com.sportcourt.modules.court.dao.CourtDAO;
 import com.sportcourt.modules.court.dao.CourtDAOImpl;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
 import com.sportcourt.modules.court.dto.CourtTableRow;
 import com.sportcourt.modules.court.entity.Court;
 
-import java.sql.*;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
