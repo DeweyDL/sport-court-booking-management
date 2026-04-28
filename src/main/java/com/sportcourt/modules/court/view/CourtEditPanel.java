@@ -51,11 +51,7 @@ final class CourtEditPanel {
         header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtCourtId = new JTextField(currentCourt.getCourtId());
-        txtCourtId.setEditable(false);
-        txtCourtId.setFocusable(false);
-        txtCourtId.setBackground(new Color(241, 245, 249));
-        txtCourtId.putClientProperty("JComponent.roundRect", true);
+        JTextField txtCourtId = readonlyField(currentCourt.getCourtId());
 
         List<String> editableAreaIds = new java.util.ArrayList<>(areaIds);
         if (currentCourt.getAreaId() != null
@@ -64,16 +60,13 @@ final class CourtEditPanel {
             editableAreaIds.add(0, currentCourt.getAreaId());
         }
         JComboBox<String> cbAreaId = new JComboBox<>(editableAreaIds.toArray(new String[0]));
-        cbAreaId.setFont(AppFonts.lexendRegular(14f));
-        cbAreaId.setBackground(Color.WHITE);
+        styleComboBox(cbAreaId);
         cbAreaId.setEnabled(!areaIds.isEmpty());
         cbAreaId.setSelectedItem(currentCourt.getAreaId());
-        cbAreaId.putClientProperty("JComponent.roundRect", true);
+
         JComboBox<String> cbStatus = new JComboBox<>(new String[]{"ĐANG HOẠT ĐỘNG", "BẢO TRÌ"});
-        cbStatus.setFont(AppFonts.lexendRegular(14f));
-        cbStatus.setBackground(Color.WHITE);
+        styleComboBox(cbStatus);
         cbStatus.setSelectedItem(resolveStatus(currentCourt.getStatus()));
-        cbStatus.putClientProperty("JComponent.roundRect", true);
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
@@ -88,7 +81,12 @@ final class CourtEditPanel {
         addField(form, g, 0, "Mã sân con", txtCourtId);
         addField(form, g, 1, "Mã khu vực", cbAreaId);
         addField(form, g, 2, "Trạng thái", cbStatus);
-        root.add(form, BorderLayout.CENTER);
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(null);
+        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        formScroll.getViewport().setBackground(DIALOG_BG);
+        root.add(formScroll, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
@@ -133,7 +131,8 @@ final class CourtEditPanel {
         });
 
         dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth(), 520), dialog.getHeight());
+        dialog.setSize(Math.max(dialog.getWidth(), 560), 430);
+        dialog.setMinimumSize(new Dimension(560, 430));
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
@@ -154,19 +153,32 @@ final class CourtEditPanel {
         panel.add(lb, g);
 
         g.gridy = row * 2 + 1;
-        if (field instanceof JTextField textField) {
-            textField.setFont(AppFonts.lexendRegular(14f));
-            textField.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
-            ));
-        } else {
-            field.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
-            ));
-        }
         panel.add(field, g);
+    }
+
+    private static JTextField readonlyField(String value) {
+        JTextField field = new JTextField(value);
+        field.setFont(AppFonts.lexendRegular(14f));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setBackground(new Color(241, 245, 249));
+        return field;
+    }
+
+    private static void styleComboBox(JComboBox<String> comboBox) {
+        comboBox.setFont(AppFonts.lexendRegular(14f));
+        comboBox.setFocusable(false);
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        comboBox.setBackground(Color.WHITE);
     }
 
     private static JButton button(String text, Color background, Color foreground) {
