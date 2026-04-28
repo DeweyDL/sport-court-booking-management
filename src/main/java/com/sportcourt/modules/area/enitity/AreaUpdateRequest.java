@@ -1,0 +1,8 @@
+package com.sportcourt.modules.area.enitity;
+
+// DTO cho thao tac sua khu vuc o popup.
+public record AreaUpdateRequest(
+        String maKv,
+        String maTt
+) {
+}
