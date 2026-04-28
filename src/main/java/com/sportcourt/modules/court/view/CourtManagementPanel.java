@@ -388,7 +388,7 @@ public class CourtManagementPanel extends JPanel {
         btnEdit.setPreferredSize(editSize);
         btnEdit.setMinimumSize(editSize);
         btnEdit.setMaximumSize(editSize);
-        btnEdit.addActionListener(event -> showDetailView(court));
+        btnEdit.addActionListener(event -> showEditView(court));
         actionGroup.add(btnEdit);
 
         addColumnCell(rowPanel, createTableCellWrapper(actionGroup, SwingConstants.CENTER), 5, SwingConstants.CENTER);
