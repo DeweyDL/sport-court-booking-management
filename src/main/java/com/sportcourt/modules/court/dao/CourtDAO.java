@@ -21,6 +21,8 @@ public interface CourtDAO {
 
     boolean hasActiveRental(String courtId, String branchId) throws SQLException;
 
+    List<String> findAreaIdsByBranch(String branchId) throws SQLException;
+
     void insert(Court court) throws SQLException;
 
     boolean update(Court court, String branchId) throws SQLException;

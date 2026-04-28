@@ -1,7 +1,7 @@
 package com.sportcourt.modules.court.view;
 
+import com.sportcourt.modules.court.controller.CourtManagementController;
 import com.sportcourt.modules.court.dto.CourtTableRow;
-import com.sportcourt.modules.court.service.CourtService;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -28,7 +28,7 @@ public class CourtDetailPanel extends JPanel {
     private static final Color RED_BG = new Color(254, 226, 226);
     private static final Color RED_TEXT = new Color(185, 28, 28);
 
-    private final CourtService courtService;
+    private final CourtManagementController courtController;
     private final Runnable onBack;
     private final Consumer<CourtTableRow> onEdit;
 
@@ -43,11 +43,11 @@ public class CourtDetailPanel extends JPanel {
     private CourtTableRow currentCourt;
 
     public CourtDetailPanel(
-            CourtService courtService,
+            CourtManagementController courtController,
             Runnable onBack,
             Consumer<CourtTableRow> onEdit
     ) {
-        this.courtService = courtService;
+        this.courtController = courtController;
         this.onBack = onBack;
         this.onEdit = onEdit;
 
@@ -61,7 +61,7 @@ public class CourtDetailPanel extends JPanel {
 
     public void showDetail(String courtId, String branchId) {
         try {
-            Optional<CourtTableRow> courtOptional = courtService.findDetail(courtId, branchId);
+            Optional<CourtTableRow> courtOptional = courtController.findDetail(courtId, branchId);
 
             if (courtOptional.isEmpty()) {
                 JOptionPane.showMessageDialog(

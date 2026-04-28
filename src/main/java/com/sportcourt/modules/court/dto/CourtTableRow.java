@@ -24,6 +24,7 @@ public class CourtTableRow {
         this.courtId = courtId;
         this.areaId = areaId;
         this.sportTypeName = sportName;
+        this.branchId = branchId;
         this.branchName = branchName;
         this.status = status;
         this.createdAt = createdAt;

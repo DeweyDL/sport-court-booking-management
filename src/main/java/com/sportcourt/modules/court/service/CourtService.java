@@ -13,6 +13,8 @@ public interface CourtService {
 
     Optional<CourtTableRow> findDetail(String courtId, String branchId) throws SQLException;
 
+    List<String> getAreaIdsByBranch(String branchId) throws SQLException;
+
     void create(Court court, String branchId) throws SQLException;
 
     void update(Court court, String branchId) throws SQLException;

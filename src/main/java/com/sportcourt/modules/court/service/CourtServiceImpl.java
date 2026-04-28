@@ -48,6 +48,14 @@ public class CourtServiceImpl implements CourtService {
     }
 
     @Override
+    public List<String> getAreaIdsByBranch(String branchId) throws SQLException {
+        if (isBlank(branchId)) {
+            throw new IllegalArgumentException("Không xác định được chi nhánh hiện tại.");
+        }
+        return courtDAO.findAreaIdsByBranch(branchId);
+    }
+
+    @Override
     public void create(Court court, String branchId) throws SQLException {
         validateCourtRequiredFields(court);
 

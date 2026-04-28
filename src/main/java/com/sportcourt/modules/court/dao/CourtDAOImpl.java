@@ -268,6 +268,31 @@ public class CourtDAOImpl implements CourtDAO {
     }
 
     @Override
+    public List<String> findAreaIdsByBranch(String branchId) throws SQLException {
+        String sql = """
+            SELECT kv.MAKV
+            FROM KHU_VUC kv
+            WHERE kv.MACN = ?
+              AND kv.IS_DELETED = 0
+            ORDER BY kv.MAKV
+            """;
+
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, branchId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> areaIds = new ArrayList<>();
+                while (rs.next()) {
+                    areaIds.add(rs.getString("MAKV"));
+                }
+                return areaIds;
+            }
+        }
+    }
+
+    @Override
     public void insert(Court court) throws SQLException {
         String sql = """
             INSERT INTO SAN_CON (
