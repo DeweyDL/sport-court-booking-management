@@ -39,4 +39,3 @@ build/
 ### config ###
 src/main/resources/db/db.properties
 src/main/resources/mail/mail.properties
-src/main/java/docs/
