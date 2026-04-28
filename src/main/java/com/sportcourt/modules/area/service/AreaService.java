@@ -1,10 +1,8 @@
 package com.sportcourt.modules.area.service;
 
-import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
 
 import java.util.List;
 
@@ -13,11 +11,9 @@ public interface AreaService {
 
     Area getKhuVucDetail(String maKv);
 
-    List<ChiNhanh> getChiNhanhList();
+    List<Area.ChiNhanhOption> getChiNhanhList();
 
-    List<SportType> getLoaiTheThaoList();
-
-    // TODO san con: them ham lay danh sach san con theo khu vuc khi module san con hoan thien.
+    List<Area.SportTypeOption> getLoaiTheThaoList();
 
     String generateNextMaKv();
 

@@ -1,10 +1,8 @@
 package com.sportcourt.modules.area.dao;
 
-import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -15,9 +13,9 @@ public interface AreaDao {
 
     Optional<Area> findById(String maKv) throws SQLException;
 
-    List<ChiNhanh> findChiNhanhList() throws SQLException;
+    List<Area.ChiNhanhOption> findChiNhanhList() throws SQLException;
 
-    List<SportType> findLoaiTheThaoList() throws SQLException;
+    List<Area.SportTypeOption> findLoaiTheThaoList() throws SQLException;
 
     // TODO san con: them API doc/kiem tra san con theo khu vuc khi module san con hoan thien.
 

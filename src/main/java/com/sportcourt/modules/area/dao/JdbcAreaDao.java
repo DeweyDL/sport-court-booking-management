@@ -1,10 +1,8 @@
 package com.sportcourt.modules.area.dao;
 
-import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
 import com.sportcourt.common.db.ConnectionUtils;
 
 import java.sql.Connection;
@@ -91,13 +89,13 @@ public class JdbcAreaDao implements AreaDao {
     }
 
     @Override
-    public List<ChiNhanh> findChiNhanhList() throws SQLException {
-        List<ChiNhanh> chiNhanhs = new ArrayList<>();
+    public List<Area.ChiNhanhOption> findChiNhanhList() throws SQLException {
+        List<Area.ChiNhanhOption> chiNhanhs = new ArrayList<>();
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(CHI_NHANH_SQL);
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
-                chiNhanhs.add(new ChiNhanh(
+                chiNhanhs.add(new Area.ChiNhanhOption(
                         resultSet.getString("MACN"),
                         resultSet.getString("TEN_CHI_NHANH")
                 ));
@@ -107,13 +105,13 @@ public class JdbcAreaDao implements AreaDao {
     }
 
     @Override
-    public List<SportType> findLoaiTheThaoList() throws SQLException {
-        List<SportType> sportTypes = new ArrayList<>();
+    public List<Area.SportTypeOption> findLoaiTheThaoList() throws SQLException {
+        List<Area.SportTypeOption> sportTypes = new ArrayList<>();
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(LOAI_THE_THAO_SQL);
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
-                sportTypes.add(new SportType(
+                sportTypes.add(new Area.SportTypeOption(
                         resultSet.getString("MATT"),
                         resultSet.getString("TEN")
                 ));

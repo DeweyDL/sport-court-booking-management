@@ -2,7 +2,7 @@ package com.sportcourt.modules.area.view;
 
 import com.sportcourt.modules.area.controller.AreaController;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
+import com.sportcourt.modules.area.enitity.Area;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -16,7 +16,7 @@ public class AreaAdd extends JPanel {
 
     private final JTextField maKvField = createDisplayField();
     private final JTextField maCnField = createDisplayField();
-    private final JComboBox<SportType> sportTypeComboBox = new JComboBox<>();
+    private final JComboBox<Area.SportTypeOption> sportTypeComboBox = new JComboBox<>();
     private final JTextField courtCountField = createDisplayField();
 
     private JDialog dialog;
@@ -236,8 +236,8 @@ public class AreaAdd extends JPanel {
     }
 
     private void bindLoaiTheThao() {
-        DefaultComboBoxModel<SportType> model = new DefaultComboBoxModel<>();
-        for (SportType sportType : areaController.getLoaiTheThaoList()) {
+        DefaultComboBoxModel<Area.SportTypeOption> model = new DefaultComboBoxModel<>();
+        for (Area.SportTypeOption sportType : areaController.getLoaiTheThaoList()) {
             model.addElement(sportType);
         }
         sportTypeComboBox.setModel(model);
@@ -255,7 +255,7 @@ public class AreaAdd extends JPanel {
             return;
         }
 
-        SportType selectedSportType = (SportType) sportTypeComboBox.getSelectedItem();
+        Area.SportTypeOption selectedSportType = (Area.SportTypeOption) sportTypeComboBox.getSelectedItem();
         if (selectedSportType == null) {
             JOptionPane.showMessageDialog(this, "Hãy chọn loại thể thao.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;

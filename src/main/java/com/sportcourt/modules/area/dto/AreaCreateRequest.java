@@ -5,6 +5,5 @@ public record AreaCreateRequest(
         String maCn,
         String maTt,
         int soLuongSan
-        // TODO san con: them danh sach san con khi module san con hoan thien.
 ) {
 }

@@ -3,7 +3,6 @@ package com.sportcourt.modules.area.view;
 import com.sportcourt.modules.area.controller.AreaController;
 import com.sportcourt.modules.area.enitity.Area;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,7 +16,7 @@ public class AreaChange extends JPanel {
 
     private final JTextField maKvField = createDisplayField();
     private final JTextField maCnField = createDisplayField();
-    private final JComboBox<SportType> sportTypeComboBox = new JComboBox<>();
+    private final JComboBox<Area.SportTypeOption> sportTypeComboBox = new JComboBox<>();
     private final JTextField courtCountField = createDisplayField();
 
     private String currentMaKv;
@@ -237,8 +236,8 @@ public class AreaChange extends JPanel {
     }
 
     private void bindLoaiTheThao(String selectedMaTt) {
-        DefaultComboBoxModel<SportType> model = new DefaultComboBoxModel<>();
-        for (SportType sportType : areaController.getLoaiTheThaoList()) {
+        DefaultComboBoxModel<Area.SportTypeOption> model = new DefaultComboBoxModel<>();
+        for (Area.SportTypeOption sportType : areaController.getLoaiTheThaoList()) {
             model.addElement(sportType);
         }
         sportTypeComboBox.setModel(model);
@@ -246,7 +245,7 @@ public class AreaChange extends JPanel {
         sportTypeComboBox.setBackground(new Color(249, 250, 251));
 
         for (int index = 0; index < model.getSize(); index++) {
-            SportType sportType = model.getElementAt(index);
+            Area.SportTypeOption sportType = model.getElementAt(index);
             if (sportType != null && sportType.maTt().equals(selectedMaTt)) {
                 sportTypeComboBox.setSelectedIndex(index);
                 break;
@@ -261,7 +260,7 @@ public class AreaChange extends JPanel {
             return;
         }
 
-        SportType selectedSportType = (SportType) sportTypeComboBox.getSelectedItem();
+        Area.SportTypeOption selectedSportType = (Area.SportTypeOption) sportTypeComboBox.getSelectedItem();
         if (selectedSportType == null) {
             JOptionPane.showMessageDialog(this, "Hãy chọn loại thể thao.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;

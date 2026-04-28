@@ -1,10 +1,8 @@
 package com.sportcourt.modules.area.controller;
 
-import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.SportType;
 import com.sportcourt.modules.area.service.AreaService;
 import com.sportcourt.modules.area.service.AreaServiceImpl;
 
@@ -29,11 +27,11 @@ public class AreaController {
         return areaService.getKhuVucDetail(maKv);
     }
 
-    public List<ChiNhanh> getChiNhanhList() {
+    public List<Area.ChiNhanhOption> getChiNhanhList() {
         return areaService.getChiNhanhList();
     }
 
-    public List<SportType> getLoaiTheThaoList() {
+    public List<Area.SportTypeOption> getLoaiTheThaoList() {
         return areaService.getLoaiTheThaoList();
     }
 

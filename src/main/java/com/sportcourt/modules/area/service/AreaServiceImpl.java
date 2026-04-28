@@ -5,8 +5,6 @@ import com.sportcourt.modules.area.dao.JdbcAreaDao;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.modules.area.enitity.Area;
-import com.sportcourt.modules.area.enitity.ChiNhanh;
-import com.sportcourt.modules.area.enitity.SportType;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -42,7 +40,7 @@ public class AreaServiceImpl implements AreaService {
     }
 
     @Override
-    public List<ChiNhanh> getChiNhanhList() {
+    public List<Area.ChiNhanhOption> getChiNhanhList() {
         try {
             return khuVucDao.findChiNhanhList();
         } catch (SQLException exception) {
@@ -51,7 +49,7 @@ public class AreaServiceImpl implements AreaService {
     }
 
     @Override
-    public List<SportType> getLoaiTheThaoList() {
+    public List<Area.SportTypeOption> getLoaiTheThaoList() {
         try {
             return khuVucDao.findLoaiTheThaoList();
         } catch (SQLException exception) {
