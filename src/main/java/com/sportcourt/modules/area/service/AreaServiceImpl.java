@@ -1,21 +1,16 @@
 package com.sportcourt.modules.area.service;
 
-import com.sportcourt.modules.area.dao.JdbcAreaDao;
 import com.sportcourt.modules.area.dao.AreaDao;
-import com.sportcourt.modules.area.enitity.ChiNhanh;
+import com.sportcourt.modules.area.dao.JdbcAreaDao;
+import com.sportcourt.modules.area.dto.AreaCreateRequest;
+import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.modules.area.enitity.Area;
-import com.sportcourt.modules.area.enitity.AreaCreateRequest;
-import com.sportcourt.modules.area.enitity.AreaUpdateRequest;
+import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.SportType;
-import com.sportcourt.modules.area.enitity.Court;
-import com.sportcourt.modules.area.util.AreaImageStorage;
 
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
-// Service cho module khu vuc. File nay gom loi SQL thanh IllegalStateException de view xu ly gon hon.
 public class AreaServiceImpl implements AreaService {
     private final AreaDao khuVucDao;
 
@@ -65,20 +60,6 @@ public class AreaServiceImpl implements AreaService {
     }
 
     @Override
-    public List<Court> getSanConList(String maKv) {
-        try {
-            return khuVucDao.findSanConByKhuVuc(maKv);
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Khong the tai danh sach san con tu database: " + exception.getMessage(), exception);
-        }
-    }
-
-    @Override
-    public Optional<Path> getAreaImagePath(String maKv) {
-        return AreaImageStorage.findImagePath(maKv);
-    }
-
-    @Override
     public String generateNextMaKv() {
         try {
             return khuVucDao.generateNextMaKv();
@@ -97,12 +78,11 @@ public class AreaServiceImpl implements AreaService {
     }
 
     @Override
-    public Path saveAreaImage(String maKv, Path sourceFile) {
-        return AreaImageStorage.saveImage(maKv, sourceFile);
-    }
-
-    @Override
     public void createKhuVuc(AreaCreateRequest request) {
+        if (request.soLuongSan() > 0) {
+            throw new IllegalStateException("Chua lam chuc nang lien quan den san con, chua the tao khu vuc kem san con.");
+        }
+
         try {
             khuVucDao.createKhuVuc(request);
         } catch (SQLException exception) {
@@ -122,24 +102,21 @@ public class AreaServiceImpl implements AreaService {
     @Override
     public void deleteKhuVuc(String maKv) {
         try {
+            Area area = khuVucDao.findById(maKv)
+                    .orElseThrow(() -> new IllegalStateException("Khong tim thay khu vuc de xoa: " + maKv));
+
+            // TODO san con: khi module san con hoan thien, kiem tra/xu ly san con truoc khi xoa khu vuc.
+            // boolean hasActiveSanCon = khuVucDao.existsActiveSanConByKhuVuc(maKv);
+            if (area.soLuongSan() > 0) {
+                throw new IllegalStateException("Chua lam chuc nang lien quan den san con, chua the xoa khu vuc dang co san con.");
+            }
+
             boolean deleted = khuVucDao.softDeleteById(maKv);
             if (!deleted) {
                 throw new IllegalStateException("Khong tim thay khu vuc de xoa: " + maKv);
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Khong the xoa khu vuc tu database: " + exception.getMessage(), exception);
-        }
-    }
-
-    @Override
-    public void deleteSanCon(String maSan) {
-        try {
-            boolean deleted = khuVucDao.softDeleteSanConById(maSan);
-            if (!deleted) {
-                throw new IllegalStateException("Khong tim thay san con de xoa: " + maSan);
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Khong the xoa san con tu database: " + exception.getMessage(), exception);
         }
     }
 }

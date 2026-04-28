@@ -2,11 +2,9 @@ package com.sportcourt.modules.area.dao;
 
 import com.sportcourt.modules.area.enitity.ChiNhanh;
 import com.sportcourt.modules.area.enitity.Area;
-import com.sportcourt.modules.area.enitity.AreaCreateRequest;
-import com.sportcourt.modules.area.enitity.AreaUpdateRequest;
+import com.sportcourt.modules.area.dto.AreaCreateRequest;
+import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.modules.area.enitity.SportType;
-import com.sportcourt.modules.area.enitity.Court;
-import com.sportcourt.modules.area.enitity.CourtDraft;
 import com.sportcourt.common.db.ConnectionUtils;
 
 import java.sql.Connection;
@@ -19,15 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-// JDBC implementation cho module khu vuc. File nay tap trung vao query khu vuc va danh sach san con.
 public class JdbcAreaDao implements AreaDao {
-    private static final String SAN_CON_BY_KHU_VUC_SQL = """
-            SELECT MASAN, MAKV, TRANGTHAI, CREATED_AT
-            FROM SAN_CON
-            WHERE MAKV = ?
-              AND IS_DELETED = 0
-            ORDER BY MASAN ASC
-            """;
     private static final String CHI_NHANH_SQL = """
             SELECT MACN, TEN_CHI_NHANH
             FROM CHI_NHANH
@@ -40,7 +30,6 @@ public class JdbcAreaDao implements AreaDao {
             WHERE IS_DELETED = 0
             ORDER BY TEN ASC, MATT ASC
             """;
-
 
     @Override
     public List<Area> findByKeyword(String keyword) throws SQLException {
@@ -134,22 +123,6 @@ public class JdbcAreaDao implements AreaDao {
     }
 
     @Override
-    public List<Court> findSanConByKhuVuc(String maKv) throws SQLException {
-        List<Court> courts = new ArrayList<>();
-        try (Connection connection = ConnectionUtils.getMyConnection();
-             PreparedStatement statement = connection.prepareStatement(SAN_CON_BY_KHU_VUC_SQL)) {
-            statement.setString(1, maKv);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    courts.add(mapSanCon(resultSet));
-                }
-            }
-        }
-        return courts;
-    }
-
-    @Override
     public String generateNextMaKv() throws SQLException {
         String sql = """
                 SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MAKV, '\\d+$'))), 0) + 1 AS NEXT_ID
@@ -193,30 +166,16 @@ public class JdbcAreaDao implements AreaDao {
                 INSERT INTO KHU_VUC (MAKV, MACN, MATT, SO_LUONG_SAN, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, SYSDATE, 0)
                 """;
-        String insertSanConSql = """
-                INSERT INTO SAN_CON (MASAN, MAKV, TRANGTHAI, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, ?, SYSDATE, 0)
-                """;
-
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
 
-            try (PreparedStatement insertKhuVucStatement = connection.prepareStatement(insertKhuVucSql);
-                 PreparedStatement insertSanConStatement = connection.prepareStatement(insertSanConSql)) {
+            try (PreparedStatement insertKhuVucStatement = connection.prepareStatement(insertKhuVucSql)) {
                 insertKhuVucStatement.setString(1, request.maKv());
                 insertKhuVucStatement.setString(2, request.maCn());
                 insertKhuVucStatement.setString(3, request.maTt());
                 insertKhuVucStatement.setInt(4, request.soLuongSan());
                 insertKhuVucStatement.executeUpdate();
-
-                for (CourtDraft courtDraft : request.sanCons()) {
-                    insertSanConStatement.setString(1, courtDraft.maSan());
-                    insertSanConStatement.setString(2, request.maKv());
-                    insertSanConStatement.setString(3, courtDraft.trangThai());
-                    insertSanConStatement.addBatch();
-                }
-                insertSanConStatement.executeBatch();
 
                 connection.commit();
             } catch (SQLException exception) {
@@ -275,23 +234,6 @@ public class JdbcAreaDao implements AreaDao {
         }
     }
 
-    @Override
-    public boolean softDeleteSanConById(String maSan) throws SQLException {
-        String sql = """
-                UPDATE SAN_CON
-                SET IS_DELETED = 1
-                WHERE MASAN = ?
-                  AND IS_DELETED = 0
-                """;
-
-        try (Connection connection = ConnectionUtils.getMyConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, maSan);
-            return statement.executeUpdate() > 0;
-        }
-    }
-
-    // Mapping khu vuc tu ResultSet thanh Java object de view khong phai xu ly JDBC.
     private Area mapKhuVuc(ResultSet resultSet) throws SQLException {
         Timestamp createdAt = resultSet.getTimestamp("CREATED_AT");
         LocalDateTime createdDateTime = createdAt == null ? null : createdAt.toLocalDateTime();
@@ -301,18 +243,6 @@ public class JdbcAreaDao implements AreaDao {
                 resultSet.getString("MATT"),
                 resultSet.getString("TEN_THE_THAO"),
                 resultSet.getInt("SO_LUONG_SAN"),
-                createdDateTime
-        );
-    }
-
-    // Mapping san con de man chi tiet co the render bang danh sach san con.
-    private Court mapSanCon(ResultSet resultSet) throws SQLException {
-        Timestamp createdAt = resultSet.getTimestamp("CREATED_AT");
-        LocalDateTime createdDateTime = createdAt == null ? null : createdAt.toLocalDateTime();
-        return new Court(
-                resultSet.getString("MASAN"),
-                resultSet.getString("MAKV"),
-                resultSet.getString("TRANGTHAI"),
                 createdDateTime
         );
     }

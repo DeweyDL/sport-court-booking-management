@@ -1,19 +1,15 @@
 package com.sportcourt.modules.area.view;
 
 import com.sportcourt.modules.area.controller.AreaController;
-import com.sportcourt.modules.area.enitity.AreaCreateRequest;
+import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.enitity.SportType;
-import com.sportcourt.modules.area.enitity.Court;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
-// Popup thêm khu vực mới, dùng chung layout với AreaChange
 public class AreaAdd extends JPanel {
     private final AreaController areaController;
     private final Consumer<String> onSaved;
@@ -25,8 +21,7 @@ public class AreaAdd extends JPanel {
 
     private JDialog dialog;
     private String generatedMaKv;
-    // Khởi tạo list sân con trống, phục vụ cho nút xem danh sách sau này
-    private final List<Court> currentCourts = new ArrayList<>();
+    // TODO san con: them list san con tam khi module san con hoan thien.
 
     public AreaAdd(AreaController areaController, Consumer<String> onSaved) {
         this.areaController = areaController;
@@ -50,7 +45,6 @@ public class AreaAdd extends JPanel {
         maKvField.setText(generatedMaKv);
         maCnField.setText(areaController.getDefaultChiNhanhId());
 
-        currentCourts.clear();
         courtCountField.setText("0");
 
         bindLoaiTheThao();
@@ -137,7 +131,7 @@ public class AreaAdd extends JPanel {
         form.add(Box.createVerticalStrut(17));
         form.add(createReadOnlyField("Số lượng sân con", courtCountField));
         form.add(Box.createVerticalStrut(18));
-        form.add(createSubCourtButton()); // Giữ nguyên nút theo yêu cầu
+        form.add(createSubCourtButton());
         return form;
     }
 
@@ -250,7 +244,6 @@ public class AreaAdd extends JPanel {
         sportTypeComboBox.setBorder(null);
         sportTypeComboBox.setBackground(new Color(249, 250, 251));
 
-        // Đã bỏ phần Custom UI cho ComboBox ở đây theo yêu cầu
         if (model.getSize() > 0) {
             sportTypeComboBox.setSelectedIndex(0);
         }
@@ -283,8 +276,7 @@ public class AreaAdd extends JPanel {
                 generatedMaKv,
                 areaController.getDefaultChiNhanhId(),
                 selectedSportType.maTt(),
-                0, // Khởi tạo với 0 sân con
-                List.of()
+                0
         );
 
         try {
@@ -311,11 +303,7 @@ public class AreaAdd extends JPanel {
     }
 
     private void showSubCourtList() {
-        // List sân con lúc này luôn rỗng, show thông báo chuẩn như AreaChange
-        if (currentCourts.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Khu vực này chưa có sân con nào.", "Danh sách sân con", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
+        JOptionPane.showMessageDialog(this, "Chưa làm chức năng liên quan đến sân con.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {

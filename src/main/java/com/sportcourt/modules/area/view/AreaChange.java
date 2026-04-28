@@ -2,19 +2,15 @@ package com.sportcourt.modules.area.view;
 
 import com.sportcourt.modules.area.controller.AreaController;
 import com.sportcourt.modules.area.enitity.Area;
-import com.sportcourt.modules.area.enitity.AreaUpdateRequest;
+import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.modules.area.enitity.SportType;
-import com.sportcourt.modules.area.enitity.Court;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
-// Popup sửa khu vực nhỏ gọn, chỉ cho phép cập nhật loại thể thao.
 public class AreaChange extends JPanel {
     private final AreaController areaController;
     private final Consumer<String> onSaved;
@@ -26,7 +22,7 @@ public class AreaChange extends JPanel {
 
     private String currentMaKv;
     private JDialog dialog;
-    private final List<Court> currentCourts = new ArrayList<>();
+    // TODO san con: them list san con de hien thi trong popup khi module san con hoan thien.
 
     public AreaChange(AreaController areaController, Consumer<String> onSaved) {
         this.areaController = areaController;
@@ -118,7 +114,6 @@ public class AreaChange extends JPanel {
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
-        //form.setPreferredSize(new Dimension(420, Integer.MAX_VALUE));
         form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
 
         form.add(createReadOnlyField("Mã khu vực", maKvField));
@@ -235,8 +230,6 @@ public class AreaChange extends JPanel {
 
     private void bindData(String maKv) {
         Area area = areaController.getKhuVucDetail(maKv);
-        currentCourts.clear();
-        currentCourts.addAll(areaController.getSanConList(maKv));
         maKvField.setText(area.maKv());
         maCnField.setText(area.maCn());
         courtCountField.setText(String.valueOf(area.soLuongSan()));
@@ -250,7 +243,6 @@ public class AreaChange extends JPanel {
         }
         sportTypeComboBox.setModel(model);
         sportTypeComboBox.setBorder(null);
-        //sportTypeComboBox.setOpaque(true);
         sportTypeComboBox.setBackground(new Color(249, 250, 251));
 
         for (int index = 0; index < model.getSize(); index++) {
@@ -312,21 +304,7 @@ public class AreaChange extends JPanel {
     }
 
     private void showSubCourtList() {
-        if (currentCourts.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Khu vực này chưa có sân con nào.", "Danh sách sân con", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        StringBuilder builder = new StringBuilder();
-        for (Court court : currentCourts) {
-            builder.append("- ")
-                    .append(court.maSan())
-                    .append(" | ")
-                    .append(court.trangThai())
-                    .append('\n');
-        }
-
-        JOptionPane.showMessageDialog(this, builder.toString(), "Danh sách sân con", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Chưa làm chức năng liên quan đến sân con.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {

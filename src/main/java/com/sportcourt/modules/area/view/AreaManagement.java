@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-// Màn danh sách khu vực, hiển thị popup thêm và sửa.
 public class AreaManagement extends JPanel {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
@@ -26,7 +25,6 @@ public class AreaManagement extends JPanel {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    // Đã sửa lại tham số khởi tạo cho AreaAdd giống AreaChange
     private final AreaChange suaKhuVuc = new AreaChange(areaController, ignored -> loadKhuVucData(searchField.getText()));
     private final AreaAdd themKhuVuc = new AreaAdd(areaController, ignored -> loadKhuVucData(searchField.getText()));
 
@@ -38,7 +36,6 @@ public class AreaManagement extends JPanel {
         searchDebounceTimer = new Timer(300, event -> loadKhuVucData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
-        // Bỏ CardLayout, add trực tiếp ListPage
         add(createListPage(), BorderLayout.CENTER);
 
         loadKhuVucData(null);
@@ -396,7 +393,6 @@ public class AreaManagement extends JPanel {
         suaKhuVuc.showEditor(this, maKv);
     }
 
-    // Đã sửa lại hàm gọi popup AreaAdd
     private void showCreateView() {
         themKhuVuc.showCreator(this);
     }

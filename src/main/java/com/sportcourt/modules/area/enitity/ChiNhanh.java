@@ -1,6 +1,5 @@
 package com.sportcourt.modules.area.enitity;
 
-// Entity nhe cho combobox chi nhanh trong man them khu vuc.
 public record ChiNhanh(
         String maCn,
         String tenChiNhanh
