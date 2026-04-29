@@ -11,230 +11,96 @@ import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.text.Normalizer;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
 public class ManageCustomerPreviewScreen extends JPanel {
-    private static final int TABLE_COLUMN_GAP = 0;
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final int[] TABLE_COLUMN_WIDTHS = {120, 165, 140, 210, 110, 95, 110, 130, 180};
-    private static final int ADDRESS_WRAP_WIDTH = 190;
+    private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
+    private static final int HEADER_HEIGHT = 42;
+    private static final int ROW_HEIGHT = 58;
+    private static final int COL_ID = 90;
+    private static final int COL_NAME = 150;
+    private static final int COL_PHONE = 110;
+    private static final int COL_ADDRESS = 145;
+    private static final int COL_TIER = 100;
+    private static final int COL_STATUS = 110;
+    private static final int COL_REVENUE = 100;
+    private static final int COL_ACTIONS = 215;
 
     private final ManageCustomerController controller = new ManageCustomerController();
     private final List<CustomerVm> customers = new ArrayList<>();
 
-    private final JLabel titleLabel = new JLabel("QUẢN LÝ KHÁCH HÀNG");
-    private final JTextField txtSearch = new JTextField();
+    private final JPanel tablePanel = new JPanel();
+    private final JLabel footerLabel = new JLabel("Đang tải dữ liệu...");
+    private final JTextField searchField = new JTextField(30);
+    private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
             "Họ tên",
             "Doanh thu",
             "Trạng thái"
     });
-    private final JButton btnSortDirection = new JButton("\u25B2");
-    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 / 0 khách hàng");
-    private final JPanel tableBodyPanel = new JPanel();
+    private final JButton btnSortDir = new JButton("\u25B2");
 
     private CustomerVm selectedCustomer;
     private boolean sortAscending = true;
 
     public ManageCustomerPreviewScreen() {
         AppFonts.register();
-        setLayout(new BorderLayout(0, 18));
-        setBackground(new Color(247, 247, 251));
-        setBorder(new EmptyBorder(90, 70, 40, 70));
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 247, 250));
+        setBorder(new EmptyBorder(100, 70, 50, 70));
 
-        add(createHeader(), BorderLayout.NORTH);
-        add(createMainContent(), BorderLayout.CENTER);
-
-        applyEvents();
+        add(createPage(), BorderLayout.CENTER);
         loadCustomers("");
     }
 
-    private JPanel createHeader() {
-        JPanel headerWrapper = new JPanel();
-        headerWrapper.setLayout(new BoxLayout(headerWrapper, BoxLayout.Y_AXIS));
-        headerWrapper.setOpaque(false);
-        headerWrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
-        headerWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
+    private JPanel createPage() {
+        JPanel page = new JPanel(new BorderLayout(0, 20));
+        page.setOpaque(false);
+        page.add(createHeaderSection(), BorderLayout.NORTH);
+        page.add(createMainSection(), BorderLayout.CENTER);
+        return page;
+    }
 
-        JPanel titleRow = new JPanel(new BorderLayout());
-        titleRow.setOpaque(false);
-        titleRow.setBorder(new EmptyBorder(0, 20, 0, 0));
+    private JPanel createHeaderSection() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setOpaque(false);
 
-        titleLabel.setFont(new Font("Lexend", Font.BOLD, 30));
-        titleLabel.setForeground(new Color(30, 31, 36));
-        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        titleRow.add(titleLabel, BorderLayout.WEST);
+        JLabel title = new JLabel("QUẢN LÝ KHÁCH HÀNG");
+        title.setFont(new Font("Lexend", Font.BOLD, 30));
+        title.setForeground(new Color(30, 31, 36));
+        title.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        JPanel subtitleRow = new JPanel(new BorderLayout());
-        subtitleRow.setOpaque(false);
-        subtitleRow.setBorder(new EmptyBorder(5, 20, 20, 0));
-        JLabel subtitle = new JLabel("Hiển thị dữ liệu khách hàng và hỗ trợ tìm kiếm nhanh.");
+        JLabel subtitle = new JLabel("Quản lý thông tin khách hàng và trạng thái tài khoản.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitle.setForeground(new Color(103, 112, 133));
-        subtitleRow.add(subtitle, BorderLayout.WEST);
+        subtitle.setBorder(new EmptyBorder(5, 20, 20, 0));
 
-        headerWrapper.add(titleRow);
-        headerWrapper.add(subtitleRow);
-        return headerWrapper;
+        header.add(title);
+        header.add(subtitle);
+        return header;
     }
 
-    private JPanel createMainContent() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setOpaque(false);
-        mainPanel.add(createCustomerSection(), BorderLayout.CENTER);
-        return mainPanel;
-    }
-
-    private JPanel createCustomerSection() {
-        JPanel sectionPanel = new JPanel(new BorderLayout(0, 14));
-        sectionPanel.setOpaque(false);
-        sectionPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-
-        JPanel titlePanel = new JPanel(new BorderLayout(10, 0));
-        titlePanel.setOpaque(true);
-        titlePanel.setBackground(Color.WHITE);
-        titlePanel.setBorder(new EmptyBorder(12, 20, 18, 20));
-
-        JPanel titleTextPanel = new JPanel();
-        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
-        titleTextPanel.setOpaque(false);
-        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        rightControls.setOpaque(false);
-
-        JLabel title = new JLabel("Danh sách khách hàng");
-        title.setFont(new Font("Lexend", Font.BOLD, 18));
-        title.setForeground(new Color(35, 37, 43));
-
-        txtSearch.setPreferredSize(new Dimension(310, 38));
-        txtSearch.setFont(AppFonts.lexendRegular(13f));
-        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc số điện thoại...");
-        txtSearch.setBorder(new EmptyBorder(0, 8, 0, 14));
-        txtSearch.setOpaque(false);
-        txtSearch.putClientProperty("JComponent.roundRect", true);
-        txtSearch.putClientProperty("JTextField.arc", 999);
-        JLabel searchIconLabel = new JLabel(scaleIcon("/icon/search.png", 16, 16));
-        searchIconLabel.setBorder(new EmptyBorder(0, 12, 0, 0));
-
-        JButton createButton = createPillButton("+ Thêm khách hàng", new Color(220, 252, 231), new Color(22, 101, 52), true);
-        createButton.setPreferredSize(new Dimension(160, 36));
-        createButton.setBorder(new EmptyBorder(7, 14, 7, 14));
-        createButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        createButton.addActionListener(event -> openCreateDialog());
-
-        JPanel titleWithActionRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        titleWithActionRow.setOpaque(false);
-        titleWithActionRow.add(title);
-        titleWithActionRow.add(createButton);
-
-        JPanel searchWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(310, 38));
-        searchWrapper.add(searchIconLabel, BorderLayout.WEST);
-        searchWrapper.add(txtSearch, BorderLayout.CENTER);
-
-        cbSort.setFont(AppFonts.lexendRegular(13f));
-        cbSort.setFocusable(false);
-        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-        cbSort.setOpaque(false);
-        cbSort.setBackground(Color.WHITE);
-        cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComponent.arc", 999);
-        cbSort.putClientProperty("JComboBox.buttonStyle", "button");
-        cbSort.putClientProperty("JComboBox.padding", new Insets(0, 4, 0, 4));
-        cbSort.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                Object displayValue = index < 0 ? "Sắp xếp: " + value : value;
-                JLabel label = (JLabel) super.getListCellRendererComponent(
-                        list, displayValue, index, isSelected, cellHasFocus
-                );
-                label.setBorder(new EmptyBorder(6, 10, 6, 10));
-                return label;
-            }
-        });
-        btnSortDirection.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
-        btnSortDirection.setForeground(new Color(75, 85, 99));
-        btnSortDirection.setBorder(new EmptyBorder(0, 0, 0, 12));
-        btnSortDirection.setContentAreaFilled(false);
-        btnSortDirection.setBorderPainted(false);
-        btnSortDirection.setFocusPainted(false);
-        btnSortDirection.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnSortDirection.setOpaque(false);
-        updateSortDirectionButton();
-        JPanel sortWrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        sortWrapper.setOpaque(false);
-        sortWrapper.setPreferredSize(new Dimension(230, 38));
-        sortWrapper.add(cbSort, BorderLayout.CENTER);
-        sortWrapper.add(btnSortDirection, BorderLayout.EAST);
-
-        titleTextPanel.add(titleWithActionRow);
-        rightControls.add(searchWrapper);
-        rightControls.add(sortWrapper);
-
-        titlePanel.add(titleTextPanel, BorderLayout.WEST);
-        titlePanel.add(rightControls, BorderLayout.EAST);
-
-        JPanel tableCard = createRoundedTableCard();
-        tableCard.add(createAlignedCustomerHeader(), BorderLayout.NORTH);
-
-        tableBodyPanel.setLayout(new BoxLayout(tableBodyPanel, BoxLayout.Y_AXIS));
-        tableBodyPanel.setBackground(Color.WHITE);
-        JScrollPane tableScrollPane = new JScrollPane(tableBodyPanel);
-        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        tableScrollPane.getViewport().setBackground(Color.WHITE);
-        tableScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        tableScrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        tableCard.add(tableScrollPane, BorderLayout.CENTER);
-        tableCard.add(createFooter(), BorderLayout.SOUTH);
-
-        JPanel contentFrame = new JPanel(new BorderLayout(0, 0)) {
+    private JPanel createMainSection() {
+        JPanel container = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(236, 236, 239));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 50, 50);
                 g2.dispose();
             }
 
@@ -242,107 +108,406 @@ public class ManageCustomerPreviewScreen extends JPanel {
             protected void paintChildren(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Shape shape = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setClip(shape);
+                g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
                 super.paintChildren(g2);
                 g2.dispose();
             }
         };
-        contentFrame.setOpaque(false);
-        contentFrame.setBackground(Color.WHITE);
-        contentFrame.add(titlePanel, BorderLayout.NORTH);
-        contentFrame.add(tableCard, BorderLayout.CENTER);
+        container.setOpaque(false);
+        container.setBackground(Color.WHITE);
+        container.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        sectionPanel.add(contentFrame, BorderLayout.CENTER);
-        return sectionPanel;
-    }
+        JPanel topSection = new JPanel();
+        topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+        topSection.setBackground(Color.WHITE);
+        topSection.add(createToolbar());
+        topSection.add(createTableHeader());
+        container.add(topSection, BorderLayout.NORTH);
 
-    private JPanel createRoundedTableCard() {
-        JPanel tableCard = new JPanel(new BorderLayout());
-        tableCard.setOpaque(true);
-        tableCard.setBackground(Color.WHITE);
-        return tableCard;
-    }
+        tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
+        tablePanel.setBackground(Color.WHITE);
 
-    private JPanel createCustomerHeader() {
-        JPanel headerPanel = new JPanel(new GridLayout(1, 7, TABLE_COLUMN_GAP, 0));
-        headerPanel.setBackground(new Color(241, 242, 246));
-        headerPanel.setBorder(new EmptyBorder(16, 26, 16, 26));
-        headerPanel.add(createHeaderLabel("MÃ KH", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("HỌ TÊN", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("SỐ ĐIỆN THOẠI", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("DOANH THU", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("TRẠNG THÁI", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("HẠNG", SwingConstants.CENTER));
-        headerPanel.add(createHeaderLabel("THAO TÁC", SwingConstants.CENTER));
-        return headerPanel;
-    }
+        JScrollPane scrollPane = new JScrollPane(tablePanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        container.add(scrollPane, BorderLayout.CENTER);
 
-    private JPanel createAlignedCustomerHeader() {
-        JPanel headerPanel = new JPanel(new GridBagLayout());
-        headerPanel.setBackground(new Color(241, 242, 246));
-        headerPanel.setBorder(new EmptyBorder(14, 24, 14, 24));
-        addColumnCell(headerPanel, createHeaderLabel("MÃ KH", SwingConstants.LEFT), 0, SwingConstants.LEFT);
-        addColumnCell(headerPanel, createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), 1, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("SỐ ĐIỆN THOẠI", SwingConstants.CENTER), 2, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("ĐỊA CHỈ", SwingConstants.CENTER), 3, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("NGÀY SINH", SwingConstants.CENTER), 4, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("HẠNG", SwingConstants.CENTER), 5, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("TRẠNG THÁI", SwingConstants.CENTER), 6, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("DOANH THU", SwingConstants.CENTER), 7, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("THAO TÁC", SwingConstants.CENTER), 8, SwingConstants.CENTER);
-        return headerPanel;
-    }
-
-    private JPanel createFooter() {
-        JPanel footerPanel = new JPanel(new BorderLayout());
-        footerPanel.setBackground(new Color(246, 246, 248));
-        footerPanel.setBorder(new EmptyBorder(18, 22, 18, 22));
-
-        footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBackground(Color.WHITE);
+        footer.setBorder(new EmptyBorder(20, 20, 0, 20));
+        footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         footerLabel.setForeground(new Color(107, 114, 128));
-        footerPanel.add(footerLabel, BorderLayout.WEST);
-        return footerPanel;
+        footer.add(footerLabel, BorderLayout.WEST);
+        container.add(footer, BorderLayout.SOUTH);
+
+        return container;
     }
 
-    private JLabel createHeaderLabel(String text, int alignment) {
-        JLabel label = new JLabel(text, alignment);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(94, 103, 82));
+    private JPanel createToolbar() {
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setBackground(Color.WHITE);
+        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+
+        JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftToolbar.setBackground(Color.WHITE);
+
+        JLabel tableTitle = new JLabel("DANH SÁCH KHÁCH HÀNG");
+        tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
+
+        JButton addBtn = createPillButton("+ Thêm khách hàng", new Color(228, 250, 226), new Color(16, 110, 0), true);
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 14));
+        addBtn.setBorder(new EmptyBorder(4, 10, 4, 10));
+        addBtn.addActionListener(event -> openCreateDialog());
+        JPanel addBtnWrapper = new JPanel(new BorderLayout());
+        addBtnWrapper.setOpaque(false);
+        addBtnWrapper.setBorder(new EmptyBorder(10, 0, 0, 0));
+        addBtnWrapper.add(addBtn, BorderLayout.CENTER);
+
+        leftToolbar.add(tableTitle);
+        leftToolbar.add(addBtnWrapper);
+        toolbar.add(leftToolbar, BorderLayout.WEST);
+
+        JPanel rightToolbar = new JPanel();
+        rightToolbar.setLayout(new BoxLayout(rightToolbar, BoxLayout.X_AXIS));
+        rightToolbar.setBackground(Color.WHITE);
+        rightToolbar.setBorder(new EmptyBorder(0, 6, 0, 0));
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
+        rightToolbar.add(createSearchFieldWithIcon());
+        toolbar.add(rightToolbar, BorderLayout.EAST);
+
+        return toolbar;
+    }
+
+    private JPanel createSearchFieldWithIcon() {
+        searchWrapper.removeAll();
+        searchWrapper.setOpaque(false);
+        searchWrapper.setPreferredSize(new Dimension(270, 41));
+        searchWrapper.setMaximumSize(new Dimension(270, 41));
+
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setPreferredSize(new Dimension(270, 41));
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc số điện thoại...");
+        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
+        searchField.putClientProperty("JComponent.roundRect", true);
+        searchField.setBorder(null);
+        searchField.setOpaque(false);
+        bindSearchListener();
+
+        JLabel iconLabel = new JLabel(loadSearchIcon());
+        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
+
+        JPanel innerPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.setColor(new Color(229, 231, 235));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
+                g2.dispose();
+            }
+        };
+        innerPanel.setOpaque(false);
+        innerPanel.setPreferredSize(new Dimension(270, 41));
+        innerPanel.setMaximumSize(new Dimension(270, 41));
+        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
+        innerPanel.add(iconLabel, BorderLayout.WEST);
+        innerPanel.add(searchField, BorderLayout.CENTER);
+
+        searchWrapper.add(innerPanel, BorderLayout.CENTER);
+        return searchWrapper;
+    }
+
+    private JPanel createTableHeader() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(0, HEADER_HEIGHT));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, HEADER_HEIGHT));
+
+        header.add(createFixedCell(createHeaderLabel("MÃ KH"), COL_ID, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("HỌ TÊN"), COL_NAME, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("SĐT"), COL_PHONE, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("ĐỊA CHỈ"), COL_ADDRESS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("HẠNG"), COL_TIER, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("TRẠNG THÁI"), COL_STATUS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("DOANH THU"), COL_REVENUE, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(10));
+        header.add(createFixedCell(createHeaderLabel("THAO TÁC"), COL_ACTIONS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        return header;
+    }
+
+    private JLabel createHeaderLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(new Color(107, 114, 128));
         return label;
     }
 
-    private void applyEvents() {
-        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+    private JPanel createDataRow(CustomerVm customer, int rowIndex) {
+        Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
+
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setBackground(rowBg);
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        row.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
+
+        JLabel idLabel = new JLabel(valueOrDash(customer.getMaKhachHang()));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        idLabel.setForeground(new Color(22, 163, 74));
+        row.add(createFixedCell(idLabel, COL_ID, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), COL_NAME, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), COL_PHONE, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), COL_ADDRESS, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createTierCell(customer.getMaHang()), COL_TIER, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createStatusPill(customer.getTrangThai()), COL_STATUS, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        row.add(createFixedCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), COL_REVENUE, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(10));
+
+        JPanel actionGroup = new JPanel();
+        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
+        actionGroup.setOpaque(false);
+
+        boolean inactive = "INACTIVE".equalsIgnoreCase(customer.getTrangThai());
+        JButton statusBtn = inactive
+                ? createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0))
+                : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+        Dimension statusBtnSize = new Dimension(inactive ? 68 : 65, 25);
+        statusBtn.setPreferredSize(statusBtnSize);
+        statusBtn.setMinimumSize(statusBtnSize);
+        statusBtn.setMaximumSize(statusBtnSize);
+        statusBtn.addActionListener(event -> {
+            selectedCustomer = customer;
+            if (inactive) {
+                restoreSelectedCustomer();
+            } else {
+                deleteSelectedCustomer();
+            }
+        });
+        actionGroup.add(statusBtn);
+        actionGroup.add(Box.createHorizontalStrut(10));
+
+        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+        Dimension editBtnSize = new Dimension(76, 25);
+        editBtn.setPreferredSize(editBtnSize);
+        editBtn.setMinimumSize(editBtnSize);
+        editBtn.setMaximumSize(editBtnSize);
+        editBtn.addActionListener(event -> {
+            selectedCustomer = customer;
+            openEditForSelectedCustomer();
+        });
+        actionGroup.add(editBtn);
+
+        JPanel actionCell = new JPanel(new BorderLayout());
+        actionCell.setBackground(rowBg);
+        actionCell.setOpaque(true);
+        actionCell.setBorder(new EmptyBorder(0, 10, 0, 4));
+        actionCell.add(actionGroup, BorderLayout.CENTER);
+        row.add(createFixedCell(actionCell, COL_ACTIONS, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 0));
+
+        row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-            public void insertUpdate(DocumentEvent e) {
-                refreshCustomers();
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                row.setBackground(new Color(249, 250, 251));
             }
 
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                refreshCustomers();
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                row.setBackground(rowBg);
             }
+        });
 
+        return row;
+    }
+
+    private JPanel createTierCell(String tierName) {
+        String displayText = (tierName == null || tierName.isBlank()) ? "CHƯA CÓ" : tierName;
+        boolean hasTier = tierName != null && !tierName.isBlank();
+        Color background = hasTier ? new Color(239, 246, 255) : new Color(243, 244, 246);
+        Color foreground = hasTier ? new Color(29, 78, 216) : new Color(75, 85, 99);
+        Dimension fixedTierSize = new Dimension(86, 26);
+
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        pill.setOpaque(false);
+        pill.setBorder(new EmptyBorder(15, 0, 0, 0));
+
+        JPanel wrapper = new JPanel(new GridBagLayout()) {
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                refreshCustomers();
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
             }
-        });
-        cbSort.addActionListener(event -> {
-            String selectedCode = selectedCustomer == null ? null : selectedCustomer.getMaKhachHang();
-            sortCustomers();
-            renderCustomerTable();
-            restoreSelection(selectedCode);
-        });
-        btnSortDirection.addActionListener(event -> {
-            sortAscending = !sortAscending;
-            updateSortDirectionButton();
-            String selectedCode = selectedCustomer == null ? null : selectedCustomer.getMaKhachHang();
-            sortCustomers();
-            renderCustomerTable();
-            restoreSelection(selectedCode);
-        });
+        };
+        wrapper.setOpaque(false);
+        wrapper.setPreferredSize(fixedTierSize);
+        wrapper.setMinimumSize(fixedTierSize);
+        wrapper.setMaximumSize(fixedTierSize);
+
+        JLabel textLabel = new JLabel(displayText);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setForeground(foreground);
+
+        wrapper.add(textLabel);
+        pill.add(wrapper);
+        return pill;
+    }
+
+    private JPanel createStatusPill(String trangThai) {
+        boolean isActive = "ACTIVE".equalsIgnoreCase(trangThai);
+        Color background = isActive ? new Color(228, 250, 226) : new Color(254, 226, 226);
+        Color foreground = isActive ? new Color(16, 110, 0) : new Color(185, 28, 28);
+
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        pill.setOpaque(false);
+        pill.setBorder(new EmptyBorder(15, 0, 0, 0));
+
+        JPanel wrapper = new JPanel(new GridBagLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+            }
+        };
+        wrapper.setOpaque(false);
+        Dimension size = new Dimension(83, 22);
+        wrapper.setPreferredSize(size);
+        wrapper.setMinimumSize(size);
+        wrapper.setMaximumSize(size);
+
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setOpaque(false);
+
+        JPanel dot = createStatusDot(foreground);
+        JLabel textLabel = new JLabel(isActive ? "Active" : "Inactive");
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setForeground(foreground);
+
+        GridBagConstraints dotConstraints = new GridBagConstraints();
+        dotConstraints.gridx = 0;
+        dotConstraints.gridy = 0;
+        dotConstraints.insets = new Insets(2, 0, 0, 7);
+        content.add(dot, dotConstraints);
+
+        GridBagConstraints textConstraints = new GridBagConstraints();
+        textConstraints.gridx = 1;
+        textConstraints.gridy = 0;
+        content.add(textLabel, textConstraints);
+
+        wrapper.add(content);
+        pill.add(wrapper);
+        return pill;
+    }
+
+    private JPanel createStatusDot(Color color) {
+        JPanel dot = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(color);
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        Dimension size = new Dimension(5, 5);
+        dot.setOpaque(false);
+        dot.setPreferredSize(size);
+        dot.setMinimumSize(size);
+        dot.setMaximumSize(size);
+        return dot;
+    }
+
+    private JPanel createEmptyRow() {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setBackground(Color.WHITE);
+        row.setBorder(new EmptyBorder(24, 26, 24, 26));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+
+        JLabel msg = new JLabel("Không tìm thấy khách hàng phù hợp.");
+        msg.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        msg.setForeground(new Color(107, 114, 128));
+        row.add(msg, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JPanel createFixedCell(Component component, int width, int height, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(bg);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
+        panel.add(component, BorderLayout.CENTER);
+
+        Dimension size = new Dimension(width, height);
+        panel.setPreferredSize(size);
+        panel.setMinimumSize(size);
+        panel.setMaximumSize(size);
+        return panel;
+    }
+
+    private JLabel createCellLabel(String text, Color fg) {
+        JLabel label = new JLabel(valueOrDash(text));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(fg);
+        return label;
+    }
+
+    private JPanel createWrappedAddressLabel(String text, Color bg) {
+        boolean hasAddress = text != null && !text.isBlank();
+        String value = hasAddress ? escapeHtml(text.trim()) : "--";
+        String html = hasAddress
+                ? "<html><div style='width:125px; text-align:left;'>" + value + "</div></html>"
+                : value;
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+
+        JLabel label = new JLabel(html);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(new Color(43, 47, 55));
+        label.setHorizontalAlignment(hasAddress ? SwingConstants.LEFT : SwingConstants.CENTER);
+
+        panel.add(label, BorderLayout.CENTER);
+        return panel;
     }
 
     private void loadCustomers(String keyword) {
@@ -359,24 +524,130 @@ public class ManageCustomerPreviewScreen extends JPanel {
         }
 
         sortCustomers();
-        renderCustomerTable();
+        renderTable();
         restoreSelection(selectedCode);
+    }
+
+    private void renderTable() {
+        tablePanel.removeAll();
+
+        if (customers.isEmpty()) {
+            tablePanel.add(createEmptyRow());
+        } else {
+            int index = 0;
+            for (CustomerVm customer : customers) {
+                tablePanel.add(createDataRow(customer, index++));
+            }
+        }
+
+        footerLabel.setText("Hiển thị " + customers.size() + " khách hàng");
+        tablePanel.revalidate();
+        tablePanel.repaint();
+    }
+
+    private void bindSearchListener() {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                refreshCustomers();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                refreshCustomers();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                refreshCustomers();
+            }
+        });
+    }
+
+    private JPanel createSortWrapper() {
+        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cbSort.setFocusable(false);
+        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+        cbSort.setOpaque(false);
+        cbSort.setBackground(Color.WHITE);
+        cbSort.putClientProperty("JComponent.roundRect", true);
+        cbSort.putClientProperty("JComponent.arc", 999);
+        cbSort.putClientProperty("JComboBox.buttonStyle", "button");
+        cbSort.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                Object display = index < 0 ? "Sắp xếp: " + value : value;
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
+                label.setBorder(new EmptyBorder(6, 10, 6, 10));
+                return label;
+            }
+        });
+        cbSort.addActionListener(event -> {
+            String selectedCode = selectedCustomer == null ? null : selectedCustomer.getMaKhachHang();
+            sortCustomers();
+            renderTable();
+            restoreSelection(selectedCode);
+        });
+
+        btnSortDir.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
+        btnSortDir.setForeground(new Color(75, 85, 99));
+        btnSortDir.setBorder(new EmptyBorder(0, 0, 0, 12));
+        btnSortDir.setContentAreaFilled(false);
+        btnSortDir.setBorderPainted(false);
+        btnSortDir.setFocusPainted(false);
+        btnSortDir.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            updateSortDirectionButton();
+            String selectedCode = selectedCustomer == null ? null : selectedCustomer.getMaKhachHang();
+            sortCustomers();
+            renderTable();
+            restoreSelection(selectedCode);
+        });
+        updateSortDirectionButton();
+
+        JPanel wrapper = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.dispose();
+            }
+
+            @Override
+            public void paint(Graphics g) {
+                super.paint(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(229, 231, 235));
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.dispose();
+            }
+        };
+        wrapper.setOpaque(false);
+        wrapper.setPreferredSize(new Dimension(214, 41));
+        wrapper.setMaximumSize(new Dimension(214, 41));
+        wrapper.add(cbSort, BorderLayout.CENTER);
+        wrapper.add(btnSortDir, BorderLayout.EAST);
+        return wrapper;
     }
 
     private void sortCustomers() {
         String sortType = (String) cbSort.getSelectedItem();
         Comparator<CustomerVm> comparator;
-        if (sortType != null && sortType.contains("Doanh thu")) {
+        if ("Doanh thu".equals(sortType)) {
             comparator = Comparator.comparing(
-                    (CustomerVm customer    ) -> customer.getDoanhThu() == null ? BigDecimal.ZERO : customer.getDoanhThu()
-            ).thenComparing((CustomerVm customer) -> normalizedSortKey(customer.getHoTen()));
-        } else if (sortType != null && sortType.contains("Trạng thái")) {
+                    (CustomerVm customer) -> customer.getDoanhThu() == null ? BigDecimal.ZERO : customer.getDoanhThu()
+            ).thenComparing(customer -> normalizedSortKey(customer.getHoTen()));
+        } else if ("Trạng thái".equals(sortType)) {
             comparator = Comparator.comparingInt((CustomerVm customer) -> statusOrder(customer.getTrangThai()))
                     .thenComparing(customer -> normalizedSortKey(customer.getHoTen()));
         } else {
             comparator = (left, right) -> compareNameRightToLeft(left.getHoTen(), right.getHoTen());
-            comparator = comparator
-                    .thenComparing((CustomerVm customer) -> normalizedSortKey(customer.getMaKhachHang()));
+            comparator = comparator.thenComparing(customer -> normalizedSortKey(customer.getMaKhachHang()));
         }
         if (!sortAscending) {
             comparator = comparator.reversed();
@@ -385,8 +656,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
     }
 
     private void updateSortDirectionButton() {
-        btnSortDirection.setText(sortAscending ? "\u25B2" : "\u25BC");
-        btnSortDirection.setToolTipText(sortAscending
+        btnSortDir.setText(sortAscending ? "\u25B2" : "\u25BC");
+        btnSortDir.setToolTipText(sortAscending
                 ? "Đang sắp xếp tăng dần"
                 : "Đang sắp xếp giảm dần");
     }
@@ -429,278 +700,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
         return Integer.compare(leftParts.length, rightParts.length);
     }
 
-    private void renderCustomerTable() {
-        tableBodyPanel.removeAll();
-        if (customers.isEmpty()) {
-            tableBodyPanel.add(createEmptyRow());
-        } else {
-            for (CustomerVm customer : customers) {
-                tableBodyPanel.add(createAlignedCustomerRow(customer));
-            }
-        }
-        footerLabel.setText("Đang hiển thị " + customers.size() + " / " + customers.size() + " khách hàng");
-        tableBodyPanel.revalidate();
-        tableBodyPanel.repaint();
-    }
-
-    private JPanel createCustomerRow(CustomerVm customer) {
-        JPanel rowPanel = new JPanel(new GridLayout(1, 7, TABLE_COLUMN_GAP, 0));
-        rowPanel.setBackground(Color.WHITE);
-        rowPanel.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, new Color(236, 236, 239)),
-                new EmptyBorder(18, 26, 18, 26)
-        ));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
-
-        JLabel maKhLabel = createBodyLabel(customer.getMaKhachHang(), true);
-        maKhLabel.setForeground(new Color(29, 78, 216));
-        rowPanel.add(createTableCellWrapper(maKhLabel, SwingConstants.LEFT));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getHoTen(), false), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(customer.getSdt(), false), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createBodyLabel(formatCurrency(customer.getDoanhThu()), false), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER));
-        rowPanel.add(createTableCellWrapper(createTierPill(customer.getMaHang()), SwingConstants.CENTER));
-
-        JPanel actionGroup = new JPanel();
-        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
-        actionGroup.setOpaque(false);
-
-        boolean inactive = "INACTIVE".equalsIgnoreCase(customer.getTrangThai());
-        JButton statusBtn = inactive
-                ? createMiniActionButton("Khôi phục", new Color(220, 252, 231), new Color(22, 101, 52))
-                : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension actionButtonSize = new Dimension(88, 30);
-        statusBtn.setPreferredSize(actionButtonSize);
-        statusBtn.setMinimumSize(actionButtonSize);
-        statusBtn.setMaximumSize(actionButtonSize);
-        statusBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            if (inactive) {
-                restoreSelectedCustomer();
-            } else {
-                deleteSelectedCustomer();
-            }
-        });
-        actionGroup.add(statusBtn);
-        actionGroup.add(Box.createHorizontalStrut(10));
-
-        JButton detailBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension detailButtonSize = new Dimension(96, 30);
-        detailBtn.setPreferredSize(detailButtonSize);
-        detailBtn.setMinimumSize(detailButtonSize);
-        detailBtn.setMaximumSize(detailButtonSize);
-        detailBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            openEditForSelectedCustomer();
-        });
-        actionGroup.add(detailBtn);
-        JPanel actionCell = createTableCellWrapper(actionGroup, SwingConstants.CENTER);
-        actionCell.setBorder(new EmptyBorder(0, -5, 0, 0));
-        rowPanel.add(actionCell);
-        return rowPanel;
-    }
-
-    private JPanel createAlignedCustomerRow(CustomerVm customer) {
-        JPanel rowPanel = new JPanel(new GridBagLayout());
-        rowPanel.setBackground(Color.WHITE);
-        rowPanel.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, new Color(236, 236, 239)),
-                new EmptyBorder(14, 24, 14, 24)
-        ));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-        rowPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel maKhLabel = createBodyLabel(customer.getMaKhachHang(), true);
-        maKhLabel.setForeground(new Color(29, 78, 216));
-        addColumnCell(rowPanel, createTableCellWrapper(maKhLabel, SwingConstants.LEFT), 0, SwingConstants.LEFT);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(customer.getHoTen(), false), SwingConstants.CENTER), 1, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(customer.getSdt(), false), SwingConstants.CENTER), 2, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createWrappedAddressLabel(customer.getDiaChi()), SwingConstants.CENTER), 3, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(formatDate(customer.getNgaySinh()), false), SwingConstants.CENTER), 4, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createTierPill(customer.getMaHang()), SwingConstants.CENTER), 5, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER), 6, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(formatCurrency(customer.getDoanhThu()), false), SwingConstants.CENTER), 7, SwingConstants.CENTER);
-
-        JPanel actionGroup = new JPanel();
-        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
-        actionGroup.setOpaque(false);
-
-        boolean inactive = "INACTIVE".equalsIgnoreCase(customer.getTrangThai());
-        JButton statusBtn = inactive
-                ? createMiniActionButton("Khôi phục", new Color(220, 252, 231), new Color(22, 101, 52))
-                : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension actionButtonSize = new Dimension(80, 28);
-        statusBtn.setPreferredSize(actionButtonSize);
-        statusBtn.setMinimumSize(actionButtonSize);
-        statusBtn.setMaximumSize(actionButtonSize);
-        statusBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            if (inactive) {
-                restoreSelectedCustomer();
-            } else {
-                deleteSelectedCustomer();
-            }
-        });
-        actionGroup.add(statusBtn);
-        actionGroup.add(Box.createHorizontalStrut(6));
-
-        JButton detailBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension detailButtonSize = new Dimension(86, 28);
-        detailBtn.setPreferredSize(detailButtonSize);
-        detailBtn.setMinimumSize(detailButtonSize);
-        detailBtn.setMaximumSize(detailButtonSize);
-        detailBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            openEditForSelectedCustomer();
-        });
-        actionGroup.add(detailBtn);
-        addColumnCell(rowPanel, createTableCellWrapper(actionGroup, SwingConstants.CENTER), 8, SwingConstants.CENTER);
-        return rowPanel;
-    }
-
-    private void addColumnCell(JPanel panel, Component component, int columnIndex, int alignment) {
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = columnIndex;
-        g.gridy = 0;
-        g.weightx = 0;
-        g.fill = GridBagConstraints.NONE;
-        g.insets = new Insets(0, 4, 0, 4);
-        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
-        JPanel bounded = new JPanel(new BorderLayout());
-        bounded.setOpaque(false);
-        bounded.setPreferredSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getPreferredSize().height));
-        bounded.setMinimumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getMinimumSize().height));
-        bounded.setMaximumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], Integer.MAX_VALUE));
-        bounded.add(component, BorderLayout.CENTER);
-        panel.add(bounded, g);
-    }
-
-    private JPanel createTableCellWrapper(Component component, int alignment) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setOpaque(false);
-        panel.setMinimumSize(new Dimension(0, 0));
-
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.gridy = 0;
-        g.weightx = 1.0;
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
-        panel.add(component, g);
-        return panel;
-    }
-
-    private JPanel createTierPill(String tierName) {
-        String displayText = (tierName == null || tierName.isBlank()) ? "CHƯA CÓ" : tierName;
-        boolean hasTier = tierName != null && !tierName.isBlank();
-        Color background = hasTier ? new Color(219, 234, 254) : new Color(229, 231, 235);
-        Color foreground = hasTier ? new Color(30, 64, 175) : new Color(75, 85, 99);
-        Dimension fixedTierSize = new Dimension(90, 30);
-
-        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        pill.setOpaque(false);
-
-        JPanel wrapper = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 6));
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(fixedTierSize);
-        wrapper.setMinimumSize(fixedTierSize);
-        wrapper.setMaximumSize(fixedTierSize);
-
-        JLabel textLabel = new JLabel(displayText);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        textLabel.setForeground(foreground);
-
-        wrapper.add(textLabel);
-        pill.add(wrapper);
-        return pill;
-    }
-
-    private JPanel createStatusPill(String trangThai) {
-        boolean isActive = "ACTIVE".equalsIgnoreCase(trangThai);
-        Color background = isActive ? new Color(216, 255, 208) : new Color(254, 226, 226);
-        Color foreground = isActive ? new Color(44, 154, 16) : new Color(185, 28, 28);
-
-        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 5));
-        pill.setOpaque(false);
-
-        JPanel wrapper = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        wrapper.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 5));
-        wrapper.setOpaque(false);
-
-        JLabel dotLabel = new JLabel("\u2022");
-        dotLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        dotLabel.setForeground(foreground);
-
-        JLabel textLabel = new JLabel(isActive ? "Active" : "Inactive");
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        textLabel.setForeground(foreground);
-
-        wrapper.add(dotLabel);
-        wrapper.add(textLabel);
-        pill.add(wrapper);
-        return pill;
-    }
-
-    private JPanel createEmptyRow() {
-        JPanel rowPanel = new JPanel(new BorderLayout());
-        rowPanel.setBackground(Color.WHITE);
-        rowPanel.setBorder(new EmptyBorder(24, 26, 24, 26));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
-
-        JLabel messageLabel = new JLabel("Chưa có khách hàng nào phù hợp.");
-        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        messageLabel.setForeground(new Color(107, 114, 128));
-        rowPanel.add(messageLabel, BorderLayout.CENTER);
-        return rowPanel;
-    }
-
-    private JLabel createBodyLabel(String text, boolean bold) {
-        JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
-        label.setForeground(new Color(43, 47, 55));
-        return label;
-    }
-
-    private JLabel createCenteredBodyLabel(String text, boolean bold) {
-        JLabel label = createBodyLabel(text, bold);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        return label;
-    }
-
-    private JLabel createWrappedAddressLabel(String text) {
-        boolean hasAddress = text != null && !text.isBlank();
-        String value = hasAddress ? escapeHtml(text.trim()) : "--";
-        String content = hasAddress
-                ? "<html><div style='width:" + ADDRESS_WRAP_WIDTH + "px; text-align:left;'>" + value + "</div></html>"
-                : value;
-        JLabel label = new JLabel(content);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(43, 47, 55));
-        label.setHorizontalAlignment(hasAddress ? SwingConstants.LEFT : SwingConstants.CENTER);
-        return label;
-    }
-
     private void refreshCustomers() {
-        loadCustomers(txtSearch.getText().trim());
+        loadCustomers(searchField.getText().trim());
     }
 
     private void restoreSelection(String maKhachHang) {
@@ -737,7 +738,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
             return;
         }
 
-        CustomerResult<CustomerProfile> profileResult = controller.getProfile(selectedCustomer.getMaKhachHang());
+        String selectedCode = selectedCustomer.getMaKhachHang();
+        CustomerResult<CustomerProfile> profileResult = controller.getProfile(selectedCode);
         if (!profileResult.success() || profileResult.data() == null) {
             AppDialog.showError(this, normalizeError("Không lấy được hồ sơ khách hàng.", profileResult.message()));
             return;
@@ -748,7 +750,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
             return;
         }
 
-        CustomerResult<CustomerProfile> updateResult = controller.update(selectedCustomer.getMaKhachHang(), request);
+        CustomerResult<CustomerProfile> updateResult = controller.update(selectedCode, request);
         if (!updateResult.success()) {
             AppDialog.showError(this, normalizeError("Cập nhật khách hàng chưa thành công.", updateResult.message()));
             return;
@@ -756,7 +758,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
 
         AppDialog.showInfo(this, "Đã cập nhật thông tin khách hàng.");
         refreshCustomers();
-        restoreSelection(selectedCustomer.getMaKhachHang());
+        restoreSelection(selectedCode);
     }
 
     private void deleteSelectedCustomer() {
@@ -822,6 +824,15 @@ public class ManageCustomerPreviewScreen extends JPanel {
         return normalized + ".";
     }
 
+    private Icon loadSearchIcon() {
+        URL iconUrl = getClass().getResource("/icon/search.png");
+        if (iconUrl == null) {
+            return UIManager.getIcon("FileView.fileIcon");
+        }
+        Image image = new ImageIcon(iconUrl).getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+        return new ImageIcon(image);
+    }
+
     private String formatCurrency(BigDecimal value) {
         if (value == null) {
             return "0 VNĐ";
@@ -829,8 +840,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
         return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
     }
 
-    private String formatDate(LocalDate date) {
-        return date == null ? "" : DATE_FORMAT.format(date);
+    private String valueOrDash(String text) {
+        return text == null || text.isBlank() ? "--" : text;
     }
 
     private String escapeHtml(String value) {
@@ -840,18 +851,8 @@ public class ManageCustomerPreviewScreen extends JPanel {
                 .replace(">", "&gt;");
     }
 
-    private Icon scaleIcon(String path, int width, int height) {
-        URL resource = getClass().getResource(path);
-        if (resource == null) {
-            return new ImageIcon();
-        }
-        Image image = new ImageIcon(resource).getImage()
-                .getScaledInstance(width, height, Image.SCALE_SMOOTH);
-        return new ImageIcon(image);
-    }
-
     private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
-        JButton button = new JButton(text) {
+        JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -862,20 +863,20 @@ public class ManageCustomerPreviewScreen extends JPanel {
                 g2.dispose();
             }
         };
-        button.setForeground(fg);
-        button.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
-        button.setContentAreaFilled(false);
-        button.setBorderPainted(false);
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 22, 10, 22));
-        return button;
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(5, 12, 5, 12));
+        return btn;
     }
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        button.setBorder(new EmptyBorder(5, 8, 5, 8));
         return button;
     }
 
