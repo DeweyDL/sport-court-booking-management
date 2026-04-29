@@ -21,7 +21,6 @@ public class AreaAdd extends JPanel {
 
     private JDialog dialog;
     private String generatedMaKv;
-    // TODO san con: them list san con tam khi module san con hoan thien.
 
     public AreaAdd(AreaController areaController, Consumer<String> onSaved) {
         this.areaController = areaController;

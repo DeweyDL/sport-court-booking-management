@@ -21,7 +21,6 @@ public class AreaChange extends JPanel {
 
     private String currentMaKv;
     private JDialog dialog;
-    // TODO san con: them list san con de hien thi trong popup khi module san con hoan thien.
 
     public AreaChange(AreaController areaController, Consumer<String> onSaved) {
         this.areaController = areaController;
