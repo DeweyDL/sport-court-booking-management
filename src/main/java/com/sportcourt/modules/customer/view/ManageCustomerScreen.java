@@ -25,7 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class ManageCustomerPreviewScreen extends JPanel {
+public class ManageCustomerScreen extends JPanel {
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
     private static final int HEADER_HEIGHT = 42;
     private static final int ROW_HEIGHT = 58;
@@ -55,7 +55,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
     private CustomerVm selectedCustomer;
     private boolean sortAscending = true;
 
-    public ManageCustomerPreviewScreen() {
+    public ManageCustomerScreen() {
         AppFonts.register();
         setLayout(new BorderLayout());
         setBackground(new Color(245, 247, 250));
@@ -883,7 +883,7 @@ public class ManageCustomerPreviewScreen extends JPanel {
     public static JFrame createPreviewFrame() {
         JFrame frame = new JFrame("RENSTA - Quản lý khách hàng");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.setContentPane(new ManageCustomerPreviewScreen());
+        frame.setContentPane(new ManageCustomerScreen());
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setMinimumSize(new Dimension(1280, 720));
         frame.setLocationRelativeTo(null);
