@@ -8,8 +8,13 @@ public record Area(
         String maTt,
         String tenTheThao,
         int soLuongSan,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean isDeleted // Thêm trường isDeleted
 ) {
+    public String getStatus() {
+        return isDeleted ? "Không hoạt động" : "Hoạt động";
+    }
+
     public record ChiNhanhOption(
             String maCn,
             String tenChiNhanh

@@ -25,6 +25,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             return khuVucDao.findByKeyword(keyword);
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the tai du lieu khu vuc tu database: " + exception.getMessage(), exception);
         }
     }
@@ -35,6 +36,7 @@ public class AreaServiceImpl implements AreaService {
             return khuVucDao.findById(maKv)
                     .orElseThrow(() -> new IllegalStateException("Khong tim thay khu vuc: " + maKv));
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the tai chi tiet khu vuc tu database: " + exception.getMessage(), exception);
         }
     }
@@ -44,6 +46,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             return khuVucDao.findChiNhanhList();
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the tai danh sach chi nhanh tu database: " + exception.getMessage(), exception);
         }
     }
@@ -53,6 +56,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             return khuVucDao.findLoaiTheThaoList();
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the tai danh sach loai the thao tu database: " + exception.getMessage(), exception);
         }
     }
@@ -62,6 +66,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             return khuVucDao.generateNextMaKv();
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the sinh ma khu vuc moi: " + exception.getMessage(), exception);
         }
     }
@@ -71,6 +76,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             return khuVucDao.findDefaultChiNhanhId();
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the xac dinh chi nhanh mac dinh: " + exception.getMessage(), exception);
         }
     }
@@ -84,6 +90,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             khuVucDao.createKhuVuc(request);
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the them khu vuc vao database: " + exception.getMessage(), exception);
         }
     }
@@ -93,6 +100,7 @@ public class AreaServiceImpl implements AreaService {
         try {
             khuVucDao.saveKhuVucChanges(request);
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the luu thay doi khu vuc vao database: " + exception.getMessage(), exception);
         }
     }
@@ -114,6 +122,7 @@ public class AreaServiceImpl implements AreaService {
                 throw new IllegalStateException("Khong tim thay khu vuc de xoa: " + maKv);
             }
         } catch (SQLException exception) {
+            exception.printStackTrace(); // Re-added for debugging
             throw new IllegalStateException("Khong the xoa khu vuc tu database: " + exception.getMessage(), exception);
         }
     }
