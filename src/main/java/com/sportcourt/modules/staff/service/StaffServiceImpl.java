@@ -9,7 +9,6 @@ import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
 import com.sportcourt.modules.staff.entity.Staff;
-import com.sportcourt.modules.staff.entity.User;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -92,13 +91,6 @@ public class StaffServiceImpl implements StaffService {
 
             String userId = nextUserId();
 
-            User user = new User();
-            user.setUserId(userId);
-            user.setHoTen(request.getHoTen().trim());
-            user.setSdt(request.getSdt().trim());
-            user.setEmail(request.getEmail().trim());
-            user.setNgaySinh(request.getNgaySinh());
-            user.setDiaChi(request.getDiaChi().trim());
 
             Staff staff = new Staff();
             staff.setMaNv("AUTO");
@@ -109,7 +101,15 @@ public class StaffServiceImpl implements StaffService {
             staff.setCccd(request.getCccd().trim());
             staff.setQuanLy(request.isQuanLy());
 
-            staffDao.insertUser(conn, user);
+            staffDao.insertUser(
+                    conn,
+                    userId,
+                    request.getHoTen().trim(),
+                    request.getSdt().trim(),
+                    request.getEmail().trim(),
+                    request.getNgaySinh(),
+                    request.getDiaChi().trim()
+            );
             staffDao.insertStaff(conn, staff);
 
             conn.commit();
@@ -149,13 +149,6 @@ public class StaffServiceImpl implements StaffService {
             conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
-            User user = new User();
-            user.setUserId(request.getUserId());
-            user.setHoTen(request.getHoTen().trim());
-            user.setSdt(request.getSdt().trim());
-            user.setEmail(request.getEmail().trim());
-            user.setNgaySinh(request.getNgaySinh());
-            user.setDiaChi(request.getDiaChi().trim());
 
             Staff staff = new Staff();
             staff.setMaNv(request.getMaNv());
@@ -166,7 +159,15 @@ public class StaffServiceImpl implements StaffService {
             staff.setCccd(request.getCccd().trim());
             staff.setQuanLy(request.isQuanLy());
 
-            boolean userUpdated = staffDao.updateUser(conn, user);
+            boolean userUpdated = staffDao.updateUser(
+                    conn,
+                    request.getUserId(),
+                    request.getHoTen().trim(),
+                    request.getSdt().trim(),
+                    request.getEmail().trim(),
+                    request.getNgaySinh(),
+                    request.getDiaChi().trim()
+            );
             boolean staffUpdated = staffDao.updateStaff(conn, staff);
 
             if (!userUpdated || !staffUpdated) {
@@ -206,6 +207,35 @@ public class StaffServiceImpl implements StaffService {
             rollbackQuietly(conn);
             e.printStackTrace();
             throw new RuntimeException("Lỗi SQL khi xoá nhân viên: " + e.getMessage(), e);
+        } finally {
+            closeQuietly(conn);
+        }
+    }
+
+
+    @Override
+    public void restoreStaff(String maNv) {
+        if (isBlank(maNv)) {
+            throw new IllegalArgumentException("Vui lòng chọn nhân viên cần khôi phục.");
+        }
+
+        Connection conn = null;
+
+        try {
+            conn = ConnectionUtils.getMyConnection();
+            conn.setAutoCommit(false);
+
+            boolean restored = staffDao.restoreStaff(conn, maNv.trim());
+
+            if (!restored) {
+                throw new IllegalArgumentException("Không thể khôi phục nhân viên.");
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            rollbackQuietly(conn);
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi SQL khi khôi phục nhân viên: " + e.getMessage(), e);
         } finally {
             closeQuietly(conn);
         }

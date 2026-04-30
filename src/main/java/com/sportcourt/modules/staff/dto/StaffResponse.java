@@ -14,6 +14,7 @@ public class StaffResponse {
     private String cccd;
     private boolean quanLy;
     private String trangThai;
+    private boolean deleted;
 
     public String getMaNv() {
         return maNv;
@@ -101,5 +102,13 @@ public class StaffResponse {
 
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }

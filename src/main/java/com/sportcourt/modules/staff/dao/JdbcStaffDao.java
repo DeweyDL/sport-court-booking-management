@@ -5,7 +5,6 @@ import com.sportcourt.modules.staff.dto.StaffDetailResponse;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.entity.Staff;
-import com.sportcourt.modules.staff.entity.User;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -13,6 +12,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +44,7 @@ public class JdbcStaffDao implements StaffDao {
             sql.append("nv.NVL AS NGAY_VAO_LAM, ");
             sql.append("nv.CCCD, ");
             sql.append("nv.IS_QL, ");
+            sql.append("NVL(nv.IS_DELETED, 0) AS STAFF_DELETED, ");
 
             if (!isBlank(statusColumn)) {
                 sql.append("nv.").append(statusColumn).append(" AS STAFF_STATUS, ");
@@ -56,8 +57,7 @@ public class JdbcStaffDao implements StaffDao {
             sql.append("u.EMAIL ");
             sql.append("FROM NHAN_VIEN nv ");
             sql.append("JOIN USERS u ON nv.USER_ID = u.USER_ID ");
-            sql.append("WHERE NVL(nv.IS_DELETED, 0) = 0 ");
-            sql.append("AND NVL(u.IS_DELETED, 0) = 0 ");
+            sql.append("WHERE NVL(u.IS_DELETED, 0) = 0 ");
 
             List<Object> params = new ArrayList<>();
 
@@ -96,7 +96,7 @@ public class JdbcStaffDao implements StaffDao {
                 params.add(Boolean.TRUE.equals(safeCriteria.getQuanLy()) ? 1 : 0);
             }
 
-            sql.append("ORDER BY nv.CREATED_AT DESC, nv.MANV DESC");
+            sql.append("ORDER BY NVL(nv.IS_DELETED, 0), nv.CREATED_AT DESC, nv.MANV DESC");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 bindParams(ps, params);
@@ -154,8 +154,7 @@ public class JdbcStaffDao implements StaffDao {
             sql.append("FROM NHAN_VIEN nv ");
             sql.append("JOIN USERS u ON nv.USER_ID = u.USER_ID ");
             sql.append("WHERE nv.MANV = ? ");
-            sql.append("AND NVL(nv.IS_DELETED, 0) = 0 ");
-            sql.append("AND NVL(u.IS_DELETED, 0) = 0");
+            sql.append("AND NVL(u.IS_DELETED, 0) = 0 ");
 
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 ps.setString(1, maNv.trim());
@@ -268,19 +267,27 @@ public class JdbcStaffDao implements StaffDao {
     }
 
     @Override
-    public void insertUser(Connection conn, User user) throws SQLException {
+    public void insertUser(
+            Connection conn,
+            String userId,
+            String hoTen,
+            String sdt,
+            String email,
+            LocalDate ngaySinh,
+            String diaChi
+    ) throws SQLException {
         String sql = ""
                 + "INSERT INTO USERS "
                 + "(USER_ID, HOTEN, SDT, EMAIL, NGAYSINH, DIACHI, CREATED_AT, IS_DELETED) "
                 + "VALUES (?, ?, ?, ?, ?, ?, SYSDATE, 0)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, user.getUserId());
-            ps.setString(2, user.getHoTen());
-            ps.setString(3, user.getSdt());
-            ps.setString(4, user.getEmail());
-            ps.setDate(5, user.getNgaySinh() == null ? null : Date.valueOf(user.getNgaySinh()));
-            ps.setString(6, user.getDiaChi());
+            ps.setString(1, userId);
+            ps.setString(2, hoTen);
+            ps.setString(3, sdt);
+            ps.setString(4, email);
+            ps.setDate(5, ngaySinh == null ? null : Date.valueOf(ngaySinh));
+            ps.setString(6, diaChi);
             ps.executeUpdate();
         }
     }
@@ -358,7 +365,15 @@ public class JdbcStaffDao implements StaffDao {
     }
 
     @Override
-    public boolean updateUser(Connection conn, User user) throws SQLException {
+    public boolean updateUser(
+            Connection conn,
+            String userId,
+            String hoTen,
+            String sdt,
+            String email,
+            LocalDate ngaySinh,
+            String diaChi
+    ) throws SQLException {
         String sql = ""
                 + "UPDATE USERS "
                 + "SET HOTEN = ?, SDT = ?, EMAIL = ?, NGAYSINH = ?, DIACHI = ? "
@@ -366,12 +381,12 @@ public class JdbcStaffDao implements StaffDao {
                 + "AND NVL(IS_DELETED, 0) = 0";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, user.getHoTen());
-            ps.setString(2, user.getSdt());
-            ps.setString(3, user.getEmail());
-            ps.setDate(4, user.getNgaySinh() == null ? null : Date.valueOf(user.getNgaySinh()));
-            ps.setString(5, user.getDiaChi());
-            ps.setString(6, user.getUserId());
+            ps.setString(1, hoTen);
+            ps.setString(2, sdt);
+            ps.setString(3, email);
+            ps.setDate(4, ngaySinh == null ? null : Date.valueOf(ngaySinh));
+            ps.setString(5, diaChi);
+            ps.setString(6, userId);
 
             return ps.executeUpdate() > 0;
         }
@@ -465,6 +480,34 @@ public class JdbcStaffDao implements StaffDao {
         }
     }
 
+
+    @Override
+    public boolean restoreStaff(Connection conn, String maNv) throws SQLException {
+        String statusColumn = getNhanVienStatusColumn(conn);
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("UPDATE NHAN_VIEN SET IS_DELETED = 0 ");
+
+        if (!isBlank(statusColumn)) {
+            sql.append(", ").append(statusColumn).append(" = ? ");
+        }
+
+        sql.append("WHERE MANV = ? ");
+        sql.append("AND NVL(IS_DELETED, 0) = 1");
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int index = 1;
+
+            if (!isBlank(statusColumn)) {
+                ps.setString(index++, ACTIVE_STATUS);
+            }
+
+            ps.setString(index++, maNv);
+
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     private StaffResponse mapStaffResponse(ResultSet rs) throws SQLException {
         StaffResponse response = new StaffResponse();
 
@@ -477,8 +520,10 @@ public class JdbcStaffDao implements StaffDao {
         response.setMaCn(rs.getString("BRANCH_ID"));
         response.setCccd(rs.getString("CCCD"));
         response.setQuanLy(quanLy);
-        response.setViTri(quanLy ? "QUẢN LÝ" : "NHÂN VIÊN");
-        response.setTrangThai(normalizeStatus(rs.getString("STAFF_STATUS")));
+        boolean deleted = rs.getInt("STAFF_DELETED") == 1;
+        response.setDeleted(deleted);
+        response.setViTri(quanLy ? "QUẢN LÝ" : "THU NGÂN");
+        response.setTrangThai(deleted ? DELETED_STATUS : normalizeStatus(rs.getString("STAFF_STATUS")));
 
         Date ngayVaoLam = rs.getDate("NGAY_VAO_LAM");
         response.setNgayVaoLam(ngayVaoLam == null ? null : ngayVaoLam.toLocalDate());
@@ -501,7 +546,7 @@ public class JdbcStaffDao implements StaffDao {
         response.setMaLoaiNv(rs.getString("MALNV"));
         response.setCccd(rs.getString("CCCD"));
         response.setQuanLy(quanLy);
-        response.setViTri(quanLy ? "QUẢN LÝ" : "NHÂN VIÊN");
+        response.setViTri(quanLy ? "QUẢN LÝ" : "THU NGÂN");
         response.setTrangThai(normalizeStatus(rs.getString("STAFF_STATUS")));
 
         Date ngaySinh = rs.getDate("NGAYSINH");

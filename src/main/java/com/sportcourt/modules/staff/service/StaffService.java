@@ -18,4 +18,6 @@ public interface StaffService {
     void updateStaff(StaffUpdateRequest request);
 
     void deleteStaff(String maNv);
+
+    void restoreStaff(String maNv);
 }

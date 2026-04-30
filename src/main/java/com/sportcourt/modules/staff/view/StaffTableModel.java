@@ -62,7 +62,7 @@ public class StaffTableModel extends AbstractTableModel {
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex == COL_ACTION;
+        return false;
     }
 
     @Override
@@ -73,14 +73,14 @@ public class StaffTableModel extends AbstractTableModel {
         }
 
         return switch (columnIndex) {
-            case COL_ID -> staff.getMaNv();
+            case COL_ID -> value(staff.getMaNv());
             case COL_NAME -> value(staff.getHoTen());
             case COL_PHONE -> value(staff.getSdt());
-            case COL_EMAIL -> shorten(staff.getEmail(), 26);
-            case COL_ROLE -> staff.isQuanLy() ? "QUẢN LÝ" : "NHÂN VIÊN";
+            case COL_EMAIL -> shorten(staff.getEmail(), 28);
+            case COL_ROLE -> staff.isQuanLy() ? "QUẢN LÝ" : "THU NGÂN";
             case COL_START_DATE -> formatDate(staff.getNgayVaoLam());
-            case COL_STATUS -> value(staff.getTrangThai(), "HOẠT ĐỘNG");
-            case COL_ACTION -> "Xóa    Chỉnh sửa";
+            case COL_STATUS -> staff.isDeleted() ? "ĐÃ XOÁ" : value(staff.getTrangThai(), "HOẠT ĐỘNG");
+            case COL_ACTION -> staff.isDeleted() ? "Khôi phục    Chỉnh sửa" : "Xóa    Chỉnh sửa";
             default -> "";
         };
     }
@@ -101,10 +101,12 @@ public class StaffTableModel extends AbstractTableModel {
         if (value == null) {
             return "";
         }
+
         String trimmed = value.trim();
         if (trimmed.length() <= maxLength) {
             return trimmed;
         }
+
         return trimmed.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 }
