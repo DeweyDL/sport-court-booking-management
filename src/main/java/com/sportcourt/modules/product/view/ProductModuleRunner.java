@@ -20,10 +20,10 @@ public class ProductModuleRunner {
 
             JFrame frame = new JFrame("Quản lý sản phẩm");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setContentPane(panel);
             frame.setMinimumSize(new Dimension(1100, 680));
             frame.setSize(1280, 760);
             frame.setLocationRelativeTo(null);
+            frame.setContentPane(panel);
             frame.setVisible(true);
         });
     }
