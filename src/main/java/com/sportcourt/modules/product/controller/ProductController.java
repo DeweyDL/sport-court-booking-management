@@ -8,6 +8,11 @@ import com.sportcourt.modules.product.service.ProductService;
 import com.sportcourt.modules.product.service.ProductServiceImpl;
 import com.sportcourt.modules.product.view.ProductPanel;
 
+import javax.swing.SwingWorker;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 public class ProductController {
     private final ProductPanel view;
     private final ProductService productService;
@@ -33,15 +38,32 @@ public class ProductController {
     }
 
     private void searchProducts() {
-        try {
-            view.setLoading(true);
-            ProductSearchCriteria criteria = view.getSearchCriteria();
-            view.showProductTable(productService.searchProducts(criteria));
-        } catch (Exception e) {
-            view.showError(getErrorMessage(e, "Không thể tải danh sách sản phẩm."));
-        } finally {
-            view.setLoading(false);
-        }
+        ProductSearchCriteria criteria = view.getSearchCriteria();
+        view.setLoading(true);
+
+        SwingWorker<List<ProductResponse>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<ProductResponse> doInBackground() {
+                return productService.searchProducts(criteria);
+            }
+
+            @Override
+            protected void done() {
+                view.setLoading(false);
+                try {
+                    view.showProductTable(get());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    view.showProductTable(new ArrayList<>());
+                    view.showError("Quá trình tải dữ liệu đã bị gián đoạn.");
+                } catch (ExecutionException ex) {
+                    view.showProductTable(new ArrayList<>());
+                    Throwable cause = ex.getCause();
+                    view.showError(cause == null ? ex.getMessage() : cause.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void addProduct() {
@@ -89,13 +111,12 @@ public class ProductController {
                 return;
             }
 
-            boolean confirmed = view.confirm("Bạn có chắc chắn muốn xoá sản phẩm này không?");
-            if (!confirmed) {
+            if (!view.confirm("Bạn có chắc muốn xoá mềm sản phẩm này không?")) {
                 return;
             }
 
             productService.deleteProduct(maSp);
-            view.showMessage("Xoá sản phẩm thành công.");
+            view.showMessage("Đã xóa sản phẩm.");
             searchProducts();
         } catch (Exception e) {
             view.showError(getErrorMessage(e, "Không thể xoá sản phẩm."));
@@ -110,8 +131,7 @@ public class ProductController {
                 return;
             }
 
-            boolean confirmed = view.confirm("Bạn có chắc chắn muốn khôi phục sản phẩm này không?");
-            if (!confirmed) {
+            if (!view.confirm("Bạn có chắc muốn khôi phục sản phẩm này không?")) {
                 return;
             }
 
