@@ -1,4 +1,4 @@
-db.host=localhost
+    db.host=localhost
 db.port=1521
 db.service=FREEPDB1
 db.username=your_username
