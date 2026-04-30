@@ -1,6 +1,5 @@
 package com.sportcourt.modules.customer.view;
 
-import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
@@ -10,26 +9,27 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.MaskFormatter;
 import java.awt.*;
 import java.net.URL;
+import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
-import java.time.YearMonth;
-import java.text.ParseException;
 import java.util.function.Consumer;
 
 final class CustomerEditDialog {
-    private static final int INPUT_CORNER_RADIUS = 25;
     private static final String DATE_PATTERN = "dd/MM/yyyy";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(DATE_PATTERN);
     private static final DateTimeFormatter DATE_PARSE_FORMAT = DateTimeFormatter.ofPattern("d/M/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
+    private static final Color BRAND_BLUE = new Color(29, 78, 216);
+    private static final Color BRAND_BLUE_BG = new Color(239, 246, 255);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
-    private static final Color BRAND_BLUE = new Color(37, 99, 235);
-    private static final Color BUTTON_MUTED = new Color(226, 232, 240);
+    private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private CustomerEditDialog() {
     }
@@ -40,70 +40,86 @@ final class CustomerEditDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 18));
+        JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(20, 20, 20, 20));
+        root.setBorder(new EmptyBorder(22, 22, 22, 22));
         dialog.setContentPane(root);
 
-        JPanel header = new JPanel(new BorderLayout(0, 6));
-        header.setOpaque(false);
         JLabel title = new JLabel("Cập nhật khách hàng");
-        title.setFont(AppFonts.lexendBold(24f));
+        title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
-        JLabel subtitle = new JLabel("Chỉnh sửa các thông tin cơ bản của khách hàng.");
-        subtitle.setFont(AppFonts.lexendRegular(13f));
+
+        JLabel subtitle = new JLabel("Chỉnh sửa thông tin cho khách hàng " + profile.maKhachHang() + ".");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
+
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.add(title);
+        header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtMaKh = readonlyField(profile.maKhachHang());
-        JTextField txtHoTen = editableField(profile.hoTen());
-        JTextField txtSdt = editableField(profile.sdt());
-        JTextField txtEmail = editableField(profile.emailHeThong());
-        JTextField txtDiaChi = editableField(profile.diaChi());
+        JTextField txtMaKh = createReadOnlyField(profile.maKhachHang());
+        JTextField txtHoTen = createEditableField(profile.hoTen());
+        JTextField txtSdt = createEditableField(profile.sdt());
+        JTextField txtEmail = createEditableField(profile.emailHeThong());
+        JTextField txtDiaChi = createEditableField(profile.diaChi());
+
         LocalDate[] ngaySinhValue = new LocalDate[]{profile.ngaySinh()};
-        JFormattedTextField txtNgaySinh = dateField(profile.ngaySinh());
-        JButton btnPickDate = new JButton(scaleIcon("/icon/calendar.png", 16, 16));
+        JFormattedTextField txtNgaySinh = createDateField(profile.ngaySinh());
+        JButton btnPickDate = new JButton(loadIcon("/icon/calendar.png", 16, 16));
         btnPickDate.setToolTipText("Chọn ngày từ lịch");
         styleDateButton(btnPickDate);
-        btnPickDate.addActionListener(e -> {
-            CalendarPickerPopup.show(btnPickDate, ngaySinhValue[0], selected -> {
-                ngaySinhValue[0] = selected;
-                txtNgaySinh.setText(formatDate(selected));
-            });
-        });
+        btnPickDate.addActionListener(event ->
+                CalendarPickerPopup.show(btnPickDate, ngaySinhValue[0], selected -> {
+                    ngaySinhValue[0] = selected;
+                    txtNgaySinh.setText(formatDate(selected));
+                })
+        );
+
         JPanel ngaySinhPanel = new JPanel(new BorderLayout(8, 0));
         ngaySinhPanel.setOpaque(false);
+        ngaySinhPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         ngaySinhPanel.add(txtNgaySinh, BorderLayout.CENTER);
         ngaySinhPanel.add(btnPickDate, BorderLayout.EAST);
+
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         cbTrangThai.setSelectedItem(profile.trangThai());
-        cbTrangThai.setFont(AppFonts.lexendRegular(14f));
+        cbTrangThai.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         cbTrangThai.setEnabled(false);
         cbTrangThai.setFocusable(false);
-        cbTrangThai.setBorder(new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS));
-        cbTrangThai.setBackground(Color.WHITE);
+        cbTrangThai.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 18),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        cbTrangThai.setBackground(READONLY_BG);
+        cbTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(new EmptyBorder(18, 18, 18, 18));
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBackground(CARD_BG);
+        form.setBorder(new EmptyBorder(18, 18, 18, 18));
 
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.weightx = 1;
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.insets = new Insets(6, 0, 6, 0);
+        form.add(createField("Mã khách hàng", txtMaKh));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Họ tên", txtHoTen));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Số điện thoại", txtSdt));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Email hệ thống", txtEmail));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Địa chỉ", txtDiaChi));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Ngày sinh", ngaySinhPanel));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Trạng thái", cbTrangThai));
 
-        addField(card, g, 0, "Mã khách hàng", txtMaKh);
-        addField(card, g, 1, "Họ tên", txtHoTen);
-        addField(card, g, 2, "Số điện thoại", txtSdt);
-        addField(card, g, 3, "Email hệ thống", txtEmail);
-        addField(card, g, 4, "Địa chỉ", txtDiaChi);
-        addField(card, g, 5, "Ngày sinh", ngaySinhPanel);
-        addField(card, g, 6, "Trạng thái", cbTrangThai);
-        JScrollPane formScroll = new JScrollPane(card);
-        formScroll.setBorder(null);
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(BorderFactory.createEmptyBorder());
         formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         formScroll.getVerticalScrollBar().setUnitIncrement(16);
         formScroll.getViewport().setBackground(DIALOG_BG);
@@ -111,15 +127,17 @@ final class CustomerEditDialog {
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
-        JButton btnCancel = button("Hủy", BUTTON_MUTED, TEXT_DARK);
-        JButton btnSave = button("Lưu thay đổi", BRAND_BLUE, Color.WHITE);
-        actions.add(btnCancel);
-        actions.add(btnSave);
+
+        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
+        JButton saveBtn = createPillButton("Lưu thay đổi", BRAND_BLUE_BG, BRAND_BLUE);
+        actions.add(cancelBtn);
+        actions.add(saveBtn);
         root.add(actions, BorderLayout.SOUTH);
 
         final UpdateCustomerRequest[] result = new UpdateCustomerRequest[1];
-        btnCancel.addActionListener(e -> dialog.dispose());
-        btnSave.addActionListener(e -> {
+
+        cancelBtn.addActionListener(event -> dialog.dispose());
+        saveBtn.addActionListener(event -> {
             String hoTen = txtHoTen.getText().trim();
             String sdt = txtSdt.getText().trim();
             String email = txtEmail.getText().trim();
@@ -170,58 +188,88 @@ final class CustomerEditDialog {
         return result[0];
     }
 
-    private static void addField(JPanel panel, GridBagConstraints g, int row, String label, JComponent field) {
-        g.gridy = row * 2;
-        JLabel lb = new JLabel(label);
-        lb.setFont(AppFonts.lexendBold(12f));
-        lb.setForeground(TEXT_DARK);
-        panel.add(lb, g);
-
-        g.gridy = row * 2 + 1;
-        panel.add(field, g);
-    }
-
-    private static JTextField readonlyField(String value) {
-        JTextField field = baseField(value);
+    private static JTextField createReadOnlyField(String value) {
+        JTextField field = createBaseField(value);
         field.setEditable(false);
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setBackground(new Color(241, 245, 249));
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setBackground(READONLY_BG);
         return field;
     }
 
-    private static JTextField editableField(String value) {
-        return baseField(value);
+    private static JTextField createEditableField(String value) {
+        JTextField field = createBaseField(value);
+        field.setBackground(new Color(249, 250, 251));
+        return field;
     }
 
-    private static JTextField baseField(String value) {
+    private static JTextField createBaseField(String value) {
         JTextField field = new JTextField(value);
-        field.setFont(AppFonts.lexendRegular(14f));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                new RoundedLineBorder(BORDER_COLOR, 18),
+                BorderFactory.createEmptyBorder(9, 14, 9, 14)
         ));
-        field.setBackground(Color.WHITE);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         return field;
     }
 
-    private static JFormattedTextField dateField(LocalDate value) {
+    private static JFormattedTextField createDateField(LocalDate value) {
         try {
             MaskFormatter formatter = new MaskFormatter("##/##/####");
             formatter.setPlaceholderCharacter('_');
             JFormattedTextField field = new JFormattedTextField(formatter);
-            field.setFont(AppFonts.lexendRegular(14f));
+            field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            field.setForeground(new Color(31, 41, 55));
             field.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                    new RoundedLineBorder(BORDER_COLOR, 18),
+                    BorderFactory.createEmptyBorder(9, 14, 9, 14)
             ));
-            field.setBackground(Color.WHITE);
+            field.setBackground(new Color(249, 250, 251));
             field.setText(value == null ? "" : formatDate(value));
+            field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
             return field;
         } catch (ParseException e) {
             return new JFormattedTextField();
         }
+    }
+
+    private static JPanel createField(String labelText, JComponent field) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
+    }
+
+    private static void styleDateButton(JButton button) {
+        Dimension size = new Dimension(42, 40);
+        button.setPreferredSize(size);
+        button.setMinimumSize(size);
+        button.setMaximumSize(size);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 18),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        button.setBackground(Color.WHITE);
+        button.setContentAreaFilled(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     private static String normalizeOptional(String value) {
@@ -247,18 +295,7 @@ final class CustomerEditDialog {
         return LocalDate.parse(normalized, DATE_PARSE_FORMAT);
     }
 
-    private static void styleDateButton(JButton button) {
-        button.setFont(AppFonts.lexendRegular(12f));
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
-        button.setBackground(Color.WHITE);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    }
-
-    private static Icon scaleIcon(String path, int width, int height) {
+    private static Icon loadIcon(String path, int width, int height) {
         URL resource = CustomerEditDialog.class.getResource(path);
         if (resource == null) {
             return new ImageIcon();
@@ -267,25 +304,25 @@ final class CustomerEditDialog {
         return new ImageIcon(image);
     }
 
-    private static JButton button(String text, Color background, Color foreground) {
+    private static JButton createPillButton(String text, Color bg, Color fg) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
+                g2.setColor(bg);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
                 super.paintComponent(g);
                 g2.dispose();
             }
         };
-        btn.setFont(AppFonts.lexendBold(13f));
-        btn.setForeground(foreground);
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        btn.setBorderPainted(false);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         return btn;
     }
 
@@ -311,7 +348,7 @@ final class CustomerEditDialog {
 
             JPanel root = new JPanel(new BorderLayout(0, 10));
             root.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                    BorderFactory.createLineBorder(BORDER_COLOR),
                     new EmptyBorder(10, 10, 10, 10)
             ));
             root.setBackground(Color.WHITE);
@@ -322,19 +359,22 @@ final class CustomerEditDialog {
             JButton next = new JButton(">");
             styleDateButton(prev);
             styleDateButton(next);
+
             JComboBox<Integer> monthCombo = new JComboBox<>();
             for (int m = 1; m <= 12; m++) {
                 monthCombo.addItem(m);
             }
-            monthCombo.setFont(AppFonts.lexendRegular(12f));
+            monthCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             monthCombo.setFocusable(false);
+
             Integer currentYear = YearMonth.now().getYear();
             JComboBox<Integer> yearCombo = new JComboBox<>();
             for (int y = currentYear - 120; y <= currentYear + 10; y++) {
                 yearCombo.addItem(y);
             }
-            yearCombo.setFont(AppFonts.lexendRegular(12f));
+            yearCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             yearCombo.setFocusable(false);
+
             JPanel monthYearPanel = new JPanel(new GridLayout(1, 2, 6, 0));
             monthYearPanel.setOpaque(false);
             monthYearPanel.add(monthCombo);
@@ -356,8 +396,8 @@ final class CustomerEditDialog {
                 String[] dayNames = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
                 for (String name : dayNames) {
                     JLabel dayName = new JLabel(name, SwingConstants.CENTER);
-                    dayName.setFont(AppFonts.lexendBold(11f));
-                    dayName.setForeground(new Color(100, 116, 139));
+                    dayName.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                    dayName.setForeground(TEXT_MUTED);
                     daysPanel.add(dayName);
                 }
 
@@ -372,14 +412,14 @@ final class CustomerEditDialog {
                     LocalDate date = ym.atDay(day);
                     JButton dayButton = new JButton(String.valueOf(day));
                     dayButton.setFocusPainted(false);
-                    dayButton.setFont(AppFonts.lexendRegular(12f));
+                    dayButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
                     dayButton.setBackground(Color.WHITE);
                     dayButton.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
                     if (currentValue != null && currentValue.equals(date)) {
-                        dayButton.setBackground(new Color(219, 234, 254));
-                        dayButton.setBorder(BorderFactory.createLineBorder(new Color(37, 99, 235)));
+                        dayButton.setBackground(BRAND_BLUE_BG);
+                        dayButton.setBorder(BorderFactory.createLineBorder(BRAND_BLUE));
                     }
-                    dayButton.addActionListener(e -> {
+                    dayButton.addActionListener(event -> {
                         onSelected.accept(date);
                         popup.dispose();
                     });
@@ -395,15 +435,15 @@ final class CustomerEditDialog {
                 daysPanel.repaint();
             };
 
-            prev.addActionListener(e -> {
+            prev.addActionListener(event -> {
                 viewingMonth[0] = viewingMonth[0].minusMonths(1);
                 renderCalendar.run();
             });
-            next.addActionListener(e -> {
+            next.addActionListener(event -> {
                 viewingMonth[0] = viewingMonth[0].plusMonths(1);
                 renderCalendar.run();
             });
-            monthCombo.addActionListener(e -> {
+            monthCombo.addActionListener(event -> {
                 if (syncing[0]) {
                     return;
                 }
@@ -414,7 +454,7 @@ final class CustomerEditDialog {
                     renderCalendar.run();
                 }
             });
-            yearCombo.addActionListener(e -> {
+            yearCombo.addActionListener(event -> {
                 if (syncing[0]) {
                     return;
                 }
@@ -465,12 +505,5 @@ final class CustomerEditDialog {
         public Insets getBorderInsets(Component c) {
             return new Insets(1, 1, 1, 1);
         }
-
-        @Override
-        public Insets getBorderInsets(Component c, Insets insets) {
-            insets.set(1, 1, 1, 1);
-            return insets;
-        }
     }
 }
-
