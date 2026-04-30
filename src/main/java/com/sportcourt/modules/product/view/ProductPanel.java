@@ -21,6 +21,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -73,7 +74,7 @@ public class ProductPanel extends JPanel {
     public ProductPanel() {
         setLayout(new BorderLayout(0, 24));
         setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(28, 32, 28, 32));
+        setBorder(new EmptyBorder(22, 24, 22, 24));
 
         searchTimer = new Timer(350, e -> fireSearchAction());
         searchTimer.setRepeats(false);
@@ -211,7 +212,7 @@ public class ProductPanel extends JPanel {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
-        toolbar.setBorder(new EmptyBorder(26, 34, 26, 34));
+        toolbar.setBorder(new EmptyBorder(18, 26, 18, 26));
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 22, 0));
         left.setOpaque(false);
@@ -224,7 +225,7 @@ public class ProductPanel extends JPanel {
         left.add(addButton);
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        searchField.setPreferredSize(new Dimension(420, 42));
+        searchField.setPreferredSize(new Dimension(380, 40));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm kiếm");
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -259,7 +260,7 @@ public class ProductPanel extends JPanel {
     }
 
     private void setupTable() {
-        table.setRowHeight(72);
+        table.setRowHeight(68);
         table.setShowGrid(true);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(true);
@@ -275,7 +276,7 @@ public class ProductPanel extends JPanel {
 
         JTableHeader header = table.getTableHeader();
         header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(0, 56));
+        header.setPreferredSize(new Dimension(0, 52));
         header.setBackground(Color.WHITE);
         header.setForeground(new Color(71, 85, 105));
         header.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -294,14 +295,14 @@ public class ProductPanel extends JPanel {
     }
 
     private JButton createAddButton() {
-        JButton button = new JButton("+ Thêm sản phẩm");
+        RoundedButton button = new RoundedButton("+ Thêm sản phẩm", GREEN_LIGHT, new Color(187, 247, 208), 28);
         button.setFont(new Font("Segoe UI", Font.BOLD, 15));
         button.setForeground(new Color(21, 128, 61));
-        button.setBackground(GREEN_LIGHT);
         button.setBorder(new EmptyBorder(10, 22, 10, 22));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
-        button.setOpaque(true);
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
@@ -336,6 +337,7 @@ public class ProductPanel extends JPanel {
             public void mouseClicked(MouseEvent e) {
                 int viewRow = table.rowAtPoint(e.getPoint());
                 int viewColumn = table.columnAtPoint(e.getPoint());
+
                 if (viewRow < 0 || viewColumn < 0) {
                     return;
                 }
@@ -430,8 +432,19 @@ public class ProductPanel extends JPanel {
 
     private class ProductCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            ProductResponse product = tableModel.getRow(table.convertRowIndexToModel(row));
+            boolean deleted = product != null && product.isDeleted();
+
             label.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER),
                     new EmptyBorder(0, 14, 0, 14)
@@ -439,13 +452,25 @@ public class ProductPanel extends JPanel {
             label.setFont(new Font("Segoe UI", column == ProductTableModel.COL_ID ? Font.BOLD : Font.PLAIN, 15));
             label.setForeground(column == ProductTableModel.COL_ID ? new Color(0, 150, 40) : MUTED);
             label.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+
+            if (deleted) {
+                label.setForeground(new Color(148, 163, 184));
+            }
+
             return label;
         }
     }
 
     private class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
             String status = String.valueOf(value);
             Color foreground;
             Color background;
@@ -461,44 +486,53 @@ public class ProductPanel extends JPanel {
                 background = GREEN_LIGHT;
             }
 
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 14));
+            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
             wrapper.setOpaque(true);
             wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-            wrapper.add(createPill("• " + status, foreground, background, 18));
+            wrapper.add(createPill("• " + status, foreground, background, 126, 30, 22));
             return wrapper;
         }
     }
 
     private class ActionCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
             int modelRow = table.convertRowIndexToModel(row);
             ProductResponse product = tableModel.getRow(modelRow);
             boolean deleted = product != null && product.isDeleted();
 
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 13));
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 11));
             panel.setOpaque(true);
             panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             panel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
 
             if (deleted) {
-                panel.add(createPill("Khôi phục", GREEN, GREEN_LIGHT, 18));
+                panel.add(createPill("Khôi phục", GREEN, GREEN_LIGHT, 88, 30, 22));
             } else {
-                panel.add(createPill("Xóa", RED, RED_LIGHT, 18));
+                panel.add(createPill("Xóa", RED, RED_LIGHT, 62, 30, 22));
             }
-            panel.add(createPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 18));
+
+            panel.add(createPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 96, 30, 22));
             return panel;
         }
     }
 
-    private JLabel createPill(String text, Color foreground, Color background, int radius) {
+    private JLabel createPill(String text, Color foreground, Color background, int width, int height, int radius) {
         RoundedLabel label = new RoundedLabel(text, radius);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(foreground);
         label.setBackground(background);
-        label.setBorder(new EmptyBorder(6, 14, 6, 14));
+        label.setPreferredSize(new Dimension(width, height));
+        label.setBorder(new EmptyBorder(5, 12, 5, 12));
         return label;
     }
 
@@ -522,6 +556,40 @@ public class ProductPanel extends JPanel {
         }
     }
 
+    private static class RoundedButton extends JButton {
+        private final Color backgroundColor;
+        private final Color borderColor;
+        private final int radius;
+
+        private RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
+            super(text);
+            this.backgroundColor = backgroundColor;
+            this.borderColor = borderColor;
+            this.radius = radius;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            if (!isEnabled()) {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
+            }
+
+            g2.setColor(backgroundColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+
+            if (borderColor != null) {
+                g2.setColor(borderColor);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            }
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
     private static class RoundedPanel extends JPanel {
         private final int radius;
         private final Color backgroundColor;
@@ -538,8 +606,10 @@ public class ProductPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             g2.setColor(backgroundColor);
             g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+
             g2.dispose();
             super.paintComponent(g);
         }
@@ -549,10 +619,13 @@ public class ProductPanel extends JPanel {
             if (borderColor == null) {
                 return;
             }
+
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             g2.setColor(borderColor);
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+
             g2.dispose();
         }
     }

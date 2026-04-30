@@ -186,7 +186,6 @@ public class ProductServiceImpl implements ProductService {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu sản phẩm không hợp lệ.");
         }
-
         validateCommon(request.getTenSp(), request.getDanhMuc(), request.getGia(), request.getSoLuongTon());
     }
 
@@ -232,6 +231,7 @@ public class ProductServiceImpl implements ProductService {
         if (conn == null) {
             return;
         }
+
         try {
             conn.rollback();
         } catch (SQLException ignored) {
@@ -242,10 +242,12 @@ public class ProductServiceImpl implements ProductService {
         if (conn == null) {
             return;
         }
+
         try {
             conn.setAutoCommit(true);
         } catch (SQLException ignored) {
         }
+
         try {
             conn.close();
         } catch (SQLException ignored) {

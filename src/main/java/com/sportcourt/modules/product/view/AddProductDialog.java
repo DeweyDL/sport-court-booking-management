@@ -21,6 +21,7 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Window;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 
 public class AddProductDialog extends JDialog {
     private static final Color TEXT = new Color(15, 23, 42);
@@ -33,6 +34,7 @@ public class AddProductDialog extends JDialog {
     private final JTextField priceField = new JTextField();
     private final JTextField quantityField = new JTextField();
 
+    private final DecimalFormat moneyFormat = new DecimalFormat("0");
     private ProductCreateRequest result;
 
     public AddProductDialog(Window owner) {
@@ -67,15 +69,15 @@ public class AddProductDialog extends JDialog {
 
         JPanel form = new JPanel();
         form.setBackground(Color.WHITE);
-        form.setBorder(new EmptyBorder(28, 34, 26, 34));
+        form.setBorder(new EmptyBorder(24, 34, 24, 34));
         form.setLayout(new javax.swing.BoxLayout(form, javax.swing.BoxLayout.Y_AXIS));
 
-        JLabel title = new JLabel("Thêm sản phẩm mới", SwingConstants.CENTER);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        title.setForeground(TEXT);
-        title.setAlignmentX(CENTER_ALIGNMENT);
-        title.setBorder(new EmptyBorder(0, 0, 22, 0));
-        form.add(title);
+        JLabel titleLabel = new JLabel("Thêm sản phẩm mới", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(TEXT);
+        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 18, 0));
+        form.add(titleLabel);
 
         form.add(createTextInput("Tên sản phẩm", nameField));
         form.add(createTextInput("Danh mục", categoryField));
@@ -98,7 +100,7 @@ public class AddProductDialog extends JDialog {
     private JPanel createTextInput(String labelText, JTextField field) {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
         panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(0, 0, 14, 0));
+        panel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
         JLabel label = createLabel(labelText);
 
@@ -139,23 +141,25 @@ public class AddProductDialog extends JDialog {
         JPanel panel = new JPanel(new GridLayout(1, 2, 18, 0));
         panel.setOpaque(false);
 
-        JButton cancelButton = new JButton("Hủy");
+        JButton cancelButton = new RoundedButton("Hủy", CANCEL, null, 24);
         cancelButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
         cancelButton.setForeground(TEXT);
-        cancelButton.setBackground(CANCEL);
         cancelButton.setPreferredSize(new Dimension(10, 46));
         cancelButton.setFocusPainted(false);
         cancelButton.setBorderPainted(false);
+        cancelButton.setContentAreaFilled(false);
+        cancelButton.setOpaque(false);
         cancelButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cancelButton.addActionListener(e -> dispose());
 
-        JButton saveButton = new JButton("Tạo sản phẩm");
+        JButton saveButton = new RoundedButton("Tạo sản phẩm", GREEN, null, 24);
         saveButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
         saveButton.setForeground(Color.WHITE);
-        saveButton.setBackground(GREEN);
         saveButton.setPreferredSize(new Dimension(10, 46));
         saveButton.setFocusPainted(false);
         saveButton.setBorderPainted(false);
+        saveButton.setContentAreaFilled(false);
+        saveButton.setOpaque(false);
         saveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         saveButton.addActionListener(e -> save());
 
@@ -172,6 +176,7 @@ public class AddProductDialog extends JDialog {
     }
 
     private void save() {
+
         String tenSp = text(nameField);
         String danhMuc = text(categoryField);
         String rawPrice = text(priceField);
@@ -217,10 +222,12 @@ public class AddProductDialog extends JDialog {
         if (value == null) {
             return null;
         }
+
         String normalized = value.trim().replace(".", "").replace(",", "");
-        if (!normalized.matches("\\d+(\\.\\d+)?")) {
+        if (normalized.isEmpty() || !normalized.matches("\\d+")) {
             return null;
         }
+
         try {
             return new BigDecimal(normalized);
         } catch (NumberFormatException e) {
@@ -229,11 +236,17 @@ public class AddProductDialog extends JDialog {
     }
 
     private Integer parseInteger(String value) {
-        if (value == null || !value.trim().matches("\\d+")) {
+        if (value == null) {
             return null;
         }
+
+        String normalized = value.trim();
+        if (normalized.isEmpty() || !normalized.matches("\\d+")) {
+            return null;
+        }
+
         try {
-            return Integer.parseInt(value.trim());
+            return Integer.parseInt(normalized);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -244,6 +257,41 @@ public class AddProductDialog extends JDialog {
     }
 
     private void showInputError(String message) {
-        JOptionPane.showMessageDialog(this, message, "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Dữ liệu không hợp lệ",
+                JOptionPane.WARNING_MESSAGE
+        );
+    }
+
+    private static class RoundedButton extends JButton {
+        private final Color backgroundColor;
+        private final Color borderColor;
+        private final int radius;
+
+        RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
+            super(text);
+            this.backgroundColor = backgroundColor;
+            this.borderColor = borderColor;
+            this.radius = radius;
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setColor(backgroundColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+
+            if (borderColor != null) {
+                g2.setColor(borderColor);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            }
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }
