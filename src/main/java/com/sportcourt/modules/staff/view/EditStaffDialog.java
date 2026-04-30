@@ -33,6 +33,7 @@ public class EditStaffDialog extends JDialog {
     private static final Color MUTED = new Color(100, 116, 139);
     private static final Color BORDER = new Color(226, 232, 240);
     private static final Color GREEN = new Color(34, 197, 94);
+    private static final Color BLUE = new Color(37, 99, 235);
     private static final Color CANCEL = new Color(226, 232, 240);
 
     private final JTextField fullNameField = new JTextField();
@@ -41,11 +42,11 @@ public class EditStaffDialog extends JDialog {
     private final JTextField emailField = new JTextField();
     private final JTextField addressField = new JTextField();
 
-    private final DatePickerField birthDateField = new DatePickerField(LocalDate.of(2000, 1, 1));
-    private final DatePickerField startDateField = new DatePickerField(LocalDate.now());
+    private final DatePickerField birthDateField = new DatePickerField(null);
+    private final DatePickerField startDateField = new DatePickerField(null);
 
     private final JRadioButton managerRadio = new JRadioButton("Quản lý");
-    private final JRadioButton staffRadio = new JRadioButton("Nhân viên");
+    private final JRadioButton staffRadio = new JRadioButton("Thu ngân");
 
     private final StaffDetailResponse detail;
     private final String currentBranchId;
@@ -54,13 +55,11 @@ public class EditStaffDialog extends JDialog {
 
     private StaffUpdateRequest result;
 
-    public EditStaffDialog(
-            Window owner,
-            StaffDetailResponse detail,
-            String currentBranchId,
-            String managerTypeId,
-            String staffTypeId
-    ) {
+    public EditStaffDialog(Window owner,
+                           StaffDetailResponse detail,
+                           String currentBranchId,
+                           String managerTypeId,
+                           String staffTypeId) {
         super(owner, "Cập nhật nhân viên", ModalityType.APPLICATION_MODAL);
 
         this.detail = detail;
@@ -127,6 +126,8 @@ public class EditStaffDialog extends JDialog {
         card.add(scrollPane, BorderLayout.CENTER);
         root.add(card, BorderLayout.CENTER);
 
+        staffRadio.setSelected(true);
+
         return root;
     }
 
@@ -168,7 +169,8 @@ public class EditStaffDialog extends JDialog {
     private JPanel createRoleInput() {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
         panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(0, 0, 24, 0));
+        panel.setBorder(new EmptyBorder(0, 0, 16, 0));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
 
         JLabel label = createLabel("Chức vụ");
 
@@ -178,6 +180,10 @@ public class EditStaffDialog extends JDialog {
 
         JPanel roleGrid = new JPanel(new GridLayout(1, 2, 20, 0));
         roleGrid.setOpaque(false);
+        roleGrid.setPreferredSize(new Dimension(10, 46));
+        roleGrid.setMinimumSize(new Dimension(10, 46));
+        roleGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+
         roleGrid.add(createRoleBox(managerRadio));
         roleGrid.add(createRoleBox(staffRadio));
 
@@ -188,13 +194,12 @@ public class EditStaffDialog extends JDialog {
     }
 
     private JPanel createRoleBox(JRadioButton radioButton) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new RoundedBoxPanel(18, Color.WHITE, BORDER);
+        panel.setLayout(new BorderLayout());
         panel.setPreferredSize(new Dimension(10, 46));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                new EmptyBorder(0, 22, 0, 22)
-        ));
+        panel.setMinimumSize(new Dimension(10, 46));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        panel.setBorder(new EmptyBorder(0, 22, 0, 22));
 
         radioButton.setOpaque(false);
         radioButton.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -211,23 +216,25 @@ public class EditStaffDialog extends JDialog {
         JPanel panel = new JPanel(new GridLayout(1, 2, 20, 0));
         panel.setOpaque(false);
 
-        JButton cancelButton = new JButton("Hủy");
+        JButton cancelButton = new RoundedButton("Hủy", CANCEL, null, 24);
         cancelButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
         cancelButton.setForeground(TEXT);
-        cancelButton.setBackground(CANCEL);
         cancelButton.setPreferredSize(new Dimension(10, 46));
         cancelButton.setFocusPainted(false);
         cancelButton.setBorderPainted(false);
+        cancelButton.setContentAreaFilled(false);
+        cancelButton.setOpaque(false);
         cancelButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cancelButton.addActionListener(e -> dispose());
 
-        JButton saveButton = new JButton("Lưu thay đổi");
+        JButton saveButton = new RoundedButton("Lưu thay đổi", GREEN, null, 24);
         saveButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
         saveButton.setForeground(Color.WHITE);
-        saveButton.setBackground(GREEN);
         saveButton.setPreferredSize(new Dimension(10, 46));
         saveButton.setFocusPainted(false);
         saveButton.setBorderPainted(false);
+        saveButton.setContentAreaFilled(false);
+        saveButton.setOpaque(false);
         saveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         saveButton.addActionListener(e -> save());
 
@@ -244,6 +251,7 @@ public class EditStaffDialog extends JDialog {
         return label;
     }
 
+
     private void fillData() {
         if (detail == null) {
             staffRadio.setSelected(true);
@@ -256,14 +264,18 @@ public class EditStaffDialog extends JDialog {
         emailField.setText(nullToEmpty(detail.getEmail()));
         addressField.setText(nullToEmpty(detail.getDiaChi()));
 
-        birthDateField.setDate(detail.getNgaySinh() == null ? LocalDate.of(2000, 1, 1) : detail.getNgaySinh());
-        startDateField.setDate(detail.getNgayVaoLam() == null ? LocalDate.now() : detail.getNgayVaoLam());
+        birthDateField.setDate(detail.getNgaySinh());
+        startDateField.setDate(detail.getNgayVaoLam());
 
         if (detail.isQuanLy()) {
             managerRadio.setSelected(true);
         } else {
             staffRadio.setSelected(true);
         }
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private void save() {
@@ -336,10 +348,6 @@ public class EditStaffDialog extends JDialog {
         return field.getText() == null ? "" : field.getText().trim();
     }
 
-    private String nullToEmpty(String value) {
-        return value == null ? "" : value;
-    }
-
     private void showInputError(String message) {
         JOptionPane.showMessageDialog(
                 this,
@@ -350,11 +358,11 @@ public class EditStaffDialog extends JDialog {
     }
 
     private class DatePickerField extends JPanel {
-        private static final String DISPLAY_PATTERN = "dd/MM/yy";
+        private static final String DISPLAY_PATTERN = "dd/MM/yyyy";
 
         private final JTextField displayField = new JTextField();
-        private final JButton chooseButton = new JButton("Chọn");
-        private final JButton clearButton = new JButton("Xóa");
+        private final JButton chooseButton = new RoundedButton("Chọn", Color.WHITE, BORDER, 10);
+        private final JButton clearButton = new RoundedButton("Xóa", Color.WHITE, BORDER, 10);
         private LocalDate date;
 
         DatePickerField(LocalDate defaultDate) {
@@ -372,13 +380,21 @@ public class EditStaffDialog extends JDialog {
                     new EmptyBorder(0, 14, 0, 14)
             ));
 
-            chooseButton.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            chooseButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             chooseButton.setPreferredSize(new Dimension(82, 38));
             chooseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            chooseButton.setFocusPainted(false);
+            chooseButton.setBorderPainted(false);
+            chooseButton.setContentAreaFilled(false);
+            chooseButton.setOpaque(false);
 
-            clearButton.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            clearButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             clearButton.setPreferredSize(new Dimension(70, 38));
             clearButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            clearButton.setFocusPainted(false);
+            clearButton.setBorderPainted(false);
+            clearButton.setContentAreaFilled(false);
+            clearButton.setOpaque(false);
 
             JPanel actions = new JPanel(new GridLayout(1, 2, 8, 0));
             actions.setOpaque(false);
@@ -414,19 +430,40 @@ public class EditStaffDialog extends JDialog {
 
         private void openPicker() {
             LocalDate baseDate = date == null ? LocalDate.now() : date;
+            CalendarPicker pickerPanel = new CalendarPicker(baseDate);
 
             JDialog picker = new JDialog(EditStaffDialog.this, "Chọn ngày", true);
-            picker.setSize(380, 245);
-            picker.setLocationRelativeTo(EditStaffDialog.this);
+            picker.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            picker.setResizable(false);
             picker.setLayout(new BorderLayout());
+            picker.add(pickerPanel, BorderLayout.CENTER);
+            picker.pack();
+            picker.setLocationRelativeTo(EditStaffDialog.this);
 
-            JComboBox<Integer> yearBox = new JComboBox<>();
-            JComboBox<Integer> monthBox = new JComboBox<>();
-            JComboBox<Integer> dayBox = new JComboBox<>();
+            pickerPanel.setOnSelected(selectedDate -> {
+                setDate(selectedDate);
+                picker.dispose();
+            });
+
+            picker.setVisible(true);
+        }
+    }
+
+    private class CalendarPicker extends JPanel {
+        private final JComboBox<Integer> yearBox = new JComboBox<>();
+        private final JComboBox<Integer> monthBox = new JComboBox<>();
+        private final JPanel dayGrid = new JPanel(new GridLayout(0, 7, 10, 10));
+        private java.util.function.Consumer<LocalDate> onSelected;
+        private boolean adjusting;
+
+        CalendarPicker(LocalDate baseDate) {
+            setLayout(new BorderLayout(0, 16));
+            setBackground(Color.WHITE);
+            setBorder(new EmptyBorder(16, 18, 18, 18));
 
             int currentYear = LocalDate.now().getYear();
 
-            for (int year = currentYear - 80; year <= currentYear + 1; year++) {
+            for (int year = currentYear - 80; year <= currentYear + 2; year++) {
                 yearBox.addItem(year);
             }
 
@@ -437,77 +474,151 @@ public class EditStaffDialog extends JDialog {
             yearBox.setSelectedItem(baseDate.getYear());
             monthBox.setSelectedItem(baseDate.getMonthValue());
 
-            Runnable refreshDays = () -> {
-                Integer year = (Integer) yearBox.getSelectedItem();
-                Integer month = (Integer) monthBox.getSelectedItem();
+            JPanel top = new JPanel(new GridLayout(1, 2, 12, 0));
+            top.setOpaque(false);
+            top.add(yearBox);
+            top.add(monthBox);
 
-                if (year == null || month == null) {
-                    return;
-                }
+            yearBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            monthBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-                Integer oldDay = (Integer) dayBox.getSelectedItem();
-                int preferredDay = oldDay == null ? baseDate.getDayOfMonth() : oldDay;
-                int maxDay = YearMonth.of(year, month).lengthOfMonth();
+            yearBox.addActionListener(e -> refreshDays(null));
+            monthBox.addActionListener(e -> refreshDays(null));
 
-                dayBox.removeAllItems();
+            add(top, BorderLayout.NORTH);
+            add(dayGrid, BorderLayout.CENTER);
 
-                for (int day = 1; day <= maxDay; day++) {
-                    dayBox.addItem(day);
-                }
-
-                dayBox.setSelectedItem(Math.min(preferredDay, maxDay));
-            };
-
-            yearBox.addActionListener(e -> refreshDays.run());
-            monthBox.addActionListener(e -> refreshDays.run());
-            refreshDays.run();
-
-            JPanel center = new JPanel(new GridLayout(3, 2, 12, 12));
-            center.setBorder(new EmptyBorder(20, 24, 16, 24));
-            center.setBackground(Color.WHITE);
-
-            center.add(createPickerLabel("Năm"));
-            center.add(yearBox);
-            center.add(createPickerLabel("Tháng"));
-            center.add(monthBox);
-            center.add(createPickerLabel("Ngày"));
-            center.add(dayBox);
-
-            JButton cancelButton = new JButton("Hủy");
-            JButton okButton = new JButton("OK");
-
-            cancelButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            okButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            cancelButton.addActionListener(e -> picker.dispose());
-            okButton.addActionListener(e -> {
-                Integer year = (Integer) yearBox.getSelectedItem();
-                Integer month = (Integer) monthBox.getSelectedItem();
-                Integer day = (Integer) dayBox.getSelectedItem();
-
-                if (year != null && month != null && day != null) {
-                    setDate(LocalDate.of(year, month, day));
-                }
-
-                picker.dispose();
-            });
-
-            JPanel footer = new JPanel(new GridLayout(1, 2, 10, 0));
-            footer.setBorder(new EmptyBorder(0, 24, 20, 24));
-            footer.setBackground(Color.WHITE);
-            footer.add(cancelButton);
-            footer.add(okButton);
-
-            picker.add(center, BorderLayout.CENTER);
-            picker.add(footer, BorderLayout.SOUTH);
-            picker.setVisible(true);
+            refreshDays(baseDate.getDayOfMonth());
         }
 
-        private JLabel createPickerLabel(String text) {
-            JLabel label = new JLabel(text);
-            label.setForeground(MUTED);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            return label;
+        void setOnSelected(java.util.function.Consumer<LocalDate> onSelected) {
+            this.onSelected = onSelected;
+        }
+
+        private void refreshDays(Integer selectedDay) {
+            if (adjusting) {
+                return;
+            }
+
+            Integer year = (Integer) yearBox.getSelectedItem();
+            Integer month = (Integer) monthBox.getSelectedItem();
+
+            if (year == null || month == null) {
+                return;
+            }
+
+            adjusting = true;
+            dayGrid.removeAll();
+            dayGrid.setOpaque(false);
+
+            String[] weekDays = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
+            for (String weekDay : weekDays) {
+                JLabel label = new JLabel(weekDay, SwingConstants.CENTER);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                label.setForeground(TEXT);
+                dayGrid.add(label);
+            }
+
+            LocalDate firstDay = LocalDate.of(year, month, 1);
+            int blankCells = firstDay.getDayOfWeek().getValue() - 1;
+            int lengthOfMonth = YearMonth.of(year, month).lengthOfMonth();
+
+            for (int i = 0; i < blankCells; i++) {
+                dayGrid.add(new JLabel(""));
+            }
+
+            for (int day = 1; day <= lengthOfMonth; day++) {
+                JButton button = new RoundedButton(String.valueOf(day), Color.WHITE, BORDER, 8);
+                button.setPreferredSize(new Dimension(54, 42));
+                button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                button.setFocusPainted(false);
+                button.setBorderPainted(false);
+                button.setContentAreaFilled(false);
+                button.setOpaque(false);
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                if (selectedDay != null && selectedDay == day) {
+                    button.setBackground(new Color(219, 234, 254));
+                    button.setForeground(BLUE);
+                } else {
+                    button.setForeground(TEXT);
+                }
+
+                final int selected = day;
+                button.addActionListener(e -> {
+                    if (onSelected != null) {
+                        onSelected.accept(LocalDate.of(year, month, selected));
+                    }
+                });
+
+                dayGrid.add(button);
+            }
+
+            adjusting = false;
+            revalidate();
+            repaint();
+        }
+    }
+
+    private static class RoundedBoxPanel extends JPanel {
+        private final int radius;
+        private final Color backgroundColor;
+        private final Color borderColor;
+
+        RoundedBoxPanel(int radius, Color backgroundColor, Color borderColor) {
+            this.radius = radius;
+            this.backgroundColor = backgroundColor;
+            this.borderColor = borderColor;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(backgroundColor);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+
+        @Override
+        protected void paintBorder(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(borderColor);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.dispose();
+        }
+    }
+
+    private static class RoundedButton extends JButton {
+        private final Color backgroundColor;
+        private final Color borderColor;
+        private final int radius;
+
+        RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
+            super(text);
+            this.backgroundColor = backgroundColor;
+            this.borderColor = borderColor;
+            this.radius = radius;
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setColor(backgroundColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+
+            if (borderColor != null) {
+                g2.setColor(borderColor);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            }
+
+            g2.dispose();
+            super.paintComponent(g);
         }
     }
 }

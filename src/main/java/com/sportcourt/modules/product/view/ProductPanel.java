@@ -1,9 +1,9 @@
-package com.sportcourt.modules.staff.view;
+package com.sportcourt.modules.product.view;
 
-import com.sportcourt.modules.staff.dto.StaffCreateRequest;
-import com.sportcourt.modules.staff.dto.StaffDetailResponse;
-import com.sportcourt.modules.staff.dto.StaffResponse;
-import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
+import com.sportcourt.modules.product.dto.ProductCreateRequest;
+import com.sportcourt.modules.product.dto.ProductResponse;
+import com.sportcourt.modules.product.dto.ProductSearchCriteria;
+import com.sportcourt.modules.product.dto.ProductUpdateRequest;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -21,7 +21,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
-import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -40,7 +39,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
-public class StaffPanel extends JPanel {
+public class ProductPanel extends JPanel {
     private static final Color PAGE_BACKGROUND = new Color(247, 248, 252);
     private static final Color TEXT = new Color(15, 23, 42);
     private static final Color MUTED = new Color(100, 116, 139);
@@ -48,21 +47,18 @@ public class StaffPanel extends JPanel {
 
     private static final Color GREEN = new Color(22, 163, 74);
     private static final Color GREEN_LIGHT = new Color(220, 252, 231);
-
     private static final Color RED = new Color(220, 38, 38);
     private static final Color RED_LIGHT = new Color(254, 226, 226);
-
     private static final Color BLUE = new Color(37, 99, 235);
     private static final Color BLUE_LIGHT = new Color(219, 234, 254);
-
     private static final Color YELLOW = new Color(180, 83, 9);
     private static final Color YELLOW_LIGHT = new Color(254, 243, 199);
 
-    private final StaffTableModel tableModel = new StaffTableModel();
+    private final ProductTableModel tableModel = new ProductTableModel();
     private final JTable table = new JTable(tableModel);
     private final JTextField searchField = new JTextField();
     private final JButton addButton = createAddButton();
-    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 nhân viên");
+    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 sản phẩm");
     private final Timer searchTimer;
 
     private ActionListener searchAction;
@@ -72,15 +68,12 @@ public class StaffPanel extends JPanel {
     private ActionListener restoreAction;
     private ActionListener refreshAction;
 
-    private String selectedStaffId;
-    private String currentBranchId = "CN01";
-    private String managerTypeId = "LNV01";
-    private String staffTypeId = "LNV02";
+    private String selectedProductId;
 
-    public StaffPanel() {
+    public ProductPanel() {
         setLayout(new BorderLayout(0, 24));
         setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(22, 24, 22, 24));
+        setBorder(new EmptyBorder(28, 32, 28, 32));
 
         searchTimer = new Timer(350, e -> fireSearchAction());
         searchTimer.setRepeats(false);
@@ -89,22 +82,6 @@ public class StaffPanel extends JPanel {
         add(createTableCard(), BorderLayout.CENTER);
 
         bindEvents();
-    }
-
-    public void setCurrentBranchId(String currentBranchId) {
-        if (currentBranchId != null && !currentBranchId.trim().isEmpty()) {
-            this.currentBranchId = currentBranchId.trim();
-        }
-    }
-
-    public void setStaffTypeIds(String managerTypeId, String staffTypeId) {
-        if (managerTypeId != null && !managerTypeId.trim().isEmpty()) {
-            this.managerTypeId = managerTypeId.trim();
-        }
-
-        if (staffTypeId != null && !staffTypeId.trim().isEmpty()) {
-            this.staffTypeId = staffTypeId.trim();
-        }
     }
 
     public void setSearchAction(ActionListener searchAction) {
@@ -131,16 +108,16 @@ public class StaffPanel extends JPanel {
         this.refreshAction = refreshAction;
     }
 
-    public StaffSearchCriteria getSearchCriteria() {
-        StaffSearchCriteria criteria = new StaffSearchCriteria();
+    public ProductSearchCriteria getSearchCriteria() {
+        ProductSearchCriteria criteria = new ProductSearchCriteria();
         criteria.setKeyword(searchField.getText());
-        criteria.setMaCn(currentBranchId);
+        criteria.setIncludeDeleted(true);
         return criteria;
     }
 
-    public String getSelectedStaffId() {
-        if (selectedStaffId != null && !selectedStaffId.trim().isEmpty()) {
-            return selectedStaffId;
+    public String getSelectedProductId() {
+        if (selectedProductId != null && !selectedProductId.trim().isEmpty()) {
+            return selectedProductId;
         }
 
         int viewRow = table.getSelectedRow();
@@ -148,29 +125,29 @@ public class StaffPanel extends JPanel {
             return null;
         }
 
-        StaffResponse row = getStaffByViewRow(viewRow);
-        return row == null ? null : row.getMaNv();
+        ProductResponse row = getProductByViewRow(viewRow);
+        return row == null ? null : row.getMaSp();
     }
 
-    public StaffCreateRequest showCreateDialog() {
+    public ProductCreateRequest showCreateDialog() {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        AddStaffDialog dialog = new AddStaffDialog(owner, currentBranchId, managerTypeId, staffTypeId);
+        AddProductDialog dialog = new AddProductDialog(owner);
         return dialog.showDialog();
     }
 
-    public com.sportcourt.modules.staff.dto.StaffUpdateRequest showUpdateDialog(StaffDetailResponse detail) {
+    public ProductUpdateRequest showUpdateDialog(ProductResponse product) {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        EditStaffDialog dialog = new EditStaffDialog(owner, detail, currentBranchId, managerTypeId, staffTypeId);
+        EditProductDialog dialog = new EditProductDialog(owner, product);
         return dialog.showDialog();
     }
 
-    public void showStaffTable(List<StaffResponse> staff) {
+    public void showProductTable(List<ProductResponse> products) {
         boolean searchFocused = searchField.isFocusOwner();
         int caretPosition = searchField.getCaretPosition();
 
-        tableModel.setRows(staff);
-        selectedStaffId = null;
-        footerLabel.setText("Đang hiển thị " + tableModel.getRowCount() + " nhân viên");
+        tableModel.setRows(products);
+        selectedProductId = null;
+        footerLabel.setText("Đang hiển thị " + tableModel.getRowCount() + " sản phẩm");
 
         if (searchFocused) {
             SwingUtilities.invokeLater(() -> {
@@ -185,40 +162,19 @@ public class StaffPanel extends JPanel {
         table.setEnabled(!loading);
         searchField.setEnabled(!loading);
         addButton.setEnabled(!loading);
-
-        if (loading) {
-            footerLabel.setText("Đang tải dữ liệu...");
-        } else {
-            footerLabel.setText("Đang hiển thị " + tableModel.getRowCount() + " nhân viên");
-        }
+        footerLabel.setText(loading ? "Đang tải dữ liệu..." : "Đang hiển thị " + tableModel.getRowCount() + " sản phẩm");
     }
 
     public void showMessage(String message) {
-        JOptionPane.showMessageDialog(
-                this,
-                message,
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        JOptionPane.showMessageDialog(this, message, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     public void showError(String message) {
-        JOptionPane.showMessageDialog(
-                this,
-                message == null ? "Có lỗi xảy ra." : message,
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE
-        );
+        JOptionPane.showMessageDialog(this, message == null ? "Có lỗi xảy ra." : message, "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 
     public boolean confirm(String message) {
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                message,
-                "Xác nhận",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
+        int result = JOptionPane.showConfirmDialog(this, message, "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         return result == JOptionPane.YES_OPTION;
     }
 
@@ -227,20 +183,19 @@ public class StaffPanel extends JPanel {
         header.setLayout(new javax.swing.BoxLayout(header, javax.swing.BoxLayout.Y_AXIS));
         header.setOpaque(false);
 
-        JLabel title = new JLabel("QUẢN LÝ NHÂN VIÊN");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 29));
+        JLabel title = new JLabel("QUẢN LÝ SẢN PHẨM");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
         title.setForeground(TEXT);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Hiển thị danh sách nhân viên và hỗ trợ tìm kiếm.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        JLabel subtitle = new JLabel("Hiển thị danh sách sản phẩm và hỗ trợ tìm kiếm.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         subtitle.setForeground(MUTED);
         subtitle.setBorder(new EmptyBorder(8, 0, 0, 0));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         header.add(title);
         header.add(subtitle);
-
         return header;
     }
 
@@ -256,20 +211,20 @@ public class StaffPanel extends JPanel {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
-        toolbar.setBorder(new EmptyBorder(18, 26, 18, 26));
+        toolbar.setBorder(new EmptyBorder(26, 34, 26, 34));
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 22, 0));
         left.setOpaque(false);
 
-        JLabel listTitle = new JLabel("DANH SÁCH NHÂN VIÊN");
-        listTitle.setFont(new Font("Segoe UI", Font.BOLD, 23));
+        JLabel listTitle = new JLabel("DANH SÁCH SẢN PHẨM");
+        listTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         listTitle.setForeground(TEXT);
 
         left.add(listTitle);
         left.add(addButton);
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        searchField.setPreferredSize(new Dimension(340, 40));
+        searchField.setPreferredSize(new Dimension(420, 42));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm kiếm");
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -278,7 +233,6 @@ public class StaffPanel extends JPanel {
 
         toolbar.add(left, BorderLayout.WEST);
         toolbar.add(searchField, BorderLayout.EAST);
-
         return toolbar;
     }
 
@@ -288,9 +242,8 @@ public class StaffPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER));
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(48);
-        scrollPane.getVerticalScrollBar().setBlockIncrement(260);
-
+        scrollPane.getVerticalScrollBar().setUnitIncrement(54);
+        scrollPane.getVerticalScrollBar().setBlockIncrement(300);
         return scrollPane;
     }
 
@@ -301,22 +254,20 @@ public class StaffPanel extends JPanel {
 
         footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         footerLabel.setForeground(MUTED);
-
         footer.add(footerLabel, BorderLayout.WEST);
-
         return footer;
     }
 
     private void setupTable() {
-        table.setRowHeight(68);
+        table.setRowHeight(72);
         table.setShowGrid(true);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(true);
         table.setGridColor(BORDER);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(new Color(240, 253, 244));
+        table.setSelectionBackground(new Color(239, 246, 255));
         table.setSelectionForeground(TEXT);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         table.setForeground(MUTED);
         table.setFillsViewportHeight(true);
         table.setAutoCreateRowSorter(false);
@@ -324,42 +275,40 @@ public class StaffPanel extends JPanel {
 
         JTableHeader header = table.getTableHeader();
         header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(0, 52));
+        header.setPreferredSize(new Dimension(0, 56));
         header.setBackground(Color.WHITE);
         header.setForeground(new Color(71, 85, 105));
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        table.getColumnModel().getColumn(StaffTableModel.COL_ID).setPreferredWidth(95);
-        table.getColumnModel().getColumn(StaffTableModel.COL_NAME).setPreferredWidth(185);
-        table.getColumnModel().getColumn(StaffTableModel.COL_PHONE).setPreferredWidth(125);
-        table.getColumnModel().getColumn(StaffTableModel.COL_EMAIL).setPreferredWidth(220);
-        table.getColumnModel().getColumn(StaffTableModel.COL_ROLE).setPreferredWidth(125);
-        table.getColumnModel().getColumn(StaffTableModel.COL_START_DATE).setPreferredWidth(145);
-        table.getColumnModel().getColumn(StaffTableModel.COL_STATUS).setPreferredWidth(150);
-        table.getColumnModel().getColumn(StaffTableModel.COL_ACTION).setPreferredWidth(210);
+        table.getColumnModel().getColumn(ProductTableModel.COL_ID).setPreferredWidth(95);
+        table.getColumnModel().getColumn(ProductTableModel.COL_NAME).setPreferredWidth(260);
+        table.getColumnModel().getColumn(ProductTableModel.COL_CATEGORY).setPreferredWidth(160);
+        table.getColumnModel().getColumn(ProductTableModel.COL_PRICE).setPreferredWidth(145);
+        table.getColumnModel().getColumn(ProductTableModel.COL_QUANTITY).setPreferredWidth(120);
+        table.getColumnModel().getColumn(ProductTableModel.COL_STATUS).setPreferredWidth(165);
+        table.getColumnModel().getColumn(ProductTableModel.COL_ACTION).setPreferredWidth(220);
 
-        table.setDefaultRenderer(Object.class, new StaffCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_ROLE).setCellRenderer(new RoleCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_STATUS).setCellRenderer(new StatusCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_ACTION).setCellRenderer(new ActionCellRenderer());
+        table.setDefaultRenderer(Object.class, new ProductCellRenderer());
+        table.getColumnModel().getColumn(ProductTableModel.COL_STATUS).setCellRenderer(new StatusCellRenderer());
+        table.getColumnModel().getColumn(ProductTableModel.COL_ACTION).setCellRenderer(new ActionCellRenderer());
     }
 
     private JButton createAddButton() {
-        RoundedButton button = new RoundedButton("+ Thêm nhân viên", GREEN_LIGHT, new Color(187, 247, 208), 28);
+        JButton button = new JButton("+ Thêm sản phẩm");
         button.setFont(new Font("Segoe UI", Font.BOLD, 15));
         button.setForeground(new Color(21, 128, 61));
+        button.setBackground(GREEN_LIGHT);
         button.setBorder(new EmptyBorder(10, 22, 10, 22));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.setOpaque(false);
+        button.setOpaque(true);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
     }
 
     private void bindEvents() {
         addButton.addActionListener(e -> {
-            selectedStaffId = null;
+            selectedProductId = null;
             if (addAction != null) {
                 addAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "add"));
             }
@@ -387,20 +336,18 @@ public class StaffPanel extends JPanel {
             public void mouseClicked(MouseEvent e) {
                 int viewRow = table.rowAtPoint(e.getPoint());
                 int viewColumn = table.columnAtPoint(e.getPoint());
-
                 if (viewRow < 0 || viewColumn < 0) {
                     return;
                 }
 
-                StaffResponse staff = getStaffByViewRow(viewRow);
-                if (staff == null) {
+                ProductResponse product = getProductByViewRow(viewRow);
+                if (product == null) {
                     return;
                 }
 
-                selectedStaffId = staff.getMaNv();
-
+                selectedProductId = product.getMaSp();
                 int modelColumn = table.convertColumnIndexToModel(viewColumn);
-                if (modelColumn != StaffTableModel.COL_ACTION) {
+                if (modelColumn != ProductTableModel.COL_ACTION) {
                     return;
                 }
 
@@ -408,7 +355,7 @@ public class StaffPanel extends JPanel {
                 int relativeX = e.getX() - cellRect.x;
 
                 if (relativeX < cellRect.width / 2) {
-                    if (staff.isDeleted()) {
+                    if (product.isDeleted()) {
                         fireRestoreAction();
                     } else {
                         fireDeleteAction();
@@ -428,24 +375,20 @@ public class StaffPanel extends JPanel {
             @Override
             public void mouseMoved(MouseEvent e) {
                 int viewColumn = table.columnAtPoint(e.getPoint());
-
                 if (viewColumn < 0) {
                     table.setCursor(Cursor.getDefaultCursor());
                     return;
                 }
 
                 int modelColumn = table.convertColumnIndexToModel(viewColumn);
-
-                if (modelColumn == StaffTableModel.COL_ACTION) {
-                    table.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                } else {
-                    table.setCursor(Cursor.getDefaultCursor());
-                }
+                table.setCursor(modelColumn == ProductTableModel.COL_ACTION
+                        ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                        : Cursor.getDefaultCursor());
             }
         });
     }
 
-    private StaffResponse getStaffByViewRow(int viewRow) {
+    private ProductResponse getProductByViewRow(int viewRow) {
         int modelRow = table.convertRowIndexToModel(viewRow);
         return tableModel.getRow(modelRow);
     }
@@ -485,168 +428,77 @@ public class StaffPanel extends JPanel {
         }
     }
 
-    private class StaffCellRenderer extends DefaultTableCellRenderer {
+    private class ProductCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(
-                    table,
-                    value,
-                    isSelected,
-                    hasFocus,
-                    row,
-                    column
-            );
-
-            StaffResponse staff = tableModel.getRow(table.convertRowIndexToModel(row));
-            boolean deleted = staff != null && staff.isDeleted();
-
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER),
-                    new EmptyBorder(0, 10, 0, 10)
+                    new EmptyBorder(0, 14, 0, 14)
             ));
-            label.setFont(new Font("Segoe UI", column == StaffTableModel.COL_ID ? Font.BOLD : Font.PLAIN, 15));
-            label.setForeground(column == StaffTableModel.COL_ID ? new Color(0, 150, 40) : MUTED);
+            label.setFont(new Font("Segoe UI", column == ProductTableModel.COL_ID ? Font.BOLD : Font.PLAIN, 15));
+            label.setForeground(column == ProductTableModel.COL_ID ? new Color(0, 150, 40) : MUTED);
             label.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-
-            if (deleted) {
-                label.setForeground(new Color(148, 163, 184));
-            }
-
-            if (column == StaffTableModel.COL_ID) {
-                label.setText(shorten(String.valueOf(value), 12));
-            }
-
             return label;
-        }
-
-        private String shorten(String value, int maxLength) {
-            if (value == null || value.length() <= maxLength) {
-                return value;
-            }
-
-            return value.substring(0, Math.max(0, maxLength - 3)) + "...";
-        }
-    }
-
-    private class RoleCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            String rawText = String.valueOf(value);
-            boolean isManager = "QUẢN LÝ".equalsIgnoreCase(rawText);
-            String text = isManager ? "QUẢN LÝ" : "THU NGÂN";
-
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
-            wrapper.setOpaque(true);
-            wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-
-            wrapper.add(createPill(
-                    text,
-                    isManager ? GREEN : TEXT,
-                    isManager ? GREEN_LIGHT : new Color(241, 245, 249),
-                    112,
-                    30,
-                    22
-            ));
-
-            return wrapper;
         }
     }
 
     private class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             String status = String.valueOf(value);
-            boolean deleted = "ĐÃ XOÁ".equalsIgnoreCase(status);
+            Color foreground;
+            Color background;
 
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
+            if ("ĐÃ XOÁ".equalsIgnoreCase(status)) {
+                foreground = RED;
+                background = RED_LIGHT;
+            } else if ("HẾT HÀNG".equalsIgnoreCase(status)) {
+                foreground = YELLOW;
+                background = YELLOW_LIGHT;
+            } else {
+                foreground = GREEN;
+                background = GREEN_LIGHT;
+            }
+
+            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 14));
             wrapper.setOpaque(true);
             wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-
-            wrapper.add(createPill(
-                    "• " + status,
-                    deleted ? RED : GREEN,
-                    deleted ? RED_LIGHT : GREEN_LIGHT,
-                    126,
-                    30,
-                    22
-            ));
-
+            wrapper.add(createPill("• " + status, foreground, background, 18));
             return wrapper;
         }
     }
 
     private class ActionCellRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            StaffResponse staff = tableModel.getRow(table.convertRowIndexToModel(row));
-            boolean deleted = staff != null && staff.isDeleted();
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            int modelRow = table.convertRowIndexToModel(row);
+            ProductResponse product = tableModel.getRow(modelRow);
+            boolean deleted = product != null && product.isDeleted();
 
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 11));
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 13));
             panel.setOpaque(true);
             panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             panel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
 
             if (deleted) {
-                panel.add(createActionPill("Khôi phục", GREEN, GREEN_LIGHT, 88, 30, 22));
+                panel.add(createPill("Khôi phục", GREEN, GREEN_LIGHT, 18));
             } else {
-                panel.add(createActionPill("Xóa", RED, RED_LIGHT, 62, 30, 22));
+                panel.add(createPill("Xóa", RED, RED_LIGHT, 18));
             }
-
-            panel.add(createActionPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 96, 30, 22));
-
+            panel.add(createPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 18));
             return panel;
         }
     }
 
-    private JLabel createPill(String text, Color foreground, Color background, int width, int height, int radius) {
+    private JLabel createPill(String text, Color foreground, Color background, int radius) {
         RoundedLabel label = new RoundedLabel(text, radius);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(foreground);
         label.setBackground(background);
-        label.setPreferredSize(new Dimension(width, height));
-        label.setBorder(new EmptyBorder(5, 12, 5, 12));
-        return label;
-    }
-
-    private JLabel createActionPill(String text, Color foreground, Color background, int width, int height, int radius) {
-        RoundedLabel label = new RoundedLabel(text, radius);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(foreground);
-        label.setBackground(background);
-        label.setPreferredSize(new Dimension(width, height));
-        label.setBorder(new EmptyBorder(5, 12, 5, 12));
+        label.setBorder(new EmptyBorder(6, 14, 6, 14));
         return label;
     }
 
@@ -663,47 +515,9 @@ public class StaffPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             g2.setColor(getBackground());
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-
             g2.dispose();
-
-            super.paintComponent(g);
-        }
-    }
-
-    private static class RoundedButton extends JButton {
-        private final Color backgroundColor;
-        private final Color borderColor;
-        private final int radius;
-
-        private RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
-            super(text);
-            this.backgroundColor = backgroundColor;
-            this.borderColor = borderColor;
-            this.radius = radius;
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (!isEnabled()) {
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
-            }
-
-            g2.setColor(backgroundColor);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-
-            if (borderColor != null) {
-                g2.setColor(borderColor);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-            }
-
-            g2.dispose();
-
             super.paintComponent(g);
         }
     }
@@ -724,12 +538,9 @@ public class StaffPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             g2.setColor(backgroundColor);
             g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
             g2.dispose();
-
             super.paintComponent(g);
         }
 
@@ -738,13 +549,10 @@ public class StaffPanel extends JPanel {
             if (borderColor == null) {
                 return;
             }
-
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             g2.setColor(borderColor);
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
             g2.dispose();
         }
     }

@@ -4,10 +4,10 @@ import com.sportcourt.modules.staff.dto.StaffDetailResponse;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.entity.Staff;
-import com.sportcourt.modules.staff.entity.User;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,13 +26,31 @@ public interface StaffDao {
 
     boolean existsStaffType(String maLoaiNv) throws SQLException;
 
-    void insertUser(Connection conn, User user) throws SQLException;
+    void insertUser(
+            Connection conn,
+            String userId,
+            String hoTen,
+            String sdt,
+            String email,
+            LocalDate ngaySinh,
+            String diaChi
+    ) throws SQLException;
 
     void insertStaff(Connection conn, Staff staff) throws SQLException;
 
-    boolean updateUser(Connection conn, User user) throws SQLException;
+    boolean updateUser(
+            Connection conn,
+            String userId,
+            String hoTen,
+            String sdt,
+            String email,
+            LocalDate ngaySinh,
+            String diaChi
+    ) throws SQLException;
 
     boolean updateStaff(Connection conn, Staff staff) throws SQLException;
 
     boolean softDeleteStaff(Connection conn, String maNv) throws SQLException;
+
+    boolean restoreStaff(Connection conn, String maNv) throws SQLException;
 }
