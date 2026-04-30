@@ -1,8 +1,8 @@
-package com.sportcourt.modules.area.view;
+package com.sportcourt.modules.branch.view;
 
-import com.sportcourt.modules.area.controller.AreaController;
-import com.sportcourt.modules.area.dto.AreaCreateRequest;
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.branch.controller.BranchController;
+import com.sportcourt.modules.branch.dto.BranchUpdateRequest;
+import com.sportcourt.modules.branch.entity.Branch;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,20 +10,20 @@ import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
 
-public class AreaAdd extends JPanel {
-    private final AreaController areaController;
+public class BranchChange extends JPanel {
+    private final BranchController branchController;
     private final Consumer<String> onSaved;
 
-    private final JTextField maKvField = createDisplayField();
     private final JTextField maCnField = createDisplayField();
-    private final JComboBox<Area.SportTypeOption> sportTypeComboBox = new JComboBox<>();
-    private final JTextField courtCountField = createDisplayField();
+    private final JTextField tenChiNhanhField = createEditableField();
+    private final JTextField diaChiField = createEditableField();
+    private final JTextField hotlineField = createEditableField();
 
+    private String currentMaCn;
     private JDialog dialog;
-    private String generatedMaKv;
 
-    public AreaAdd(AreaController areaController, Consumer<String> onSaved) {
-        this.areaController = areaController;
+    public BranchChange(BranchController branchController, Consumer<String> onSaved) {
+        this.branchController = branchController;
         this.onSaved = onSaved;
 
         setOpaque(false);
@@ -32,21 +32,13 @@ public class AreaAdd extends JPanel {
         add(createContent(), BorderLayout.CENTER);
     }
 
-    public void showCreator(Component parent) {
-        prepareCreateForm();
+    public void showEditor(Component parent, String maCn) {
+        currentMaCn = maCn;
+        bindData(maCn);
+
         JDialog popup = ensureDialog(parent);
         popup.setLocationRelativeTo(parent);
         popup.setVisible(true);
-    }
-
-    private void prepareCreateForm() {
-        generatedMaKv = areaController.generateNextMaKv();
-        maKvField.setText(generatedMaKv);
-        maCnField.setText(areaController.getDefaultChiNhanhId());
-
-        courtCountField.setText("0");
-
-        bindLoaiTheThao();
     }
 
     private JDialog ensureDialog(Component parent) {
@@ -55,7 +47,7 @@ public class AreaAdd extends JPanel {
             if (dialog != null) {
                 dialog.dispose();
             }
-            dialog = new JDialog(owner, "Thêm khu vực", Dialog.ModalityType.APPLICATION_MODAL);
+            dialog = new JDialog(owner, "Chỉnh sửa chi nhánh", Dialog.ModalityType.APPLICATION_MODAL);
             dialog.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
             dialog.setContentPane(this);
             dialog.setResizable(false);
@@ -99,12 +91,12 @@ public class AreaAdd extends JPanel {
         header.setOpaque(false);
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
-        JLabel titleLabel = new JLabel("Thêm khu vực");
+        JLabel titleLabel = new JLabel("Cập nhật chi nhánh");
         titleLabel.setFont(new Font("Lexend", Font.BOLD, 22));
         titleLabel.setForeground(new Color(30, 31, 36));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitleLabel = new JLabel("Khởi tạo các thông tin cơ bản cho khu vực mới.");
+        JLabel subtitleLabel = new JLabel("Chỉnh sửa các thông tin cơ bản của chi nhánh.");
         subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitleLabel.setForeground(new Color(107, 114, 128));
         subtitleLabel.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -120,100 +112,84 @@ public class AreaAdd extends JPanel {
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
+        form.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
 
-        form.add(createReadOnlyField("Mã khu vực", maKvField));
-        form.add(Box.createVerticalStrut(17));
         form.add(createReadOnlyField("Mã chi nhánh", maCnField));
         form.add(Box.createVerticalStrut(17));
-        form.add(createEditableField("Loại thể thao", sportTypeComboBox));
+        form.add(createEditableField("Tên chi nhánh", tenChiNhanhField));
         form.add(Box.createVerticalStrut(17));
-        form.add(createReadOnlyField("Số lượng sân con", courtCountField));
-        form.add(Box.createVerticalStrut(18));
-        form.add(createSubCourtButton());
+        form.add(createEditableField("Địa chỉ", diaChiField));
+        form.add(Box.createVerticalStrut(17));
+        form.add(createEditableField("Hotline", hotlineField));
         return form;
     }
 
-    private JButton createSubCourtButton() {
-        JButton button = createPillButton(
-                "Xem danh sách các sân con",
-                new Color(228, 250, 226),
-                new Color(16, 110, 0),
-                true
-        );
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMinimumSize(new Dimension(420, 44));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        button.setPreferredSize(new Dimension(420, 44));
-        button.addActionListener(event -> showSubCourtList());
-        return button;
-    }
-
     private JPanel createActions() {
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
-        actions.setBorder(new EmptyBorder(2, 0, 0, 0));
 
-        JButton cancelButton = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55), true);
-        cancelButton.addActionListener(event -> cancelCreate());
+        JButton areaButton = createPillButton("Xem khu vực", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        areaButton.addActionListener(event -> showAreaList());
 
-        JButton saveButton = createPillButton("Tạo khu vực", new Color(16, 110, 0), new Color(228, 250, 226), true);
-        saveButton.addActionListener(event -> saveNewKhuVuc());
+        JButton cancelButton = createPillButton("Hủy", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        cancelButton.addActionListener(event -> cancelEdit());
 
+        JButton saveButton = createPillButton("Lưu", new Color(209, 250, 229), new Color(16, 110, 0), true);
+        saveButton.addActionListener(event -> saveChanges());
+
+        actions.add(areaButton);
         actions.add(cancelButton);
         actions.add(saveButton);
         return actions;
     }
 
-    private JPanel createEditableField(String labelText, JComponent editor) {
-        JPanel fieldPanel = createFieldPanel();
-
-        JLabel label = createFieldLabel(labelText);
-        editor.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-
-        JPanel editorWrapper = createRoundedInputWrapper();
-        editorWrapper.setBorder(new EmptyBorder(6, 12, 6, 12));
-        editorWrapper.add(editor, BorderLayout.CENTER);
-
-        fieldPanel.add(label);
-        fieldPanel.add(Box.createVerticalStrut(6));
-        fieldPanel.add(editorWrapper);
-        return fieldPanel;
-    }
-
-    private JPanel createReadOnlyField(String labelText, JTextField valueField) {
-        JPanel fieldPanel = createFieldPanel();
-
-        JPanel wrapper = createRoundedInputWrapper();
-        wrapper.setBorder(new EmptyBorder(10, 14, 10, 14));
-        wrapper.add(valueField, BorderLayout.CENTER);
-
-        fieldPanel.add(createFieldLabel(labelText));
-        fieldPanel.add(Box.createVerticalStrut(6));
-        fieldPanel.add(wrapper);
-        return fieldPanel;
-    }
-
-    private JPanel createFieldPanel() {
-        JPanel fieldPanel = new JPanel();
-        fieldPanel.setOpaque(false);
-        fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
-        fieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        fieldPanel.setPreferredSize(new Dimension(420, 68));
-        fieldPanel.setMinimumSize(new Dimension(420, 68));
-        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
-        return fieldPanel;
-    }
-
-    private JLabel createFieldLabel(String labelText) {
+    private JPanel createReadOnlyField(String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        label.setForeground(new Color(75, 85, 99));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(107, 114, 128));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
+
+        JPanel wrapper = createFieldWrapper(field, false);
+        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel container = new JPanel();
+        container.setOpaque(false);
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setAlignmentX(Component.LEFT_ALIGNMENT);
+        container.add(label);
+        container.add(Box.createVerticalStrut(6));
+        container.add(wrapper);
+        return container;
     }
 
-    private JPanel createRoundedInputWrapper() {
+    private JPanel createEditableField(String labelText, JTextField field) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(107, 114, 128));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel wrapper = createFieldWrapper(field, true);
+        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel container = new JPanel();
+        container.setOpaque(false);
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setAlignmentX(Component.LEFT_ALIGNMENT);
+        container.add(label);
+        container.add(Box.createVerticalStrut(6));
+        container.add(wrapper);
+        return container;
+    }
+
+    private JPanel createFieldWrapper(JTextField field, boolean editable) {
+        field.setEditable(editable);
+        field.setBorder(null);
+        field.setOpaque(false);
+        field.setFocusable(editable);
+        field.setFont(new Font("Segoe UI", editable ? Font.PLAIN : Font.BOLD, 15));
+        field.setForeground(new Color(31, 41, 55));
+        field.setPreferredSize(new Dimension(480, 40));
+
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -227,43 +203,41 @@ public class AreaAdd extends JPanel {
             }
         };
         wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(420, 40));
-        wrapper.setMinimumSize(new Dimension(420, 40));
+        wrapper.setPreferredSize(new Dimension(520, 40));
+        wrapper.setMinimumSize(new Dimension(520, 40));
         wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+        wrapper.add(field, BorderLayout.CENTER);
+        wrapper.setBorder(new EmptyBorder(0, 12, 0, 12));
         return wrapper;
     }
 
-    private void bindLoaiTheThao() {
-        DefaultComboBoxModel<Area.SportTypeOption> model = new DefaultComboBoxModel<>();
-        for (Area.SportTypeOption sportType : areaController.getLoaiTheThaoList()) {
-            model.addElement(sportType);
-        }
-        sportTypeComboBox.setModel(model);
-        sportTypeComboBox.setBorder(null);
-        sportTypeComboBox.setBackground(new Color(249, 250, 251));
-
-        if (model.getSize() > 0) {
-            sportTypeComboBox.setSelectedIndex(0);
-        }
+    private void bindData(String maCn) {
+        Branch branch = branchController.getBranchDetail(maCn);
+        maCnField.setText(branch.maCn());
+        tenChiNhanhField.setText(branch.tenChiNhanh());
+        diaChiField.setText(branch.diaChi());
+        hotlineField.setText(branch.hotline() == null ? "" : branch.hotline());
     }
 
-    private void saveNewKhuVuc() {
-        if (generatedMaKv == null || generatedMaKv.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Không thể sinh mã khu vực mới.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+    private void saveChanges() {
+        if (currentMaCn == null || currentMaCn.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy chi nhánh cần sửa.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Area.SportTypeOption selectedSportType = (Area.SportTypeOption) sportTypeComboBox.getSelectedItem();
-        if (selectedSportType == null) {
-            JOptionPane.showMessageDialog(this, "Hãy chọn loại thể thao.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        String ten = tenChiNhanhField.getText() == null ? "" : tenChiNhanhField.getText().trim();
+        String diaChi = diaChiField.getText() == null ? "" : diaChiField.getText().trim();
+        String hotline = hotlineField.getText() == null ? "" : hotlineField.getText().trim();
+
+        if (ten.isEmpty() || diaChi.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tên chi nhánh và địa chỉ là bắt buộc.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Bạn có muốn tạo khu vực này không?",
-                "Xác nhận tạo",
+                "Bạn có muốn lưu thay đổi chi nhánh này không?",
+                "Xác nhận lưu",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE
         );
@@ -271,38 +245,33 @@ public class AreaAdd extends JPanel {
             return;
         }
 
-        AreaCreateRequest request = new AreaCreateRequest(
-                generatedMaKv,
-                areaController.getDefaultChiNhanhId(),
-                selectedSportType.maTt(),
-                0
-        );
+        BranchUpdateRequest request = new BranchUpdateRequest(currentMaCn, ten, diaChi, hotline.isEmpty() ? null : hotline);
 
         try {
-            areaController.createKhuVuc(request);
-            JOptionPane.showMessageDialog(this, "Đã thêm khu vực mới.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            branchController.saveBranchChanges(request);
+            JOptionPane.showMessageDialog(this, "Đã cập nhật chi nhánh.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             if (dialog != null) {
                 dialog.setVisible(false);
             }
-            onSaved.accept(generatedMaKv);
+            onSaved.accept(currentMaCn);
         } catch (IllegalStateException exception) {
             JOptionPane.showMessageDialog(
                     this,
                     exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
-                    "Lỗi thêm khu vực",
+                    "Lỗi cập nhật chi nhánh",
                     JOptionPane.ERROR_MESSAGE
             );
         }
     }
 
-    private void cancelCreate() {
+    private void cancelEdit() {
         if (dialog != null) {
             dialog.setVisible(false);
         }
     }
 
-    private void showSubCourtList() {
-        JOptionPane.showMessageDialog(this, "Chưa làm chức năng liên quan đến sân con.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+    private void showAreaList() {
+        JOptionPane.showMessageDialog(this, "Chưa có chức năng này.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {
@@ -312,6 +281,15 @@ public class AreaAdd extends JPanel {
         textField.setOpaque(false);
         textField.setFocusable(false);
         textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setForeground(new Color(31, 41, 55));
+        return textField;
+    }
+
+    private JTextField createEditableField() {
+        JTextField textField = new JTextField();
+        textField.setBorder(null);
+        textField.setOpaque(false);
+        textField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

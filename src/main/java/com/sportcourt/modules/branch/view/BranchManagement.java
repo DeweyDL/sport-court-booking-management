@@ -1,7 +1,7 @@
-package com.sportcourt.modules.area.view;
+package com.sportcourt.modules.branch.view;
 
-import com.sportcourt.modules.area.controller.AreaController;
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.branch.controller.BranchController;
+import com.sportcourt.modules.branch.entity.Branch;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,36 +14,30 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class AreaManagement extends JPanel {
+public class BranchManagement extends JPanel {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
-    private final AreaController areaController = new AreaController();
+    private final BranchController branchController = new BranchController();
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final AreaChange suaKhuVuc = new AreaChange(areaController, id -> {
-        loadKhuVucData(searchField.getText());
-    });
+    private final BranchChange suaChiNhanh = new BranchChange(branchController, id -> loadChiNhanhData(searchField.getText()));
+    private final BranchAdd themChiNhanh = new BranchAdd(branchController, id -> loadChiNhanhData(searchField.getText()));
 
-    private final AreaAdd themKhuVuc = new AreaAdd(areaController, id -> {
-        loadKhuVucData(searchField.getText());
-    });
-
-    public AreaManagement() {
+    public BranchManagement() {
         setLayout(new BorderLayout());
         setBackground(new Color(245, 247, 250));
         setBorder(new EmptyBorder(100, 70, 50, 70));
 
-        searchDebounceTimer = new Timer(300, event -> loadKhuVucData(searchField.getText()));
+        searchDebounceTimer = new Timer(300, event -> loadChiNhanhData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
-
-        loadKhuVucData(null);
+        loadChiNhanhData(null);
     }
 
     private JPanel createListPage() {
@@ -59,19 +53,19 @@ public class AreaManagement extends JPanel {
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
         headerPanel.setOpaque(false);
 
-        JLabel titleLabel = new JLabel("QUẢN LÝ KHU VỰC");
+        JLabel titleLabel = new JLabel("QUẢN LÝ CHI NHÁNH");
         titleLabel.setFont(new Font("Lexend", Font.BOLD, 30));
         titleLabel.setForeground(new Color(26, 26, 26));
         titleLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        JLabel subtitleLabel = new JLabel("Hiển thị dữ liệu các khu vực trực thuộc chi nhánh và hỗ trợ tìm kiếm.");
+        JLabel subtitleLabel = new JLabel("Hiển thị dữ liệu các chi nhánh và hỗ trợ tìm kiếm.");
         subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitleLabel.setForeground(new Color(107, 114, 128));
         subtitleLabel.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         searchField.setPreferredSize(new Dimension(300, 45));
-        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo MAKV hoặc MACN...");
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo MACN hoặc tên chi nhánh...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
         searchField.setBorder(null);
@@ -116,10 +110,10 @@ public class AreaManagement extends JPanel {
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
 
-        JLabel tableTitle = new JLabel("DANH SÁCH KHU VỰC");
+        JLabel tableTitle = new JLabel("DANH SÁCH CHI NHÁNH");
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
-        JButton addButton = createPillButton("+ Thêm khu vực", new Color(228, 250, 226), new Color(16, 110, 0), true);
+        JButton addButton = createPillButton("+ Thêm chi nhánh", new Color(228, 250, 226), new Color(16, 110, 0), true);
         addButton.setFont(new Font("Lexend", Font.BOLD, 17));
         addButton.addActionListener(event -> showCreateView());
 
@@ -136,14 +130,13 @@ public class AreaManagement extends JPanel {
 
         tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
         tablePanel.setBackground(Color.WHITE);
-        
+
         JScrollPane scrollPane = new JScrollPane(tablePanel);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove border from scroll pane
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Adjust scroll speed
-
-        container.add(scrollPane, BorderLayout.CENTER); // Add scroll pane instead of tablePanel directly
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setBackground(Color.WHITE);
@@ -151,6 +144,7 @@ public class AreaManagement extends JPanel {
         infoLabel.setForeground(new Color(107, 114, 128));
         footer.add(infoLabel, BorderLayout.WEST);
         container.add(footer, BorderLayout.SOUTH);
+
         return container;
     }
 
@@ -216,19 +210,21 @@ public class AreaManagement extends JPanel {
         searchDebounceTimer.restart();
     }
 
-    private void loadKhuVucData(String keyword) {
+    private void loadChiNhanhData(String keyword) {
         infoLabel.setText("Đang tải dữ liệu...");
+        renderLoadingState();
 
-        SwingWorker<List<Area>, Void> worker = new SwingWorker<>() {
+        SwingWorker<List<Branch>, Void> worker = new SwingWorker<>() {
             @Override
-            protected List<Area> doInBackground() {
-                return areaController.getKhuVucList(keyword);
+            protected List<Branch> doInBackground() {
+                return branchController.getBranchList(keyword);
             }
 
             @Override
             protected void done() {
                 try {
-                    renderTableData(get());
+                    List<Branch> branches = get();
+                    renderTableData(branches);
                 } catch (Exception exception) {
                     renderErrorState(exception);
                 }
@@ -237,20 +233,29 @@ public class AreaManagement extends JPanel {
         worker.execute();
     }
 
-    private void renderTableData(List<Area> areas) {
+    private void renderLoadingState() {
+        tablePanel.removeAll();
+        tablePanel.add(createTableHeader());
+        tablePanel.add(createMessageRow("Đang tải dữ liệu..."));
+        tablePanel.revalidate();
+        tablePanel.repaint();
+    }
+
+    private void renderTableData(List<Branch> branches) {
         tablePanel.removeAll();
         tablePanel.add(createTableHeader());
 
-        if (areas.isEmpty()) {
-            tablePanel.add(createMessageRow("Không tìm thấy khu vực phù hợp."));
+        if (branches == null || branches.isEmpty()) {
+            tablePanel.add(createMessageRow("Không tìm thấy chi nhánh phù hợp."));
+            infoLabel.setText("Hiển thị 0 chi nhánh");
         } else {
             int rowIndex = 0;
-            for (Area area : areas) {
-                tablePanel.add(createDataRow(area, rowIndex++));
+            for (Branch branch : branches) {
+                tablePanel.add(createDataRow(branch, rowIndex++));
             }
+            infoLabel.setText("Hiển thị " + branches.size() + " chi nhánh");
         }
 
-        infoLabel.setText("Hiển thị " + areas.size() + " khu vực");
         tablePanel.revalidate();
         tablePanel.repaint();
     }
@@ -266,24 +271,24 @@ public class AreaManagement extends JPanel {
         JOptionPane.showMessageDialog(
                 this,
                 exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
-                "Lỗi dữ liệu khu vực",
+                "Lỗi dữ liệu chi nhánh",
                 JOptionPane.ERROR_MESSAGE
         );
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
+        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0));
         header.setBackground(new Color(248, 249, 250));
         header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
         header.setPreferredSize(new Dimension(0, 45));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
 
-        header.add(createHeaderCell("MÃ KHU VỰC"));
         header.add(createHeaderCell("MÃ CHI NHÁNH"));
-        header.add(createHeaderCell("LOẠI THỂ THAO"));
-        header.add(createHeaderCell("SỐ LƯỢNG SÂN"));
+        header.add(createHeaderCell("TÊN CHI NHÁNH"));
+        header.add(createHeaderCell("ĐỊA CHỈ"));
+        header.add(createHeaderCell("HOTLINE"));
         header.add(createHeaderCell("NGÀY TẠO"));
-        header.add(createHeaderCell("TRẠNG THÁI")); // New Status column
+        header.add(createHeaderCell("TRẠNG THÁI"));
         header.add(createHeaderCell("THAO TÁC"));
         return header;
     }
@@ -299,36 +304,35 @@ public class AreaManagement extends JPanel {
         return label;
     }
 
-    private JPanel createDataRow(Area area, int rowIndex) {
+    private JPanel createDataRow(Branch branch, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
+        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0));
         row.setBackground(rowBackground);
         row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
         row.setPreferredSize(new Dimension(0, 64));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-        JLabel maKvLabel = new JLabel(area.maKv());
-        maKvLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        maKvLabel.setForeground(new Color(22, 163, 74));
-        row.add(createAlignedCellPanel(maKvLabel, 25, rowBackground));
+        JLabel maCnLabel = new JLabel(branch.maCn());
+        maCnLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        maCnLabel.setForeground(new Color(22, 163, 74));
+        row.add(createAlignedCellPanel(maCnLabel, 25, rowBackground));
 
-        row.add(createAlignedCellPanel(createCellLabel(area.maCn(), new Color(37, 99, 235)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), 25, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), 15, rowBackground));
+        row.add(createAlignedCellPanel(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), 20, rowBackground));
+        row.add(createAlignedCellPanel(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), 20, rowBackground));
+        row.add(createAlignedCellPanel(createCellLabel(branch.hotline(), new Color(17, 24, 39)), 20, rowBackground));
+        row.add(createAlignedCellPanel(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), 15, rowBackground));
 
-        // New Status cell
-        Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0); // Red for inactive, Green for active
-        row.add(createAlignedCellPanel(createCellLabel(area.getStatus(), statusColor), 15, rowBackground));
+        Color statusColor = branch.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
+        row.add(createAlignedCellPanel(createCellLabel(branch.getStatus(), statusColor), 15, rowBackground));
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 12));
         actionContainer.setOpaque(false);
 
         JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
-        deleteButton.addActionListener(event -> confirmDelete(area));
+        deleteButton.addActionListener(event -> confirmDelete(branch));
 
         JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
-        editButton.addActionListener(event -> showEditView(area.maKv()));
+        editButton.addActionListener(event -> showEditView(branch.maCn()));
 
         actionContainer.add(deleteButton);
         actionContainer.add(editButton);
@@ -379,10 +383,10 @@ public class AreaManagement extends JPanel {
         return panel;
     }
 
-    private void confirmDelete(Area area) {
+    private void confirmDelete(Branch branch) {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Bạn chắc chắn muốn xóa khu vực này không?",
+                "Bạn chắc chắn muốn xóa chi nhánh này không?",
                 "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
@@ -393,25 +397,25 @@ public class AreaManagement extends JPanel {
         }
 
         try {
-            areaController.deleteKhuVuc(area.maKv());
-            loadKhuVucData(searchField.getText());
-            JOptionPane.showMessageDialog(this, "Đã xóa khu vực " + area.maKv() + ".", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            branchController.deleteBranch(branch.maCn());
+            loadChiNhanhData(searchField.getText());
+            JOptionPane.showMessageDialog(this, "Đã xóa chi nhánh " + branch.maCn() + ".", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalStateException exception) {
             JOptionPane.showMessageDialog(
                     this,
                     exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
-                    "Lỗi xóa khu vực",
+                    "Lỗi xóa chi nhánh",
                     JOptionPane.ERROR_MESSAGE
             );
         }
     }
 
-    private void showEditView(String maKv) {
-        suaKhuVuc.showEditor(this, maKv);
+    private void showEditView(String maCn) {
+        suaChiNhanh.showEditor(this, maCn);
     }
 
     private void showCreateView() {
-        themKhuVuc.showCreator(this);
+        themChiNhanh.showCreator(this);
     }
 
     private String formatDate(LocalDateTime dateTime) {
@@ -440,3 +444,4 @@ public class AreaManagement extends JPanel {
         return btn;
     }
 }
+

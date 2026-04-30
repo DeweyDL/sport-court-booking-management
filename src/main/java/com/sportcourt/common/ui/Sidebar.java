@@ -3,6 +3,7 @@ package com.sportcourt.common.ui;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.modules.area.view.AreaManagement;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
+import com.sportcourt.modules.equipment.view.EquipmentManagement;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -42,7 +43,7 @@ public class Sidebar extends JFrame {
         mainContentPanel.add(createPage("BÁO CÁO DOANH THU"), "BÁO CÁO DOANH THU");
         mainContentPanel.add(new AreaManagement(), "QUẢN LÝ CHI NHÁNH");
         mainContentPanel.add(new ManageCustomerScreen(), "QUẢN LÝ KHÁCH HÀNG");
-        mainContentPanel.add(createPage("QUẢN LÝ DỤNG CỤ"), "QUẢN LÝ DỤNG CỤ");
+        mainContentPanel.add(new EquipmentManagement(), "QUẢN LÝ DỤNG CỤ");
         mainContentPanel.add(createPage("QUẢN LÝ SẢN PHẨM DỊCH VỤ"), "QUẢN LÝ SẢN PHẨM DỊCH VỤ");
         mainContentPanel.add(createPage("QUẢN LÝ NHÂN VIÊN"), "QUẢN LÝ NHÂN VIÊN");
 
