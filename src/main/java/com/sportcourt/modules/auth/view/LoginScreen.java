@@ -1,6 +1,7 @@
 package com.sportcourt.modules.auth.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.common.ui.Sidebar;
 import com.sportcourt.modules.auth.controller.AuthController;
 import com.sportcourt.modules.auth.dto.AuthResult;
 import com.sportcourt.modules.auth.dto.LoginRequest;
@@ -150,6 +151,7 @@ public class LoginScreen extends JFrame {
             AuthResult result = authController.login(new LoginRequest(phoneValue, passwordValue));
             if (result.success()) {
                 AppDialog.showInfo(this, result.message());
+                new Sidebar().setVisible(true);
                 dispose();
             } else {
                 AppDialog.showError(this, result.message());

@@ -2,6 +2,10 @@ package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.modules.area.view.AreaManagement;
+import com.sportcourt.modules.auth.dto.PermissionAction;
+import com.sportcourt.modules.auth.dto.UserSession;
+import com.sportcourt.modules.auth.service.SessionManager;
+import com.sportcourt.modules.auth.view.LoginScreen;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,7 +27,10 @@ public class Sidebar extends JFrame {
     private final Color LOGO_COLOR = Color.decode("#39ff14");
     private final Color LOGOUT_RED = Color.decode("#FF4D4D");
 
+    private final UserSession session;
+
     public Sidebar() {
+        this.session = SessionManager.requireSession();
         setTitle("RentSta - Facility Management");
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -85,7 +92,9 @@ public class Sidebar extends JFrame {
                 logoLabel.setIcon(icon);
                 logoLabel.setIconTextGap(12);
             }
-        } catch (Exception e) { System.err.println("Logo not found"); }
+        } catch (Exception e) {
+            System.err.println("Logo not found");
+        }
 
         logoPanel.add(logoLabel);
         sidebar.add(logoPanel, BorderLayout.NORTH);
@@ -96,13 +105,30 @@ public class Sidebar extends JFrame {
         menuPanel.setOpaque(false);
 
         menuPanel.add(createMenuButton("TRANG CHỦ", "/icon/home.1.png"));
-        menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
-        menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
-        menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
-        menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
-        menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM DỊCH VỤ", "/icon/products.1.png"));
-        menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
 
+        if (canView("REPORT_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
+        }
+
+        if (canView("BRANCH_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
+        }
+
+        if (canView("CUSTOMER_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
+        }
+
+        if (canView("EQUIPMENT_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
+        }
+
+        if (canView("PRODUCT_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM DỊCH VỤ", "/icon/products.1.png"));
+        }
+
+        if (canView("EMPLOYEE_MANAGEMENT")) {
+            menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
+        }
         sidebar.add(menuPanel, BorderLayout.CENTER);
 
         // --- Bottom Menu ---
@@ -143,7 +169,8 @@ public class Sidebar extends JFrame {
                         .getScaledInstance(20, 20, Image.SCALE_SMOOTH)));
                 button.setIconTextGap(10);
             }
-        } catch (Exception e) { }
+        } catch (Exception e) {
+        }
 
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
@@ -175,7 +202,11 @@ public class Sidebar extends JFrame {
         button.addActionListener(e -> {
             if (text.equals("ĐĂNG XUẤT")) {
                 int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) System.exit(0);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    SessionManager.clear();
+                    dispose();
+                    new LoginScreen().setVisible(true);
+                }
             } else {
                 setActiveButton(wrapper, button);
                 cardLayout.show(mainContentPanel, text);
@@ -189,6 +220,7 @@ public class Sidebar extends JFrame {
                     wrapper.repaint();
                 }
             }
+
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 wrapper.putClientProperty("isHover", false);
                 wrapper.repaint();
@@ -225,6 +257,10 @@ public class Sidebar extends JFrame {
         panel.setBackground(Color.WHITE);
         panel.add(new JLabel("<html><h1 style='color:#333; font-family: Lexend;'>" + title + "</h1></html>"));
         return panel;
+    }
+
+    private boolean canView(String functionId) {
+        return session.hasPermission(functionId, PermissionAction.VIEW);
     }
 
     public static void main(String[] args) {

@@ -21,21 +21,22 @@ public class AuthServiceImpl implements AuthService {
     private static final int OTP_EXPIRE_MINUTES = 5;
     private static final int OTP_VERIFIED_WINDOW_MINUTES = 10;
     private static final int SESSION_EXPIRE_MINUTES = 120;
-
+    private final PermissionService permissionService;
     private final AuthDao authDao;
     private MailSender mailSender;
 
     public AuthServiceImpl() {
-        this(new JdbcAuthDao(), new MailSender());
+        this(new JdbcAuthDao(), new MailSender(), new PermissionServiceImpl());
     }
 
     public AuthServiceImpl(AuthDao authDao) {
-        this(authDao, new MailSender());
+        this(authDao, new MailSender(), new PermissionServiceImpl());
     }
 
-    public AuthServiceImpl(AuthDao authDao, MailSender mailSender) {
+    public AuthServiceImpl(AuthDao authDao, MailSender mailSender, PermissionService permissionService) {
         this.authDao = authDao;
         this.mailSender = mailSender;
+        this.permissionService = permissionService;
     }
 
     @Override
@@ -58,6 +59,7 @@ public class AuthServiceImpl implements AuthService {
             }
             String sessionToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
             authDao.createAccountToken(generateId("TOK"), principal.get().accountId(), sessionToken, SESSION_EXPIRE_MINUTES);
+            SessionManager.setCurrentSession(permissionService.loadUserSession(principal.get().accountId()));
             return AuthResult.ok("Đăng nhập thành công.", principal.get());
         } catch (SQLException e) {
             return AuthResult.fail("Đăng nhập thất bại: " + mapOracleError(e));
@@ -74,6 +76,7 @@ public class AuthServiceImpl implements AuthService {
             String userId = generateId("USR");
             String accountId = generateId("ACC");
             String customerId = generateId("KH");
+            String accountRoleGroupId = generateId("ARG");
             String password = normalize(request.password());
             String passwordHash = Sha256Password.hash(password);
 
@@ -88,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
                 return AuthResult.fail("Vui lòng xác thực OTP email trước khi đăng ký.");
             }
 
-            authDao.createUserAndAccount(userId, accountId, customerId, normalized, passwordHash);
+            authDao.createUserAndAccount(userId, accountId, customerId, accountRoleGroupId, normalized, passwordHash);
             return AuthResult.ok("Đăng ký thành công.", null);
         } catch (SQLException e) {
             return AuthResult.fail("Đăng ký thất bại: " + mapOracleError(e));
