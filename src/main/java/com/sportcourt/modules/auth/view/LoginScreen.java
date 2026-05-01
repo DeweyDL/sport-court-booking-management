@@ -16,6 +16,13 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class LoginScreen extends JFrame {
+    private static final double WINDOW_WIDTH_RATIO = 0.9;
+    private static final double WINDOW_HEIGHT_RATIO = 0.9;
+    private static final int MIN_WINDOW_WIDTH = 1100;
+    private static final int MIN_WINDOW_HEIGHT = 680;
+    private static final double LEFT_PANEL_WEIGHT = 1.8;
+    private static final double RIGHT_PANEL_WEIGHT = 0.9;
+
     private final AuthController authController = new AuthController();
 
     // Khởi tạo các thành phần để tạo CardLayout
@@ -25,8 +32,7 @@ public class LoginScreen extends JFrame {
     public LoginScreen() {
         AppFonts.register();
         setTitle("RentSta Login");
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setLocationRelativeTo(null);
+        applyResponsiveWindowSize();
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         rightPanel.setBackground(new Color(242, 242, 242));
 
@@ -37,7 +43,8 @@ public class LoginScreen extends JFrame {
         gbc.weighty = 1;
 
         // PANEL BÊN TRÁI
-        BackgroundPanel leftPanel = new BackgroundPanel("/image/bg.png");
+        // Use COVER so left background fully fills its side without distortion.
+        BackgroundPanel leftPanel = new BackgroundPanel("/image/bg.png", BackgroundPanel.ScaleMode.COVER);
         leftPanel.setLayout(new GridBagLayout());
 
 
@@ -45,11 +52,11 @@ public class LoginScreen extends JFrame {
         JPanel loginPanel = new JPanel();
         loginPanel.setBackground(new Color(242, 242, 242));
         loginPanel.setLayout(new GridBagLayout());
-        loginPanel.setBorder(BorderFactory.createEmptyBorder(48, 48, 48, 48));
+        loginPanel.setBorder(BorderFactory.createEmptyBorder(32, 24, 32, 24));
 
         // Giữ nguyên các thông số r của bạn
         GridBagConstraints r = new GridBagConstraints();
-        r.insets = new Insets(10, 180, 10, 180);
+        r.insets = new Insets(8, 24, 8, 24);
         r.gridx = 0;
         r.weightx = 1;
         r.weighty = 0;
@@ -57,11 +64,11 @@ public class LoginScreen extends JFrame {
         r.anchor = GridBagConstraints.CENTER;
 
         JLabel title = new JLabel("CHÀO MỪNG TRỞ LẠI!");
-        title.setFont(AppFonts.lexendBold(40f));
+        title.setFont(AppFonts.lexendBold(34f));
         title.setForeground(Color.BLACK);
 
         JLabel subtitle = new JLabel("Vui lòng điền thông tin tài khoản của bạn.");
-        subtitle.setFont(AppFonts.lexendRegular(18f));
+        subtitle.setFont(AppFonts.lexendRegular(16f));
         subtitle.setForeground(new Color(120, 120, 120));
 
         JTextField phoneField = new JTextField();
@@ -113,7 +120,7 @@ public class LoginScreen extends JFrame {
             }
         };
         loginBtn.setForeground(Color.BLACK);
-        loginBtn.setFont(AppFonts.lexendBold(22f));
+        loginBtn.setFont(AppFonts.lexendBold(20f));
         loginBtn.setFocusPainted(false);
         loginBtn.setContentAreaFilled(false);
         loginBtn.setBorderPainted(false);
@@ -186,11 +193,11 @@ public class LoginScreen extends JFrame {
 
         // Layout JFrame chính (Giữ nguyên weightx của bạn)
         gbc.gridx = 0;
-        gbc.weightx = 8;
+        gbc.weightx = LEFT_PANEL_WEIGHT;
         add(leftPanel, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 1;
+        gbc.weightx = RIGHT_PANEL_WEIGHT;
         add(rightPanel, gbc);
     }
 
@@ -224,5 +231,14 @@ public class LoginScreen extends JFrame {
             e.printStackTrace();
         }
         SwingUtilities.invokeLater(() -> new LoginScreen().setVisible(true));
+    }
+
+    private void applyResponsiveWindowSize() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = Math.max(MIN_WINDOW_WIDTH, (int) (screenSize.width * WINDOW_WIDTH_RATIO));
+        int height = Math.max(MIN_WINDOW_HEIGHT, (int) (screenSize.height * WINDOW_HEIGHT_RATIO));
+        setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
+        setMinimumSize(new Dimension(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT));
+        setLocationRelativeTo(null);
     }
 }

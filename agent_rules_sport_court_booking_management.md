@@ -113,24 +113,28 @@ Hệ thống có 5 actor logic:
 
 Trong nghiệp vụ tiếng Việt:
 
-| Actor | Ý nghĩa |
-|---|---|
-| User | Actor cơ sở, mọi người dùng đã xác thực đều kế thừa từ User |
-| Customer / Khách hàng | Người đặt sân online, xem lịch sử đặt sân, cập nhật thông tin cá nhân |
-| Cashier / Nhân viên thu ngân | Nhân viên tại chi nhánh, hỗ trợ đặt sân tại quầy, xác nhận lịch, thêm dịch vụ, tạo và thanh toán hóa đơn |
-| BranchManager / Quản lý chi nhánh | Quản lý hoạt động trong phạm vi một chi nhánh |
-| Owner / Chủ sân | Quyền cao nhất, quản lý toàn bộ hệ thống và tất cả chi nhánh |
+
+| Actor                             | Ý nghĩa                                                                                                  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| User                              | Actor cơ sở, mọi người dùng đã xác thực đều kế thừa từ User                                              |
+| Customer / Khách hàng             | Người đặt sân online, xem lịch sử đặt sân, cập nhật thông tin cá nhân                                    |
+| Cashier / Nhân viên thu ngân      | Nhân viên tại chi nhánh, hỗ trợ đặt sân tại quầy, xác nhận lịch, thêm dịch vụ, tạo và thanh toán hóa đơn |
+| BranchManager / Quản lý chi nhánh | Quản lý hoạt động trong phạm vi một chi nhánh                                                            |
+| Owner / Chủ sân                   | Quyền cao nhất, quản lý toàn bộ hệ thống và tất cả chi nhánh                                             |
+
 
 ### 4.1. Scope dữ liệu theo vai trò
 
 Agent phải luôn áp dụng scope dữ liệu:
 
-| Vai trò | Phạm vi dữ liệu |
-|---|---|
-| Customer | Chỉ xem/sửa dữ liệu của chính khách hàng đó |
-| Cashier | Chỉ thao tác dữ liệu thuộc chi nhánh của nhân viên |
-| BranchManager | Chỉ quản lý dữ liệu thuộc chi nhánh mình quản lý |
-| Owner | Được xem/quản lý toàn hệ thống |
+
+| Vai trò       | Phạm vi dữ liệu                                    |
+| ------------- | -------------------------------------------------- |
+| Customer      | Chỉ xem/sửa dữ liệu của chính khách hàng đó        |
+| Cashier       | Chỉ thao tác dữ liệu thuộc chi nhánh của nhân viên |
+| BranchManager | Chỉ quản lý dữ liệu thuộc chi nhánh mình quản lý   |
+| Owner         | Được xem/quản lý toàn hệ thống                     |
+
 
 Không được để cashier hoặc branch manager truy cập dữ liệu chi nhánh khác, trừ khi người dùng yêu cầu thay đổi nghiệp vụ.
 
@@ -168,14 +172,16 @@ View / Swing Panel
 
 Agent phải giữ tách biệt trách nhiệm:
 
-| Layer | Trách nhiệm |
-|---|---|
-| Entity / Model | Chỉ biểu diễn dữ liệu, không chứa nghiệp vụ phức tạp |
-| DAO | Thao tác SQL/JDBC, mapping ResultSet, transaction khi cần |
-| Service | Xử lý nghiệp vụ, validate rule, gọi DAO |
-| Controller / Handler | Nhận action từ UI, gọi service, điều hướng UI |
-| View / Panel | Hiển thị giao diện Swing, không chứa SQL, không xử lý nghiệp vụ nặng |
-| Session | Lưu user/account hiện tại, role group, permission, branch scope |
+
+| Layer                | Trách nhiệm                                                          |
+| -------------------- | -------------------------------------------------------------------- |
+| Entity / Model       | Chỉ biểu diễn dữ liệu, không chứa nghiệp vụ phức tạp                 |
+| DAO                  | Thao tác SQL/JDBC, mapping ResultSet, transaction khi cần            |
+| Service              | Xử lý nghiệp vụ, validate rule, gọi DAO                              |
+| Controller / Handler | Nhận action từ UI, gọi service, điều hướng UI                        |
+| View / Panel         | Hiển thị giao diện Swing, không chứa SQL, không xử lý nghiệp vụ nặng |
+| Session              | Lưu user/account hiện tại, role group, permission, branch scope      |
+
 
 ### 5.3. Không được làm
 
@@ -199,35 +205,37 @@ Entity Java phải dùng tiếng Anh toàn bộ.
 
 Ví dụ mapping đề xuất:
 
-| Bảng database | Entity Java |
-|---|---|
-| USERS | User |
-| ACCOUNT | Account |
-| ACCOUNT_TOKEN | AccountToken |
-| FUNCTION / FUNCTIONS | SystemFunction |
-| ROLE | Role |
-| ROLE_GROUP | RoleGroup |
-| ACCOUNT_ROLE | AccountRole |
-| ACCOUNT_ROLE_GROUP | AccountRoleGroup |
-| ACCOUNT_ROLE_GROUP_MAPPING | AccountRoleGroupMapping |
-| KHACH_HANG | Customer |
-| HANG_KHACH_HANG | CustomerRank |
-| HOA_DON | Invoice |
-| CHI_TIET_HOA_DON_THUE_SAN | CourtRentalInvoiceDetail |
+
+| Bảng database                    | Entity Java              |
+| -------------------------------- | ------------------------ |
+| USERS                            | User                     |
+| ACCOUNT                          | Account                  |
+| ACCOUNT_TOKEN                    | AccountToken             |
+| FUNCTION / FUNCTIONS             | SystemFunction           |
+| ROLE                             | Role                     |
+| ROLE_GROUP                       | RoleGroup                |
+| ACCOUNT_ROLE                     | AccountRole              |
+| ACCOUNT_ROLE_GROUP               | AccountRoleGroup         |
+| ACCOUNT_ROLE_GROUP_MAPPING       | AccountRoleGroupMapping  |
+| KHACH_HANG                       | Customer                 |
+| HANG_KHACH_HANG                  | CustomerRank             |
+| HOA_DON                          | Invoice                  |
+| CHI_TIET_HOA_DON_THUE_SAN        | CourtRentalInvoiceDetail |
 | CHI_TIET_HOA_DON_DICH_VU_DA_DUNG | UsedServiceInvoiceDetail |
-| SAN_CON | Court |
-| KHU_VUC | SportArea |
-| CHI_NHANH | Branch |
-| LOAI_THE_THAO | SportType |
-| BANG_GIA | PriceTable |
-| NHAN_VIEN | Employee |
-| LOAI_NHAN_VIEN | EmployeeType |
-| SAN_PHAM | Product |
-| DUNG_CU_THE_THAO | SportEquipment |
-| NHAP_HANG | ImportReceipt |
-| CHI_TIET_NHAP_HANG | ProductImportDetail |
-| CHI_TIET_NHAP_DUNG_CU | EquipmentImportDetail |
-| NHA_CUNG_CAP | Supplier |
+| SAN_CON                          | Court                    |
+| KHU_VUC                          | SportArea                |
+| CHI_NHANH                        | Branch                   |
+| LOAI_THE_THAO                    | SportType                |
+| BANG_GIA                         | PriceTable               |
+| NHAN_VIEN                        | Employee                 |
+| LOAI_NHAN_VIEN                   | EmployeeType             |
+| SAN_PHAM                         | Product                  |
+| DUNG_CU_THE_THAO                 | SportEquipment           |
+| NHAP_HANG                        | ImportReceipt            |
+| CHI_TIET_NHAP_HANG               | ProductImportDetail      |
+| CHI_TIET_NHAP_DUNG_CU            | EquipmentImportDetail    |
+| NHA_CUNG_CAP                     | Supplier                 |
+
 
 ### 6.2. DAO theo module
 
@@ -356,14 +364,16 @@ Nếu gặp các tên chưa thống nhất, agent phải hỏi lại hoặc theo
 
 Các điểm cần chú ý:
 
-| Khái niệm | Tên có thể gặp |
-|---|---|
-| Chi nhánh | `MACN`, `MACHINHANH` |
-| Function | `FUNCTION`, `FUNCTIONS` |
+
+| Khái niệm             | Tên có thể gặp               |
+| --------------------- | ---------------------------- |
+| Chi nhánh             | `MACN`, `MACHINHANH`         |
+| Function              | `FUNCTION`, `FUNCTIONS`      |
 | Giá thuê sân snapshot | `DONGIATHUE`, `DON_GIA_THUE` |
-| Đơn giá dịch vụ | `DONGIA`, `DON_GIA` |
-| Tiền cọc | `TIENCOC`, `TIEN_COC` |
-| Trạng thái khách hàng | `TRANGTHAI`, `TRANG_THAI` |
+| Đơn giá dịch vụ       | `DONGIA`, `DON_GIA`          |
+| Tiền cọc              | `TIENCOC`, `TIEN_COC`        |
+| Trạng thái khách hàng | `TRANGTHAI`, `TRANG_THAI`    |
+
 
 Agent không được tự rename DB khi chưa được duyệt.
 
@@ -478,12 +488,14 @@ Tùy source hiện tại dùng tên cột nào, agent phải theo source/databas
 
 Các nhóm role chính:
 
-| Role group | Ý nghĩa |
-|---|---|
-| CUSTOMER | Khách hàng |
-| CASHIER | Nhân viên thu ngân |
-| BRANCH_MANAGER | Quản lý chi nhánh |
-| OWNER | Chủ sân |
+
+| Role group     | Ý nghĩa            |
+| -------------- | ------------------ |
+| CUSTOMER       | Khách hàng         |
+| CASHIER        | Nhân viên thu ngân |
+| BRANCH_MANAGER | Quản lý chi nhánh  |
+| OWNER          | Chủ sân            |
+
 
 ### 9.3. Rule kiểm tra quyền
 
@@ -521,23 +533,25 @@ Khi build sidebar:
 
 Gợi ý mapping module:
 
-| Module UI | Function code gợi ý |
-|---|---|
-| Quản lý tài khoản | ACCOUNT_MANAGEMENT |
-| Quản lý phân quyền | PERMISSION_MANAGEMENT |
-| Quản lý chi nhánh | BRANCH_MANAGEMENT |
-| Quản lý khu vực | AREA_MANAGEMENT |
-| Quản lý sân con | COURT_MANAGEMENT |
-| Quản lý bảng giá | PRICE_MANAGEMENT |
-| Quản lý đặt sân | BOOKING_MANAGEMENT |
-| Quản lý hóa đơn | INVOICE_MANAGEMENT |
-| Quản lý khách hàng | CUSTOMER_MANAGEMENT |
-| Quản lý nhân viên | EMPLOYEE_MANAGEMENT |
-| Quản lý sản phẩm | PRODUCT_MANAGEMENT |
-| Quản lý dụng cụ | EQUIPMENT_MANAGEMENT |
-| Quản lý nhập hàng | IMPORT_MANAGEMENT |
-| Quản lý tài chính/doanh thu | FINANCE_MANAGEMENT |
-| Báo cáo | REPORT_MANAGEMENT |
+
+| Module UI                   | Function code gợi ý   |
+| --------------------------- | --------------------- |
+| Quản lý tài khoản           | ACCOUNT_MANAGEMENT    |
+| Quản lý phân quyền          | PERMISSION_MANAGEMENT |
+| Quản lý chi nhánh           | BRANCH_MANAGEMENT     |
+| Quản lý khu vực             | AREA_MANAGEMENT       |
+| Quản lý sân con             | COURT_MANAGEMENT      |
+| Quản lý bảng giá            | PRICE_MANAGEMENT      |
+| Quản lý đặt sân             | BOOKING_MANAGEMENT    |
+| Quản lý hóa đơn             | INVOICE_MANAGEMENT    |
+| Quản lý khách hàng          | CUSTOMER_MANAGEMENT   |
+| Quản lý nhân viên           | EMPLOYEE_MANAGEMENT   |
+| Quản lý sản phẩm            | PRODUCT_MANAGEMENT    |
+| Quản lý dụng cụ             | EQUIPMENT_MANAGEMENT  |
+| Quản lý nhập hàng           | IMPORT_MANAGEMENT     |
+| Quản lý tài chính/doanh thu | FINANCE_MANAGEMENT    |
+| Báo cáo                     | REPORT_MANAGEMENT     |
+
 
 ---
 
@@ -1131,13 +1145,15 @@ Không nên:
 
 Button/action phải enable/disable hoặc hide theo permission:
 
-| Action | Permission |
-|---|---|
-| Xem danh sách | VIEW |
-| Thêm | ADD |
-| Sửa | EDIT |
-| Xóa | DELETE |
-| Xuất file | DOWNLOAD |
+
+| Action        | Permission |
+| ------------- | ---------- |
+| Xem danh sách | VIEW       |
+| Thêm          | ADD        |
+| Sửa           | EDIT       |
+| Xóa           | DELETE     |
+| Xuất file     | DOWNLOAD   |
+
 
 Nhưng service vẫn phải kiểm tra lại quyền.
 
@@ -1441,3 +1457,4 @@ Tôi phải theo tài liệu, source branch develop và không tự ý đổi th
 Tôi phải hỏi lại khi chưa rõ.
 Tôi phải đề xuất để người dùng review trước khi thay đổi.
 ```
+

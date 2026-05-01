@@ -1,11 +1,14 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.modules.account.view.AccountManagementPanel;
 import com.sportcourt.modules.area.view.AreaManagement;
 import com.sportcourt.modules.auth.dto.PermissionAction;
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.auth.view.LoginScreen;
+import com.sportcourt.modules.court.view.CourtManagementPanel;
+import com.sportcourt.modules.customer.view.ManageCustomerPreviewScreen;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,11 +16,16 @@ import java.awt.*;
 import java.net.URL;
 
 public class Sidebar extends JFrame {
+    private static final int SIDEBAR_MIN_WIDTH = 220;
+    private static final int SIDEBAR_MAX_WIDTH = 320;
+    private static final double SIDEBAR_WIDTH_RATIO = 0.22;
 
-    private JPanel mainContentPanel;
-    private CardLayout cardLayout;
+    private ContentPanel contentPanel;
+    private JLabel currentTitleLabel;
     private JPanel menuPanel;
     private JPanel bottomPanel;
+    private JPanel sidebarContainer;
+    private boolean sidebarVisible = true;
 
     private final Color SIDEBAR_BG = Color.decode("#2f3c33");
     private final Color SIDEBAR_HOVER_BG = Color.decode("#43464A");
@@ -32,36 +40,32 @@ public class Sidebar extends JFrame {
     public Sidebar() {
         this.session = SessionManager.requireSession();
         setTitle("RentSta - Facility Management");
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        add(createSidebar(), BorderLayout.WEST);
+        sidebarContainer = createSidebar();
+        add(sidebarContainer, BorderLayout.WEST);
 
-        cardLayout = new CardLayout();
-        mainContentPanel = new JPanel(cardLayout);
-        mainContentPanel.setBackground(Color.decode("#F5F7FA"));
+        contentPanel = new ContentPanel();
+        registerModuleViews();
+        add(createContentWrapper(), BorderLayout.CENTER);
 
-        // Thêm các trang tương ứng
-        mainContentPanel.add(createPage("TRANG CHỦ"), "TRANG CHỦ");
-        mainContentPanel.add(createPage("BÁO CÁO DOANH THU"), "BÁO CÁO DOANH THU");
-        mainContentPanel.add(new AreaManagement(), "QUẢN LÝ CHI NHÁNH");
-        mainContentPanel.add(createPage("QUẢN LÝ KHÁCH HÀNG"), "QUẢN LÝ KHÁCH HÀNG");
-        mainContentPanel.add(createPage("QUẢN LÝ DỤNG CỤ"), "QUẢN LÝ DỤNG CỤ");
-        mainContentPanel.add(createPage("QUẢN LÝ SẢN PHẨM DỊCH VỤ"), "QUẢN LÝ SẢN PHẨM DỊCH VỤ");
-        mainContentPanel.add(createPage("QUẢN LÝ NHÂN VIÊN"), "QUẢN LÝ NHÂN VIÊN");
-
-
-        add(mainContentPanel, BorderLayout.CENTER);
+        applyResponsiveWindowSize();
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent event) {
+                updateSidebarWidth();
+            }
+        });
 
         // Mặc định chọn Trang Chủ
         SwingUtilities.invokeLater(() -> {
+            updateSidebarWidth();
             if (menuPanel.getComponentCount() > 0) {
                 JPanel firstWrapper = (JPanel) menuPanel.getComponent(0);
                 JButton firstButton = (JButton) firstWrapper.getComponent(0);
                 setActiveButton(firstWrapper, firstButton);
-                cardLayout.show(mainContentPanel, "TRANG CHỦ");
+                openView("TRANG CHỦ");
             }
         });
     }
@@ -69,7 +73,7 @@ public class Sidebar extends JFrame {
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(SIDEBAR_BG);
-        sidebar.setPreferredSize(new Dimension(320, 0));
+        sidebar.setPreferredSize(new Dimension(SIDEBAR_MAX_WIDTH, 0));
 
         // --- Logo Area ---
         JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -106,30 +110,30 @@ public class Sidebar extends JFrame {
 
         menuPanel.add(createMenuButton("TRANG CHỦ", "/icon/home.1.png"));
 
-        if (canView("REPORT_MANAGEMENT")) {
-            menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
-        }
-
-        if (canView("BRANCH_MANAGEMENT")) {
-            menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
-        }
-
-        if (canView("CUSTOMER_MANAGEMENT")) {
+        if (canView("ACCOUNT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
+        if (canView("REPORT_MANAGEMENT")) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
+        if (canView("BRANCH_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
+        if (canView("AREA_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ KHU VỰC", "/icon/branch.1.png"));
+        if (canView("COURT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
+        if (canView("PRICE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ BẢNG GIÁ", "/icon/report.1.png"));
+        if (canView("BOOKING_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ ĐẶT SÂN", "/icon/home.1.png"));
+        if (canView("SERVICE_MANAGEMENT")) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));
+        if (canView("INVOICE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ HÓA ĐƠN", "/icon/report.1.png"));
+        if (canView("CUSTOMER_MANAGEMENT") && !isCustomerAccount()) {
             menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
         }
-
-        if (canView("EQUIPMENT_MANAGEMENT")) {
-            menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
-        }
-
-        if (canView("PRODUCT_MANAGEMENT")) {
-            menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM DỊCH VỤ", "/icon/products.1.png"));
-        }
-
-        if (canView("EMPLOYEE_MANAGEMENT")) {
-            menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
-        }
-        sidebar.add(menuPanel, BorderLayout.CENTER);
+        if (canView("EMPLOYEE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
+        if (canView("PRODUCT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM", "/icon/products.1.png"));
+        if (canView("EQUIPMENT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
+        if (canView("IMPORT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ NHẬP HÀNG", "/icon/report.1.png"));
+        if (canView("FINANCE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ TÀI CHÍNH", "/icon/report.1.png"));
+        JScrollPane menuScrollPane = new JScrollPane(menuPanel);
+        menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        menuScrollPane.getViewport().setOpaque(false);
+        menuScrollPane.setOpaque(false);
+        menuScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        menuScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        sidebar.add(menuScrollPane, BorderLayout.CENTER);
 
         // --- Bottom Menu ---
         bottomPanel = new JPanel();
@@ -143,6 +147,41 @@ public class Sidebar extends JFrame {
         sidebar.add(bottomPanel, BorderLayout.SOUTH);
 
         return sidebar;
+    }
+
+    private JPanel createContentWrapper() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.decode("#F5F7FA"));
+        wrapper.add(createTopBar(), BorderLayout.NORTH);
+        wrapper.add(contentPanel, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private JPanel createTopBar() {
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(Color.WHITE);
+        topBar.setBorder(new EmptyBorder(10, 14, 10, 14));
+
+        JButton toggleSidebarButton = new JButton("\u2630");
+        toggleSidebarButton.setToolTipText("Ẩn/hiện sidebar");
+        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+        toggleSidebarButton.setFocusPainted(false);
+        toggleSidebarButton.setContentAreaFilled(false);
+        toggleSidebarButton.setBorderPainted(false);
+        toggleSidebarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        toggleSidebarButton.addActionListener(event -> toggleSidebar());
+
+        currentTitleLabel = new JLabel("TRANG CHỦ");
+        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, 15));
+        currentTitleLabel.setForeground(new Color(39, 44, 52));
+
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        left.setOpaque(false);
+        left.add(toggleSidebarButton);
+        left.add(currentTitleLabel);
+
+        topBar.add(left, BorderLayout.WEST);
+        return topBar;
     }
 
     private JPanel createMenuButton(String text, String iconPath) {
@@ -209,7 +248,7 @@ public class Sidebar extends JFrame {
                 }
             } else {
                 setActiveButton(wrapper, button);
-                cardLayout.show(mainContentPanel, text);
+                openView(text);
             }
         });
 
@@ -259,8 +298,70 @@ public class Sidebar extends JFrame {
         return panel;
     }
 
+    private void registerModuleViews() {
+        contentPanel.registerView("TRANG CHỦ", () -> createPage("TRANG CHỦ"));
+        if (canView("ACCOUNT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
+        if (canView("REPORT_MANAGEMENT")) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
+        if (canView("BRANCH_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", () -> createPage("QUẢN LÝ CHI NHÁNH"));
+        if (canView("AREA_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
+        if (canView("COURT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
+        if (canView("PRICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", () -> createPage("QUẢN LÝ BẢNG GIÁ"));
+        if (canView("BOOKING_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", () -> createPage("QUẢN LÝ ĐẶT SÂN"));
+        if (canView("SERVICE_MANAGEMENT")) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
+        if (canView("INVOICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
+        if (canView("CUSTOMER_MANAGEMENT") && !isCustomerAccount()) {
+            contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerPreviewScreen::new);
+        }
+        if (canView("EMPLOYEE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHÂN VIÊN", () -> createPage("QUẢN LÝ NHÂN VIÊN"));
+        if (canView("PRODUCT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", () -> createPage("QUẢN LÝ SẢN PHẨM"));
+        if (canView("EQUIPMENT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", () -> createPage("QUẢN LÝ DỤNG CỤ"));
+        if (canView("IMPORT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", () -> createPage("QUẢN LÝ NHẬP HÀNG"));
+        if (canView("FINANCE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI CHÍNH", () -> createPage("QUẢN LÝ TÀI CHÍNH"));
+        contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
+    }
+
+    private void openView(String key) {
+        contentPanel.showView(key);
+        if (currentTitleLabel != null) {
+            currentTitleLabel.setText(key);
+        }
+    }
+
+    private void toggleSidebar() {
+        sidebarVisible = !sidebarVisible;
+        sidebarContainer.setVisible(sidebarVisible);
+        if (sidebarVisible) {
+            updateSidebarWidth();
+        }
+        revalidate();
+        repaint();
+    }
+
+    private void applyResponsiveWindowSize() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = Math.max(1200, (int) (screenSize.width * 0.92));
+        int height = Math.max(700, (int) (screenSize.height * 0.9));
+        setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
+        setLocationRelativeTo(null);
+    }
+
+    private void updateSidebarWidth() {
+        if (sidebarContainer == null) {
+            return;
+        }
+        int frameWidth = getWidth();
+        int targetWidth = (int) (frameWidth * SIDEBAR_WIDTH_RATIO);
+        int resolvedWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, targetWidth));
+        sidebarContainer.setPreferredSize(new Dimension(resolvedWidth, 0));
+        sidebarContainer.revalidate();
+    }
+
     private boolean canView(String functionId) {
         return session.hasPermission(functionId, PermissionAction.VIEW);
+    }
+
+    private boolean isCustomerAccount() {
+        return session.getRoleGroups().contains("CUSTOMER") && !session.isOwner();
     }
 
     public static void main(String[] args) {
