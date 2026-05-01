@@ -1,15 +1,15 @@
-package com.sportcourt.modules.auth.enitity;
+package com.sportcourt.modules.auth.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class User {
     private String userId;
-    private String hoTen;
-    private String sdt;
+    private String fullName;
+    private String phone;
     private String email;
-    private LocalDate ngaySinh;
-    private String diaChi;
+    private LocalDate birthDate;
+    private String address;
     private LocalDateTime createdAt;
     private boolean deleted;
 
@@ -21,20 +21,20 @@ public class User {
         this.userId = userId;
     }
 
-    public String getHoTen() {
-        return hoTen;
+    public String getFullName() {
+        return fullName;
     }
 
-    public void setHoTen(String hoTen) {
-        this.hoTen = hoTen;
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
-    public String getSdt() {
-        return sdt;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setSdt(String sdt) {
-        this.sdt = sdt;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getEmail() {
@@ -45,20 +45,20 @@ public class User {
         this.email = email;
     }
 
-    public LocalDate getNgaySinh() {
-        return ngaySinh;
+    public LocalDate getBirthDate() {
+        return birthDate;
     }
 
-    public void setNgaySinh(LocalDate ngaySinh) {
-        this.ngaySinh = ngaySinh;
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
     }
 
-    public String getDiaChi() {
-        return diaChi;
+    public String getAddress() {
+        return address;
     }
 
-    public void setDiaChi(String diaChi) {
-        this.diaChi = diaChi;
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public LocalDateTime getCreatedAt() {
