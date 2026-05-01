@@ -1,39 +1,30 @@
-package com.sportcourt.modules.customer.view;
-
-import com.sportcourt.modules.customer.dto.CustomerProfile;
+package com.sportcourt.modules.equipment.view;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 
-final class CustomerProfileDialog {
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-    enum Action {
-        UPDATE
-    }
+/**
+ * Dialog thêm dụng cụ thể thao mới.
+ * Chưa lưu DB — chỉ in kết quả ra console.
+ */
+final class EquipmentCreateDialog {
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_BLUE = new Color(29, 78, 216);
-    private static final Color BRAND_BLUE_BG = new Color(239, 246, 255);
+    private static final Color BRAND_GREEN = new Color(22, 101, 52);
+    private static final Color BRAND_GREEN_BG = new Color(220, 252, 231);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
-    private static final Color READONLY_BG = new Color(241, 245, 249);
 
-    private CustomerProfileDialog() {
+    private EquipmentCreateDialog() {
     }
 
-    static Action show(Component parent, CustomerProfile profile) {
+    static void show(Component parent) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, "Hồ sơ khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(owner, "Thêm dụng cụ", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
@@ -42,11 +33,13 @@ final class CustomerProfileDialog {
         root.setBorder(new EmptyBorder(22, 22, 22, 22));
         dialog.setContentPane(root);
 
-        JLabel title = new JLabel("Hồ sơ khách hàng");
+        // Header
+        JLabel title = new JLabel("Thêm dụng cụ thể thao");
         title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
+        title.setHorizontalAlignment(SwingConstants.LEFT);
 
-        JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết của khách hàng " + profile.maKhachHang() + ".");
+        JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho dụng cụ mới.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -60,59 +53,77 @@ final class CustomerProfileDialog {
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
+        // Form fields
+        JTextField txtTenDc = new JTextField();
+        JTextField txtDvt = new JTextField();
+        JTextField txtGia = new JTextField();
+        JTextField txtSlTon = new JTextField();
+
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
+        form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        form.add(createField("Mã khách hàng", profile.maKhachHang()));
+        form.add(createField("Tên dụng cụ", txtTenDc));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Họ tên", profile.hoTen()));
+        form.add(createField("Đơn vị tính", txtDvt));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Số điện thoại", profile.sdt()));
+        form.add(createField("Giá (VNĐ)", txtGia));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Email hệ thống", safeEmailText(profile.emailHeThong())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Tên đăng nhập", safeText(profile.username())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Địa chỉ", emptyIfMissing(profile.diaChi())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Ngày sinh", formatDate(profile.ngaySinh())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Trạng thái", safeText(profile.trangThai())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Mã hạng", safeText(profile.maHang())));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Doanh thu", formatCurrency(profile.doanhThu())));
+        form.add(createField("Số lượng tồn", txtSlTon));
+        root.add(form, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(form);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
-        scrollPane.getViewport().setBackground(DIALOG_BG);
-        root.add(scrollPane, BorderLayout.CENTER);
-
-        final Action[] result = new Action[1];
-        JPanel actions = new JPanel(new GridLayout(1, 1, 0, 0));
+        // Actions
+        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
-        JButton updateBtn = createPillButton("Cập nhật thông tin", BRAND_BLUE_BG, BRAND_BLUE);
-        actions.add(updateBtn);
-        root.add(actions, BorderLayout.SOUTH);
-        updateBtn.addActionListener(event -> {
-            result[0] = Action.UPDATE;
-            dialog.dispose();
+        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
+        JButton saveBtn = createPillButton("Thêm dụng cụ", BRAND_GREEN_BG, BRAND_GREEN);
+
+        cancelBtn.addActionListener(event -> dialog.dispose());
+        saveBtn.addActionListener(event -> {
+            String tenDc = txtTenDc.getText().trim();
+            String dvt = txtDvt.getText().trim();
+            String giaText = txtGia.getText().trim();
+            String slText = txtSlTon.getText().trim();
+
+            if (tenDc.isEmpty() || dvt.isEmpty() || giaText.isEmpty() || slText.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ tất cả các trường.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                double gia = Double.parseDouble(giaText);
+                int slTon = Integer.parseInt(slText);
+                if (gia <= 0) {
+                    JOptionPane.showMessageDialog(dialog, "Giá phải lớn hơn 0.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                if (slTon < 0) {
+                    JOptionPane.showMessageDialog(dialog, "Số lượng tồn không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                System.out.println("[Equipment Create] Tên: " + tenDc + ", ĐVT: " + dvt + ", Giá: " + gia + ", SL: " + slTon);
+                JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock). Dụng cụ sẽ được lưu khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog, "Giá và số lượng tồn phải là số hợp lệ.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            }
         });
 
+        actions.add(cancelBtn);
+        actions.add(saveBtn);
+        root.add(actions, BorderLayout.SOUTH);
+
         dialog.pack();
-        dialog.setSize(560, 560);
-        dialog.setMinimumSize(new Dimension(560, 560));
+        dialog.setSize(Math.max(dialog.getWidth(), 480), dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
-        return result[0];
     }
 
-    private static JPanel createField(String labelText, String value) {
+    private static JPanel createField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -124,18 +135,13 @@ final class CustomerProfileDialog {
         label.setForeground(new Color(75, 85, 99));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JTextField field = new JTextField(value);
-        field.setEditable(false);
-        field.setFocusable(false);
-        field.setRequestFocusEnabled(false);
-        field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         field.setForeground(new Color(31, 41, 55));
-        field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(BORDER_COLOR, 18),
                 BorderFactory.createEmptyBorder(9, 14, 9, 14)
         ));
+        field.setBackground(new Color(249, 250, 251));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
@@ -165,29 +171,6 @@ final class CustomerProfileDialog {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         return btn;
-    }
-
-    private static String safeText(String value) {
-        return value == null || value.isBlank() ? "Chưa có" : value;
-    }
-
-    private static String safeEmailText(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private static String emptyIfMissing(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private static String formatDate(LocalDate date) {
-        return date == null ? "" : DATE_FORMAT.format(date);
-    }
-
-    private static String formatCurrency(BigDecimal value) {
-        if (value == null) {
-            return "0 VNĐ";
-        }
-        return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
     }
 
     private static final class RoundedLineBorder extends AbstractBorder {
