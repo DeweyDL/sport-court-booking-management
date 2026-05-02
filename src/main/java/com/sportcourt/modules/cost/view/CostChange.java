@@ -1,8 +1,9 @@
 package com.sportcourt.modules.cost.view;
 
-import com.sportcourt.modules.cost.controller.CostController;
-import com.sportcourt.modules.cost.dto.CostUpdateRequest;
-import com.sportcourt.modules.cost.entity.Cost;
+import com.sportcourt.modules.cost.view.CostMockData.AreaOption;
+import com.sportcourt.modules.cost.view.CostMockData.CostItem;
+import com.sportcourt.modules.cost.view.CostMockData.KhungGioOption;
+import com.sportcourt.modules.cost.view.CostMockData.Store;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,12 +14,12 @@ import java.math.BigDecimal;
 import java.util.function.Consumer;
 
 public class CostChange extends JPanel {
-    private final CostController costController;
+    private final Store store;
     private final Consumer<String> onSaved;
 
     private final JTextField maBgField = createDisplayField();
-    private final JComboBox<Cost.AreaOption> areaComboBox = new JComboBox<>();
-    private final JComboBox<Cost.KhungGioOption> khungGioComboBox = new JComboBox<>();
+    private final JComboBox<AreaOption> areaComboBox = new JComboBox<>();
+    private final JComboBox<KhungGioOption> khungGioComboBox = new JComboBox<>();
     private final JTextField startHourField = createDisplayField();
     private final JTextField endHourField = createDisplayField();
     private final JTextField giaField = createEditField();
@@ -26,8 +27,8 @@ public class CostChange extends JPanel {
     private String currentMaBg;
     private JDialog dialog;
 
-    public CostChange(CostController costController, Consumer<String> onSaved) {
-        this.costController = costController;
+    public CostChange(Store store, Consumer<String> onSaved) {
+        this.store = store;
         this.onSaved = onSaved;
 
         setOpaque(false);
@@ -46,7 +47,11 @@ public class CostChange extends JPanel {
     }
 
     private void bindData(String maBg) {
-        Cost detail = costController.getBangGiaDetail(maBg);
+        CostItem detail = store.getDetail(maBg);
+        if (detail == null) {
+            JOptionPane.showMessageDialog(this, "KhÃ´ng tÃ¬m tháº¥y báº£ng giÃ¡.", "ThÃ´ng bÃ¡o", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         maBgField.setText(detail.maBg());
         giaField.setText(detail.gia() == null ? "" : detail.gia().toPlainString());
 
@@ -56,9 +61,9 @@ public class CostChange extends JPanel {
     }
 
     private void bindAreaOptions(String selectedMaKv) {
-        DefaultComboBoxModel<Cost.AreaOption> model = new DefaultComboBoxModel<>();
-        Cost.AreaOption selected = null;
-        for (Cost.AreaOption opt : costController.getAreaOptions()) {
+        DefaultComboBoxModel<AreaOption> model = new DefaultComboBoxModel<>();
+        AreaOption selected = null;
+        for (AreaOption opt : store.getAreaOptions()) {
             model.addElement(opt);
             if (opt != null && opt.maKv() != null && opt.maKv().equals(selectedMaKv)) {
                 selected = opt;
@@ -74,21 +79,21 @@ public class CostChange extends JPanel {
         }
     }
 
-    private void bindKhungGio(Cost detail) {
-        DefaultComboBoxModel<Cost.KhungGioOption> model = new DefaultComboBoxModel<>();
-        java.util.List<Cost.KhungGioOption> options = costController.getKhungGioOptions();
-        Cost.KhungGioOption selected = null;
+    private void bindKhungGio(CostItem detail) {
+        DefaultComboBoxModel<KhungGioOption> model = new DefaultComboBoxModel<>();
+        java.util.List<KhungGioOption> options = store.getKhungGioOptions();
+        KhungGioOption selected = null;
 
         if (options == null || options.isEmpty()) {
             for (int h = 0; h <= 23; h++) {
-                Cost.KhungGioOption opt = new Cost.KhungGioOption(null, h, h + 1);
+                KhungGioOption opt = new KhungGioOption(null, h, h + 1);
                 model.addElement(opt);
                 if (h == detail.gioBatDau()) {
                     selected = opt;
                 }
             }
         } else {
-            for (Cost.KhungGioOption opt : options) {
+            for (KhungGioOption opt : options) {
                 model.addElement(opt);
                 if (detail != null && opt != null) {
                     if (opt.gioBatDau() == detail.gioBatDau() && opt.gioKetThuc() == detail.gioKetThuc()) {
@@ -109,7 +114,7 @@ public class CostChange extends JPanel {
     }
 
     private void updateHoursFromKhungGio() {
-        Cost.KhungGioOption selected = (Cost.KhungGioOption) khungGioComboBox.getSelectedItem();
+        KhungGioOption selected = (KhungGioOption) khungGioComboBox.getSelectedItem();
         int start = selected == null ? 0 : selected.gioBatDau();
         int end = selected == null ? 1 : selected.gioKetThuc();
         startHourField.setText("%02d:00".formatted(start));
@@ -361,13 +366,13 @@ public class CostChange extends JPanel {
             return;
         }
 
-        Cost.AreaOption selectedArea = (Cost.AreaOption) areaComboBox.getSelectedItem();
+        AreaOption selectedArea = (AreaOption) areaComboBox.getSelectedItem();
         if (selectedArea == null) {
             JOptionPane.showMessageDialog(this, "Hãy chọn khu vực.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Cost.KhungGioOption selectedKhungGio = (Cost.KhungGioOption) khungGioComboBox.getSelectedItem();
+        KhungGioOption selectedKhungGio = (KhungGioOption) khungGioComboBox.getSelectedItem();
         int gioBatDau = selectedKhungGio == null ? 0 : selectedKhungGio.gioBatDau();
         int gioKetThuc = selectedKhungGio == null ? 1 : selectedKhungGio.gioKetThuc();
 
@@ -390,17 +395,17 @@ public class CostChange extends JPanel {
             return;
         }
 
-        CostUpdateRequest request = new CostUpdateRequest(
-                currentMaBg,
-                selectedArea.maKv(),
-                selectedKhungGio == null ? null : selectedKhungGio.maKg(),
-                gioBatDau,
-                gioKetThuc,
-                gia
-        );
-
         try {
-            costController.saveBangGiaChanges(request);
+            store.update(new CostItem(
+                    currentMaBg,
+                    selectedArea.maKv(),
+                    selectedKhungGio == null ? null : selectedKhungGio.maKg(),
+                    gioBatDau,
+                    gioKetThuc,
+                    gia,
+                    false,
+                    java.time.LocalDateTime.now()
+            ));
             JOptionPane.showMessageDialog(this, "Đã cập nhật bảng giá.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             if (dialog != null) {
                 dialog.setVisible(false);

@@ -1,7 +1,6 @@
 package com.sportcourt.modules.cost.view;
 
-import com.sportcourt.modules.cost.controller.CostController;
-import com.sportcourt.modules.cost.entity.Cost;
+import com.sportcourt.modules.cost.view.CostMockData.CostItem;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -20,15 +19,15 @@ public class CostManagement extends JPanel {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
-    private final CostController costController = new CostController();
+    private final CostMockData.Store store = CostMockData.store();
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final CostChange suaBangGia = new CostChange(costController, id -> loadBangGiaData(searchField.getText()));
-    private final CostAdd themBangGia = new CostAdd(costController, id -> loadBangGiaData(searchField.getText()));
+    private final CostChange suaBangGia = new CostChange(store, id -> loadBangGiaData(searchField.getText()));
+    private final CostAdd themBangGia = new CostAdd(store, id -> loadBangGiaData(searchField.getText()));
 
     public CostManagement() {
         setLayout(new BorderLayout());
@@ -217,35 +216,25 @@ public class CostManagement extends JPanel {
         tablePanel.removeAll();
         tablePanel.add(createTableHeader());
 
-        try {
-            List<Cost> costs = costController.getBangGiaList(keyword);
-            if (costs.isEmpty()) {
+
+        List<CostItem> costs = store.list(keyword);
+        if (costs.isEmpty()) {
                 tablePanel.add(createMessageRow("Không có dữ liệu phù hợp."));
                 infoLabel.setText("0 dong");
-            } else {
+        } else {
                 int idx = 0;
-                for (Cost cost : costs) {
+                for (CostItem cost : costs) {
                     tablePanel.add(createDataRow(cost, idx++));
                 }
                 infoLabel.setText(costs.size() + " dong");
             }
-            tablePanel.revalidate();
-            tablePanel.repaint();
-        } catch (IllegalStateException exception) {
-            tablePanel.removeAll();
-            tablePanel.add(createTableHeader());
-            tablePanel.add(createMessageRow("Khong the tai du lieu tu database."));
-            infoLabel.setText("Loi tai du lieu");
-            tablePanel.revalidate();
-            tablePanel.repaint();
+        tablePanel.revalidate();
+        tablePanel.repaint();
 
-            JOptionPane.showMessageDialog(
-                    this,
+                    /* this,
                     exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
                     "Lỗi dữ liệu bảng giá",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
+                    JOptionPane.ERROR_MESSAGE */
     }
 
     private JPanel createTableHeader() {
@@ -276,7 +265,7 @@ public class CostManagement extends JPanel {
         return label;
     }
 
-    private JPanel createDataRow(Cost cost, int rowIndex) {
+    private JPanel createDataRow(CostItem cost, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
         JPanel row = new JPanel(new GridLayout(1, 7, 10, 0));
         row.setBackground(rowBackground);
@@ -356,7 +345,7 @@ public class CostManagement extends JPanel {
         return panel;
     }
 
-    private void confirmDelete(Cost cost) {
+    private void confirmDelete(CostItem cost) {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "Bạn chắc chắn muốn xóa bảng giá này không?",
@@ -370,7 +359,7 @@ public class CostManagement extends JPanel {
         }
 
         try {
-            costController.deleteBangGia(cost.maBg());
+            store.delete(cost.maBg());
             loadBangGiaData(searchField.getText());
             JOptionPane.showMessageDialog(this, "Đã xóa bảng giá " + cost.maBg() + ".", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalStateException exception) {
