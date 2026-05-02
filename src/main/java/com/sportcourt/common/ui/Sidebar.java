@@ -7,8 +7,12 @@ import com.sportcourt.modules.auth.dto.PermissionAction;
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.auth.view.LoginScreen;
+import com.sportcourt.modules.branch.view.BranchManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
-import com.sportcourt.modules.customer.view.ManageCustomerPreviewScreen;
+import com.sportcourt.modules.customer.view.ManageCustomerScreen;
+import com.sportcourt.modules.equipment.view.EquipmentManagement;
+import com.sportcourt.modules.imports.view.ImportManagement;
+import com.sportcourt.modules.staff.view.StaffPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -302,7 +306,7 @@ public class Sidebar extends JFrame {
         contentPanel.registerView("TRANG CHỦ", () -> createPage("TRANG CHỦ"));
         if (canView("ACCOUNT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
         if (canView("REPORT_MANAGEMENT")) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
-        if (canView("BRANCH_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", () -> createPage("QUẢN LÝ CHI NHÁNH"));
+        if (canView("BRANCH_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView("AREA_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
         if (canView("COURT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
         if (canView("PRICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", () -> createPage("QUẢN LÝ BẢNG GIÁ"));
@@ -310,12 +314,12 @@ public class Sidebar extends JFrame {
         if (canView("SERVICE_MANAGEMENT")) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
         if (canView("INVOICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
         if (canView("CUSTOMER_MANAGEMENT") && !isCustomerAccount()) {
-            contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerPreviewScreen::new);
+            contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerScreen::new);
         }
-        if (canView("EMPLOYEE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHÂN VIÊN", () -> createPage("QUẢN LÝ NHÂN VIÊN"));
+        if (canView("EMPLOYEE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHÂN VIÊN", StaffPanel::new);
         if (canView("PRODUCT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", () -> createPage("QUẢN LÝ SẢN PHẨM"));
-        if (canView("EQUIPMENT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", () -> createPage("QUẢN LÝ DỤNG CỤ"));
-        if (canView("IMPORT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", () -> createPage("QUẢN LÝ NHẬP HÀNG"));
+        if (canView("EQUIPMENT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", EquipmentManagement::new);
+        if (canView("IMPORT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
         if (canView("FINANCE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI CHÍNH", () -> createPage("QUẢN LÝ TÀI CHÍNH"));
         contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
     }
