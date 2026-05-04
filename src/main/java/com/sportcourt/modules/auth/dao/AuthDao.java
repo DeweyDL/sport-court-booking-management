@@ -13,7 +13,12 @@ public interface AuthDao {
 
     boolean existsEmail(String email) throws SQLException;
 
-    void createUserAndAccount(String userId, String accountId, String customerId, RegisterRequest request, String passwordHash) throws SQLException;
+    void createUserAndAccount(String userId,
+                              String accountId,
+                              String customerId,
+                              String accountRoleGroupId,
+                              RegisterRequest request,
+                              String passwordHash) throws SQLException;
 
     boolean updatePasswordByUsernameAndEmail(String username, String email, String passwordHash) throws SQLException;
 

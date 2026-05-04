@@ -71,7 +71,12 @@ public class JdbcAuthDao implements AuthDao {
     }
 
     @Override
-    public void createUserAndAccount(String userId, String accountId, String customerId, RegisterRequest request, String passwordHash) throws SQLException {
+    public void createUserAndAccount(String userId,
+                                     String accountId,
+                                     String customerId,
+                                     String accountRoleGroupId,
+                                     RegisterRequest request,
+                                     String passwordHash) throws SQLException {
         String insertUser = """
                 INSERT INTO USERS(USER_ID, HOTEN, SDT, EMAIL, NGAYSINH, DIACHI, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, ?, ?, SYSDATE, 0)
@@ -81,14 +86,21 @@ public class JdbcAuthDao implements AuthDao {
                 VALUES (?, ?, ?, ?, 'ACTIVE', SYSDATE, 0)
                 """;
         String insertCustomer = """
-                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANG_THAI, DOANH_THU, CREATED_AT, IS_DELETED)
+                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANGTHAI, DOANH_THU, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, NULL, 'ACTIVE', 0, SYSDATE, 0)
                 """;
+
+        String insertAccountRoleGroup = """
+                INSERT INTO ACCOUNT_ROLE_GROUP(ACCOUNT_ROLE_GROUP_ID, ACCOUNT_ID, GROUP_ID, CREATED_AT, IS_DELETED)
+                VALUES (?, ?, 'CUSTOMER', SYSDATE, 0)
+                """;
+
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement userStmt = connection.prepareStatement(insertUser);
                  PreparedStatement accountStmt = connection.prepareStatement(insertAccount);
-                 PreparedStatement customerStmt = connection.prepareStatement(insertCustomer)) {
+                 PreparedStatement customerStmt = connection.prepareStatement(insertCustomer);
+                 PreparedStatement accountRoleGroupStmt = connection.prepareStatement(insertAccountRoleGroup)) {
                 userStmt.setString(1, userId);
                 userStmt.setString(2, request.hoTen());
                 userStmt.setString(3, request.sdt());
@@ -106,6 +118,10 @@ public class JdbcAuthDao implements AuthDao {
                 customerStmt.setString(1, customerId);
                 customerStmt.setString(2, userId);
                 customerStmt.executeUpdate();
+
+                accountRoleGroupStmt.setString(1, accountRoleGroupId);
+                accountRoleGroupStmt.setString(2, accountId);
+                accountRoleGroupStmt.executeUpdate();
                 connection.commit();
             } catch (SQLException e) {
                 connection.rollback();

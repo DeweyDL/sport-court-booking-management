@@ -1,26 +1,32 @@
 package com.sportcourt.modules.customer.view;
 
-import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.modules.customer.dto.CustomerProfile;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 final class CustomerProfileDialog {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     enum Action {
         UPDATE
     }
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
+    private static final Color BRAND_BLUE = new Color(29, 78, 216);
+    private static final Color BRAND_BLUE_BG = new Color(239, 246, 255);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
-    private static final Color BRAND_BLUE = new Color(37, 99, 235);
-    private static final Color FIELD_BG = new Color(241, 245, 249);
+    private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private CustomerProfileDialog() {
     }
@@ -31,59 +37,69 @@ final class CustomerProfileDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 18));
+        JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(20, 20, 20, 20));
+        root.setBorder(new EmptyBorder(22, 22, 22, 22));
         dialog.setContentPane(root);
 
-        JPanel header = new JPanel(new BorderLayout(0, 6));
-        header.setOpaque(false);
         JLabel title = new JLabel("Hồ sơ khách hàng");
-        title.setFont(AppFonts.lexendBold(24f));
+        title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
-        JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết trước khi cập nhật.");
-        subtitle.setFont(AppFonts.lexendRegular(13f));
+
+        JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết của khách hàng " + profile.maKhachHang() + ".");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
+
+        JPanel header = new JPanel();
+        header.setOpaque(false);
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.add(title);
+        header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(new EmptyBorder(18, 18, 18, 18));
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBackground(CARD_BG);
+        form.setBorder(new EmptyBorder(18, 18, 18, 18));
 
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.weightx = 1;
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.insets = new Insets(6, 0, 6, 0);
+        form.add(createField("Mã khách hàng", profile.maKhachHang()));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Họ tên", profile.hoTen()));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Số điện thoại", profile.sdt()));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Email hệ thống", safeEmailText(profile.emailHeThong())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Tên đăng nhập", safeText(profile.username())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Địa chỉ", emptyIfMissing(profile.diaChi())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Ngày sinh", formatDate(profile.ngaySinh())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Trạng thái", safeText(profile.trangThai())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Mã hạng", safeText(profile.maHang())));
+        form.add(Box.createVerticalStrut(14));
+        form.add(createField("Doanh thu", formatCurrency(profile.doanhThu())));
 
-        addField(card, g, 0, "Mã khách hàng", profile.maKhachHang());
-        addField(card, g, 1, "Họ tên", profile.hoTen());
-        addField(card, g, 2, "Số điện thoại", profile.sdt());
-        addField(card, g, 3, "Email hệ thống", safeEmailText(profile.emailHeThong()));
-        addField(card, g, 4, "Tên đăng nhập", safeText(profile.username()));
-        addField(card, g, 5, "Địa chỉ", emptyIfMissing(profile.diaChi()));
-        addField(card, g, 6, "Ngày sinh", formatDate(profile.ngaySinh()));
-        addField(card, g, 7, "Trạng thái", safeText(profile.trangThai()));
-        addField(card, g, 8, "Mã hạng", safeText(profile.maHang()));
-        addField(card, g, 9, "Doanh thu", profile.doanhThu() == null ? "0 VNĐ" : profile.doanhThu() + " VNĐ");
-
-        JScrollPane scrollPane = new JScrollPane(card);
-        scrollPane.setBorder(null);
+        JScrollPane scrollPane = new JScrollPane(form);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(18);
         scrollPane.getViewport().setBackground(DIALOG_BG);
-        scrollPane.setPreferredSize(new Dimension(480, 360));
         root.add(scrollPane, BorderLayout.CENTER);
 
         final Action[] result = new Action[1];
         JPanel actions = new JPanel(new GridLayout(1, 1, 0, 0));
-        JButton btnUpdate = actionButton("Cập nhật thông tin", BRAND_BLUE, Color.WHITE);
-        actions.add(btnUpdate);
         actions.setOpaque(false);
+
+        JButton updateBtn = createPillButton("Cập nhật thông tin", BRAND_BLUE_BG, BRAND_BLUE);
+        actions.add(updateBtn);
         root.add(actions, BorderLayout.SOUTH);
-        btnUpdate.addActionListener(e -> {
+        updateBtn.addActionListener(event -> {
             result[0] = Action.UPDATE;
             dialog.dispose();
         });
@@ -96,47 +112,58 @@ final class CustomerProfileDialog {
         return result[0];
     }
 
-    private static void addField(JPanel panel, GridBagConstraints g, int row, String label, String value) {
-        g.gridy = row * 2;
-        JLabel lb = new JLabel(label);
-        lb.setFont(AppFonts.lexendBold(12f));
-        lb.setForeground(TEXT_DARK);
-        panel.add(lb, g);
+    private static JPanel createField(String labelText, String value) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
-        g.gridy = row * 2 + 1;
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JTextField field = new JTextField(value);
         field.setEditable(false);
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(AppFonts.lexendRegular(14f));
-        field.setBackground(FIELD_BG);
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                new RoundedLineBorder(BORDER_COLOR, 18),
+                BorderFactory.createEmptyBorder(9, 14, 9, 14)
         ));
-        panel.add(field, g);
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
     }
 
-    private static JButton actionButton(String text, Color background, Color foreground) {
+    private static JButton createPillButton(String text, Color bg, Color fg) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
+                g2.setColor(bg);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
                 super.paintComponent(g);
                 g2.dispose();
             }
         };
-        btn.setFont(AppFonts.lexendBold(13f));
-        btn.setForeground(foreground);
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        btn.setBorderPainted(false);
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         return btn;
     }
 
@@ -155,5 +182,35 @@ final class CustomerProfileDialog {
     private static String formatDate(LocalDate date) {
         return date == null ? "" : DATE_FORMAT.format(date);
     }
-}
 
+    private static String formatCurrency(BigDecimal value) {
+        if (value == null) {
+            return "0 VNĐ";
+        }
+        return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
+    }
+
+    private static final class RoundedLineBorder extends AbstractBorder {
+        private final Color color;
+        private final int arc;
+
+        private RoundedLineBorder(Color color, int arc) {
+            this.color = color;
+            this.arc = arc;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.dispose();
+        }
+
+        @Override
+        public Insets getBorderInsets(Component c) {
+            return new Insets(1, 1, 1, 1);
+        }
+    }
+}
