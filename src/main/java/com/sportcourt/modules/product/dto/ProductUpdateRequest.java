@@ -5,9 +5,9 @@ import java.math.BigDecimal;
 public class ProductUpdateRequest {
     private String maSp;
     private String tenSp;
-    private String danhMuc;
+    private String dvt;
     private BigDecimal gia;
-    private Integer soLuongTon;
+    private Integer slTon;
 
     public String getMaSp() {
         return maSp;
@@ -25,12 +25,12 @@ public class ProductUpdateRequest {
         this.tenSp = tenSp;
     }
 
-    public String getDanhMuc() {
-        return danhMuc;
+    public String getDvt() {
+        return dvt;
     }
 
-    public void setDanhMuc(String danhMuc) {
-        this.danhMuc = danhMuc;
+    public void setDvt(String dvt) {
+        this.dvt = dvt;
     }
 
     public BigDecimal getGia() {
@@ -41,11 +41,11 @@ public class ProductUpdateRequest {
         this.gia = gia;
     }
 
-    public Integer getSoLuongTon() {
-        return soLuongTon;
+    public Integer getSlTon() {
+        return slTon;
     }
 
-    public void setSoLuongTon(Integer soLuongTon) {
-        this.soLuongTon = soLuongTon;
+    public void setSlTon(Integer slTon) {
+        this.slTon = slTon;
     }
 }

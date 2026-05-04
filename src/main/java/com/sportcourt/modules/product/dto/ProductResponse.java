@@ -1,15 +1,17 @@
 package com.sportcourt.modules.product.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class ProductResponse {
     private String maSp;
     private String tenSp;
-    private String danhMuc;
+    private String dvt;
     private BigDecimal gia;
-    private Integer soLuongTon;
-    private String trangThai;
+    private Integer slTon;
+    private LocalDateTime createdAt;
     private boolean deleted;
+    private String trangThai;
 
     public String getMaSp() {
         return maSp;
@@ -27,12 +29,12 @@ public class ProductResponse {
         this.tenSp = tenSp;
     }
 
-    public String getDanhMuc() {
-        return danhMuc;
+    public String getDvt() {
+        return dvt;
     }
 
-    public void setDanhMuc(String danhMuc) {
-        this.danhMuc = danhMuc;
+    public void setDvt(String dvt) {
+        this.dvt = dvt;
     }
 
     public BigDecimal getGia() {
@@ -43,20 +45,20 @@ public class ProductResponse {
         this.gia = gia;
     }
 
-    public Integer getSoLuongTon() {
-        return soLuongTon;
+    public Integer getSlTon() {
+        return slTon;
     }
 
-    public void setSoLuongTon(Integer soLuongTon) {
-        this.soLuongTon = soLuongTon;
+    public void setSlTon(Integer slTon) {
+        this.slTon = slTon;
     }
 
-    public String getTrangThai() {
-        return trangThai;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public boolean isDeleted() {
@@ -65,5 +67,13 @@ public class ProductResponse {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
     }
 }

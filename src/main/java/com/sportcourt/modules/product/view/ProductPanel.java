@@ -42,25 +42,23 @@ import java.util.List;
 
 public class ProductPanel extends JPanel {
     private static final Color PAGE_BACKGROUND = new Color(247, 248, 252);
-    private static final Color TEXT = new Color(15, 23, 42);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color BORDER = new Color(226, 232, 240);
+    private static final Color TEXT            = new Color(15, 23, 42);
+    private static final Color MUTED           = new Color(100, 116, 139);
+    private static final Color BORDER          = new Color(226, 232, 240);
 
-    private static final Color GREEN = new Color(22, 163, 74);
+    private static final Color GREEN       = new Color(22, 163, 74);
     private static final Color GREEN_LIGHT = new Color(220, 252, 231);
-    private static final Color RED = new Color(220, 38, 38);
-    private static final Color RED_LIGHT = new Color(254, 226, 226);
-    private static final Color BLUE = new Color(37, 99, 235);
-    private static final Color BLUE_LIGHT = new Color(219, 234, 254);
-    private static final Color YELLOW = new Color(180, 83, 9);
-    private static final Color YELLOW_LIGHT = new Color(254, 243, 199);
+    private static final Color RED         = new Color(220, 38, 38);
+    private static final Color RED_LIGHT   = new Color(254, 226, 226);
+    private static final Color BLUE        = new Color(37, 99, 235);
+    private static final Color BLUE_LIGHT  = new Color(219, 234, 254);
 
     private final ProductTableModel tableModel = new ProductTableModel();
-    private final JTable table = new JTable(tableModel);
-    private final JTextField searchField = new JTextField();
-    private final JButton addButton = createAddButton();
-    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 sản phẩm");
-    private final Timer searchTimer;
+    private final JTable            table      = new JTable(tableModel);
+    private final JTextField        searchField = new JTextField();
+    private final JButton           addButton   = createAddButton();
+    private final JLabel            footerLabel = new JLabel("Đang hiển thị 0 sản phẩm");
+    private final Timer             searchTimer;
 
     private ActionListener searchAction;
     private ActionListener addAction;
@@ -85,29 +83,12 @@ public class ProductPanel extends JPanel {
         bindEvents();
     }
 
-    public void setSearchAction(ActionListener searchAction) {
-        this.searchAction = searchAction;
-    }
-
-    public void setAddAction(ActionListener addAction) {
-        this.addAction = addAction;
-    }
-
-    public void setUpdateAction(ActionListener updateAction) {
-        this.updateAction = updateAction;
-    }
-
-    public void setDeleteAction(ActionListener deleteAction) {
-        this.deleteAction = deleteAction;
-    }
-
-    public void setRestoreAction(ActionListener restoreAction) {
-        this.restoreAction = restoreAction;
-    }
-
-    public void setRefreshAction(ActionListener refreshAction) {
-        this.refreshAction = refreshAction;
-    }
+    public void setSearchAction(ActionListener l)  { this.searchAction  = l; }
+    public void setAddAction(ActionListener l)      { this.addAction     = l; }
+    public void setUpdateAction(ActionListener l)   { this.updateAction  = l; }
+    public void setDeleteAction(ActionListener l)   { this.deleteAction  = l; }
+    public void setRestoreAction(ActionListener l)  { this.restoreAction = l; }
+    public void setRefreshAction(ActionListener l)  { this.refreshAction = l; }
 
     public ProductSearchCriteria getSearchCriteria() {
         ProductSearchCriteria criteria = new ProductSearchCriteria();
@@ -120,12 +101,8 @@ public class ProductPanel extends JPanel {
         if (selectedProductId != null && !selectedProductId.trim().isEmpty()) {
             return selectedProductId;
         }
-
         int viewRow = table.getSelectedRow();
-        if (viewRow < 0) {
-            return null;
-        }
-
+        if (viewRow < 0) return null;
         ProductResponse row = getProductByViewRow(viewRow);
         return row == null ? null : row.getMaSp();
     }
@@ -143,8 +120,8 @@ public class ProductPanel extends JPanel {
     }
 
     public void showProductTable(List<ProductResponse> products) {
-        boolean searchFocused = searchField.isFocusOwner();
-        int caretPosition = searchField.getCaretPosition();
+        boolean searchFocused  = searchField.isFocusOwner();
+        int     caretPosition  = searchField.getCaretPosition();
 
         tableModel.setRows(products);
         selectedProductId = null;
@@ -163,7 +140,9 @@ public class ProductPanel extends JPanel {
         table.setEnabled(!loading);
         searchField.setEnabled(!loading);
         addButton.setEnabled(!loading);
-        footerLabel.setText(loading ? "Đang tải dữ liệu..." : "Đang hiển thị " + tableModel.getRowCount() + " sản phẩm");
+        footerLabel.setText(loading
+                ? "Đang tải dữ liệu..."
+                : "Đang hiển thị " + tableModel.getRowCount() + " sản phẩm");
     }
 
     public void showMessage(String message) {
@@ -178,6 +157,8 @@ public class ProductPanel extends JPanel {
         int result = JOptionPane.showConfirmDialog(this, message, "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         return result == JOptionPane.YES_OPTION;
     }
+
+    // ── Layout ──────────────────────────────────────────────────────────────
 
     private JPanel createPageHeader() {
         JPanel header = new JPanel();
@@ -203,9 +184,9 @@ public class ProductPanel extends JPanel {
     private JPanel createTableCard() {
         JPanel card = new RoundedPanel(18, Color.WHITE, BORDER);
         card.setLayout(new BorderLayout());
-        card.add(createToolbar(), BorderLayout.NORTH);
+        card.add(createToolbar(),     BorderLayout.NORTH);
         card.add(createTableScroll(), BorderLayout.CENTER);
-        card.add(createFooter(), BorderLayout.SOUTH);
+        card.add(createFooter(),      BorderLayout.SOUTH);
         return card;
     }
 
@@ -232,14 +213,13 @@ public class ProductPanel extends JPanel {
                 BorderFactory.createEmptyBorder(0, 16, 0, 16)
         ));
 
-        toolbar.add(left, BorderLayout.WEST);
+        toolbar.add(left,        BorderLayout.WEST);
         toolbar.add(searchField, BorderLayout.EAST);
         return toolbar;
     }
 
     private JScrollPane createTableScroll() {
         setupTable();
-
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER));
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -252,12 +232,13 @@ public class ProductPanel extends JPanel {
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
         footer.setBorder(new EmptyBorder(14, 34, 14, 34));
-
         footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         footerLabel.setForeground(MUTED);
         footer.add(footerLabel, BorderLayout.WEST);
         return footer;
     }
+
+    // ── Table setup ──────────────────────────────────────────────────────────
 
     private void setupTable() {
         table.setRowHeight(68);
@@ -281,16 +262,15 @@ public class ProductPanel extends JPanel {
         header.setForeground(new Color(71, 85, 105));
         header.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        table.getColumnModel().getColumn(ProductTableModel.COL_ID).setPreferredWidth(95);
-        table.getColumnModel().getColumn(ProductTableModel.COL_NAME).setPreferredWidth(260);
-        table.getColumnModel().getColumn(ProductTableModel.COL_CATEGORY).setPreferredWidth(160);
-        table.getColumnModel().getColumn(ProductTableModel.COL_PRICE).setPreferredWidth(145);
-        table.getColumnModel().getColumn(ProductTableModel.COL_QUANTITY).setPreferredWidth(120);
-        table.getColumnModel().getColumn(ProductTableModel.COL_STATUS).setPreferredWidth(165);
+        // Cột: MÃ SP | TÊN SẢN PHẨM | ĐƠN VỊ TÍNH | ĐƠN GIÁ | SỐ LƯỢNG TỒN | THAO TÁC
+        table.getColumnModel().getColumn(ProductTableModel.COL_ID).setPreferredWidth(100);
+        table.getColumnModel().getColumn(ProductTableModel.COL_NAME).setPreferredWidth(280);
+        table.getColumnModel().getColumn(ProductTableModel.COL_DVT).setPreferredWidth(150);
+        table.getColumnModel().getColumn(ProductTableModel.COL_PRICE).setPreferredWidth(150);
+        table.getColumnModel().getColumn(ProductTableModel.COL_STOCK).setPreferredWidth(140);
         table.getColumnModel().getColumn(ProductTableModel.COL_ACTION).setPreferredWidth(220);
 
         table.setDefaultRenderer(Object.class, new ProductCellRenderer());
-        table.getColumnModel().getColumn(ProductTableModel.COL_STATUS).setCellRenderer(new StatusCellRenderer());
         table.getColumnModel().getColumn(ProductTableModel.COL_ACTION).setCellRenderer(new ActionCellRenderer());
     }
 
@@ -307,6 +287,8 @@ public class ProductPanel extends JPanel {
         return button;
     }
 
+    // ── Events ───────────────────────────────────────────────────────────────
+
     private void bindEvents() {
         addButton.addActionListener(e -> {
             selectedProductId = null;
@@ -316,52 +298,32 @@ public class ProductPanel extends JPanel {
         });
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                restartSearchTimer();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                restartSearchTimer();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                restartSearchTimer();
-            }
+            @Override public void insertUpdate(DocumentEvent e)  { restartSearchTimer(); }
+            @Override public void removeUpdate(DocumentEvent e)  { restartSearchTimer(); }
+            @Override public void changedUpdate(DocumentEvent e) { restartSearchTimer(); }
         });
 
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                int viewRow = table.rowAtPoint(e.getPoint());
+                int viewRow    = table.rowAtPoint(e.getPoint());
                 int viewColumn = table.columnAtPoint(e.getPoint());
-
-                if (viewRow < 0 || viewColumn < 0) {
-                    return;
-                }
+                if (viewRow < 0 || viewColumn < 0) return;
 
                 ProductResponse product = getProductByViewRow(viewRow);
-                if (product == null) {
-                    return;
-                }
+                if (product == null) return;
 
                 selectedProductId = product.getMaSp();
-                int modelColumn = table.convertColumnIndexToModel(viewColumn);
-                if (modelColumn != ProductTableModel.COL_ACTION) {
-                    return;
-                }
 
-                Rectangle cellRect = table.getCellRect(viewRow, viewColumn, false);
-                int relativeX = e.getX() - cellRect.x;
+                int modelColumn = table.convertColumnIndexToModel(viewColumn);
+                if (modelColumn != ProductTableModel.COL_ACTION) return;
+
+                Rectangle cellRect  = table.getCellRect(viewRow, viewColumn, false);
+                int       relativeX = e.getX() - cellRect.x;
 
                 if (relativeX < cellRect.width / 2) {
-                    if (product.isDeleted()) {
-                        fireRestoreAction();
-                    } else {
-                        fireDeleteAction();
-                    }
+                    if (product.isDeleted()) fireRestoreAction();
+                    else                     fireDeleteAction();
                 } else {
                     fireUpdateAction();
                 }
@@ -381,7 +343,6 @@ public class ProductPanel extends JPanel {
                     table.setCursor(Cursor.getDefaultCursor());
                     return;
                 }
-
                 int modelColumn = table.convertColumnIndexToModel(viewColumn);
                 table.setCursor(modelColumn == ProductTableModel.COL_ACTION
                         ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
@@ -395,51 +356,21 @@ public class ProductPanel extends JPanel {
         return tableModel.getRow(modelRow);
     }
 
-    private void restartSearchTimer() {
-        searchTimer.restart();
-    }
-
-    private void fireSearchAction() {
-        if (searchAction != null) {
-            searchAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "search"));
-        }
-    }
-
-    private void fireUpdateAction() {
-        if (updateAction != null) {
-            updateAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "update"));
-        }
-    }
-
-    private void fireDeleteAction() {
-        if (deleteAction != null) {
-            deleteAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "delete"));
-        }
-    }
-
-    private void fireRestoreAction() {
-        if (restoreAction != null) {
-            restoreAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "restore"));
-        }
-    }
-
+    private void restartSearchTimer()   { searchTimer.restart(); }
+    private void fireSearchAction()     { if (searchAction  != null) searchAction .actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "search"));  }
+    private void fireUpdateAction()     { if (updateAction  != null) updateAction .actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "update"));  }
+    private void fireDeleteAction()     { if (deleteAction  != null) deleteAction .actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "delete"));  }
+    private void fireRestoreAction()    { if (restoreAction != null) restoreAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "restore")); }
     @SuppressWarnings("unused")
-    private void fireRefreshAction() {
-        if (refreshAction != null) {
-            refreshAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "refresh"));
-        }
-    }
+    private void fireRefreshAction()    { if (refreshAction != null) refreshAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "refresh")); }
+
+    // ── Renderers ────────────────────────────────────────────────────────────
 
     private class ProductCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
+                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
             ProductResponse product = tableModel.getRow(table.convertRowIndexToModel(row));
@@ -456,57 +387,16 @@ public class ProductPanel extends JPanel {
             if (deleted) {
                 label.setForeground(new Color(148, 163, 184));
             }
-
             return label;
-        }
-    }
-
-    private class StatusCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            String status = String.valueOf(value);
-            Color foreground;
-            Color background;
-
-            if ("ĐÃ XOÁ".equalsIgnoreCase(status)) {
-                foreground = RED;
-                background = RED_LIGHT;
-            } else if ("HẾT HÀNG".equalsIgnoreCase(status)) {
-                foreground = YELLOW;
-                background = YELLOW_LIGHT;
-            } else {
-                foreground = GREEN;
-                background = GREEN_LIGHT;
-            }
-
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
-            wrapper.setOpaque(true);
-            wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-            wrapper.add(createPill("• " + status, foreground, background, 126, 30, 22));
-            return wrapper;
         }
     }
 
     private class ActionCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            int modelRow = table.convertRowIndexToModel(row);
-            ProductResponse product = tableModel.getRow(modelRow);
+                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+
+            ProductResponse product = tableModel.getRow(table.convertRowIndexToModel(row));
             boolean deleted = product != null && product.isDeleted();
 
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 11));
@@ -517,9 +407,8 @@ public class ProductPanel extends JPanel {
             if (deleted) {
                 panel.add(createPill("Khôi phục", GREEN, GREEN_LIGHT, 88, 30, 22));
             } else {
-                panel.add(createPill("Xóa", RED, RED_LIGHT, 62, 30, 22));
+                panel.add(createPill("Xóa",       RED,  RED_LIGHT,   62, 30, 22));
             }
-
             panel.add(createPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 96, 30, 22));
             return panel;
         }
@@ -536,15 +425,15 @@ public class ProductPanel extends JPanel {
         return label;
     }
 
+    // ── Custom components ────────────────────────────────────────────────────
+
     private static class RoundedLabel extends JLabel {
         private final int radius;
-
         private RoundedLabel(String text, int radius) {
             super(text);
             this.radius = radius;
             setOpaque(false);
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -559,73 +448,57 @@ public class ProductPanel extends JPanel {
     private static class RoundedButton extends JButton {
         private final Color backgroundColor;
         private final Color borderColor;
-        private final int radius;
-
+        private final int   radius;
         private RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
             super(text);
             this.backgroundColor = backgroundColor;
-            this.borderColor = borderColor;
-            this.radius = radius;
+            this.borderColor     = borderColor;
+            this.radius          = radius;
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             if (!isEnabled()) {
                 g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
             }
-
             g2.setColor(backgroundColor);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-
             if (borderColor != null) {
                 g2.setColor(borderColor);
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
             }
-
             g2.dispose();
             super.paintComponent(g);
         }
     }
 
     private static class RoundedPanel extends JPanel {
-        private final int radius;
+        private final int   radius;
         private final Color backgroundColor;
         private final Color borderColor;
-
         private RoundedPanel(int radius, Color backgroundColor, Color borderColor) {
-            this.radius = radius;
+            this.radius          = radius;
             this.backgroundColor = backgroundColor;
-            this.borderColor = borderColor;
+            this.borderColor     = borderColor;
             setOpaque(false);
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             g2.setColor(backgroundColor);
             g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
             g2.dispose();
             super.paintComponent(g);
         }
-
         @Override
         protected void paintBorder(Graphics g) {
-            if (borderColor == null) {
-                return;
-            }
-
+            if (borderColor == null) return;
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             g2.setColor(borderColor);
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
             g2.dispose();
         }
     }
