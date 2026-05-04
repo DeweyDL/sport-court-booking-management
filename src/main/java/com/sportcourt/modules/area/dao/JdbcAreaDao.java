@@ -33,11 +33,10 @@ public class JdbcAreaDao implements AreaDao {
     public List<Area> findByKeyword(String keyword) throws SQLException {
         String normalizedKeyword = normalizeKeyword(keyword);
         String sql = """
-                SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT
+                SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT, k.IS_DELETED
                 FROM KHU_VUC k
                 JOIN LOAI_THE_THAO ltt ON ltt.MATT = k.MATT AND ltt.IS_DELETED = 0
-                WHERE k.IS_DELETED = 0
-                  AND (
+                WHERE (
                         ? IS NULL
                         OR UPPER(k.MAKV) LIKE ?
                         OR UPPER(k.MACN) LIKE ?
@@ -68,11 +67,10 @@ public class JdbcAreaDao implements AreaDao {
     @Override
     public Optional<Area> findById(String maKv) throws SQLException {
         String sql = """
-                SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT
+                SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT, k.IS_DELETED
                 FROM KHU_VUC k
                 JOIN LOAI_THE_THAO ltt ON ltt.MATT = k.MATT AND ltt.IS_DELETED = 0
                 WHERE k.MAKV = ?
-                  AND k.IS_DELETED = 0
                 """;
 
         try (Connection connection = ConnectionUtils.getMyConnection();
@@ -189,9 +187,8 @@ public class JdbcAreaDao implements AreaDao {
     public void saveKhuVucChanges(AreaUpdateRequest request) throws SQLException {
         String updateKhuVucSql = """
                 UPDATE KHU_VUC
-                SET MATT = ?
+                SET MATT = ?, IS_DELETED = 0
                 WHERE MAKV = ?
-                  AND IS_DELETED = 0
                 """;
 
         try (Connection connection = ConnectionUtils.getMyConnection()) {
@@ -241,7 +238,8 @@ public class JdbcAreaDao implements AreaDao {
                 resultSet.getString("MATT"),
                 resultSet.getString("TEN_THE_THAO"),
                 resultSet.getInt("SO_LUONG_SAN"),
-                createdDateTime
+                createdDateTime,
+                resultSet.getInt("IS_DELETED") == 1 // Ánh xạ trường IS_DELETED
         );
     }
 

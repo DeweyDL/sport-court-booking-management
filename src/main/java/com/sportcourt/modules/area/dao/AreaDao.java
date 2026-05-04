@@ -17,8 +17,6 @@ public interface AreaDao {
 
     List<Area.SportTypeOption> findLoaiTheThaoList() throws SQLException;
 
-    // TODO san con: them API doc/kiem tra san con theo khu vuc khi module san con hoan thien.
-
     String generateNextMaKv() throws SQLException;
 
     String findDefaultChiNhanhId() throws SQLException;

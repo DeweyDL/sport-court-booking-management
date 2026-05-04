@@ -25,8 +25,13 @@ public class AreaManagement extends JPanel {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final AreaChange suaKhuVuc = new AreaChange(areaController, ignored -> loadKhuVucData(searchField.getText()));
-    private final AreaAdd themKhuVuc = new AreaAdd(areaController, ignored -> loadKhuVucData(searchField.getText()));
+    private final AreaChange suaKhuVuc = new AreaChange(areaController, id -> {
+        loadKhuVucData(searchField.getText());
+    });
+
+    private final AreaAdd themKhuVuc = new AreaAdd(areaController, id -> {
+        loadKhuVucData(searchField.getText());
+    });
 
     public AreaManagement() {
         setLayout(new BorderLayout());
@@ -131,7 +136,14 @@ public class AreaManagement extends JPanel {
 
         tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
         tablePanel.setBackground(Color.WHITE);
-        container.add(tablePanel, BorderLayout.CENTER);
+        
+        JScrollPane scrollPane = new JScrollPane(tablePanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove border from scroll pane
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Adjust scroll speed
+
+        container.add(scrollPane, BorderLayout.CENTER); // Add scroll pane instead of tablePanel directly
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setBackground(Color.WHITE);
@@ -260,7 +272,7 @@ public class AreaManagement extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 6, 10, 0));
+        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
         header.setBackground(new Color(248, 249, 250));
         header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
         header.setPreferredSize(new Dimension(0, 45));
@@ -271,6 +283,7 @@ public class AreaManagement extends JPanel {
         header.add(createHeaderCell("LOẠI THỂ THAO"));
         header.add(createHeaderCell("SỐ LƯỢNG SÂN"));
         header.add(createHeaderCell("NGÀY TẠO"));
+        header.add(createHeaderCell("TRẠNG THÁI")); // New Status column
         header.add(createHeaderCell("THAO TÁC"));
         return header;
     }
@@ -288,7 +301,7 @@ public class AreaManagement extends JPanel {
 
     private JPanel createDataRow(Area area, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 6, 10, 0));
+        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
         row.setBackground(rowBackground);
         row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
         row.setPreferredSize(new Dimension(0, 64));
@@ -303,6 +316,10 @@ public class AreaManagement extends JPanel {
         row.add(createAlignedCellPanel(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), 20, rowBackground));
         row.add(createAlignedCellPanel(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), 25, rowBackground));
         row.add(createAlignedCellPanel(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), 15, rowBackground));
+
+        // New Status cell
+        Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0); // Red for inactive, Green for active
+        row.add(createAlignedCellPanel(createCellLabel(area.getStatus(), statusColor), 15, rowBackground));
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 12));
         actionContainer.setOpaque(false);

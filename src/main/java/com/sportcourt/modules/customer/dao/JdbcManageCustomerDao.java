@@ -20,7 +20,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     @Override
     public List<CustomerSummary> findByName(String keyword) throws SQLException {
         String sql = """
-                SELECT kh.MAKH, kh.USER_ID, u.HOTEN, u.SDT, hkh.TEN_HANG AS HANG_KHACH_HANG, kh.TRANG_THAI, kh.DOANH_THU
+                SELECT kh.MAKH, kh.USER_ID, u.HOTEN, u.SDT, hkh.TEN_HANG AS HANG_KHACH_HANG, kh.TRANGTHAI, kh.DOANH_THU
                        , u.DIACHI, u.NGAYSINH
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
@@ -47,7 +47,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                             rs.getString("DIACHI"),
                             toLocalDate(rs.getDate("NGAYSINH")),
                             rs.getString("HANG_KHACH_HANG"),
-                            rs.getString("TRANG_THAI"),
+                            rs.getString("TRANGTHAI"),
                             rs.getBigDecimal("DOANH_THU")
                     ));
                 }
@@ -60,7 +60,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public Optional<CustomerProfile> findProfileById(String maKhachHang) throws SQLException {
         String sql = """
                 SELECT kh.MAKH, kh.USER_ID, a.ACCOUNT_ID, u.HOTEN, u.SDT, u.DIACHI, u.EMAIL, a.USERNAME,
-                       u.NGAYSINH, kh.TRANG_THAI, kh.MA_HANG, kh.DOANH_THU
+                       u.NGAYSINH, kh.TRANGTHAI, kh.MA_HANG, kh.DOANH_THU
                 FROM KHACH_HANG kh
                 JOIN USERS u ON u.USER_ID = kh.USER_ID
                 LEFT JOIN ACCOUNT a ON a.USER_ID = u.USER_ID AND a.IS_DELETED = 0
@@ -83,7 +83,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                         toLocalDate(rs.getDate("NGAYSINH")),
                         rs.getString("EMAIL"),
                         rs.getString("USERNAME"),
-                        rs.getString("TRANG_THAI"),
+                        rs.getString("TRANGTHAI"),
                         rs.getString("MA_HANG"),
                         rs.getBigDecimal("DOANH_THU")
                 ));
@@ -103,7 +103,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 VALUES (?, ?, ?, ?, 'ACTIVE', SYSDATE, 0)
                 """;
         String insertCustomer = """
-                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANG_THAI, DOANH_THU, CREATED_AT, IS_DELETED)
+                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANGTHAI, DOANH_THU, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, NULL, 'ACTIVE', 0, SYSDATE, 0)
                 """;
 
@@ -173,7 +173,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
                 """;
         String updateCustomer = """
                 UPDATE KHACH_HANG
-                SET TRANG_THAI = ?
+                SET TRANGTHAI = ?
                 WHERE MAKH = ?
                   AND IS_DELETED = 0
                 """;
@@ -220,7 +220,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public boolean softDeleteCustomer(String maKhachHang) throws SQLException {
         String deactivateCustomer = """
                 UPDATE KHACH_HANG
-                SET TRANG_THAI = 'INACTIVE',
+                SET TRANGTHAI = 'INACTIVE',
                     IS_DELETED = 1
                 WHERE MAKH = ?
                 """;
@@ -277,7 +277,7 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     public boolean restoreCustomer(String maKhachHang) throws SQLException {
         String restoreCustomer = """
                 UPDATE KHACH_HANG
-                SET TRANG_THAI = 'ACTIVE',
+                SET TRANGTHAI = 'ACTIVE',
                     IS_DELETED = 0
                 WHERE MAKH = ?
                 """;
