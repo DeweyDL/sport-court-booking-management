@@ -41,7 +41,7 @@ public class ProductController {
         ProductSearchCriteria criteria = view.getSearchCriteria();
         view.setLoading(true);
 
-        SwingWorker<List<ProductResponse>, Void> worker = new SwingWorker<>() {
+        SwingWorker<List<ProductResponse>, Void> worker = new SwingWorker<List<ProductResponse>, Void>() {
             @Override
             protected List<ProductResponse> doInBackground() {
                 return productService.searchProducts(criteria);
@@ -50,25 +50,28 @@ public class ProductController {
             @Override
             protected void done() {
                 view.setLoading(false);
+
                 try {
                     view.showProductTable(get());
-                } catch (InterruptedException ex) {
+                } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    view.showProductTable(new ArrayList<>());
+                    view.showProductTable(new ArrayList<ProductResponse>());
                     view.showError("Quá trình tải dữ liệu đã bị gián đoạn.");
-                } catch (ExecutionException ex) {
-                    view.showProductTable(new ArrayList<>());
-                    Throwable cause = ex.getCause();
-                    view.showError(cause == null ? ex.getMessage() : cause.getMessage());
+                } catch (ExecutionException e) {
+                    view.showProductTable(new ArrayList<ProductResponse>());
+                    Throwable cause = e.getCause();
+                    view.showError(cause == null ? e.getMessage() : cause.getMessage());
                 }
             }
         };
+
         worker.execute();
     }
 
     private void addProduct() {
         try {
             ProductCreateRequest request = view.showCreateDialog();
+
             if (request == null) {
                 return;
             }
@@ -84,6 +87,7 @@ public class ProductController {
     private void updateProduct() {
         try {
             String maSp = view.getSelectedProductId();
+
             if (maSp == null || maSp.trim().isEmpty()) {
                 view.showError("Vui lòng chọn sản phẩm cần chỉnh sửa.");
                 return;
@@ -91,6 +95,7 @@ public class ProductController {
 
             ProductResponse product = productService.getProductDetail(maSp);
             ProductUpdateRequest request = view.showUpdateDialog(product);
+
             if (request == null) {
                 return;
             }
@@ -106,12 +111,13 @@ public class ProductController {
     private void deleteProduct() {
         try {
             String maSp = view.getSelectedProductId();
+
             if (maSp == null || maSp.trim().isEmpty()) {
                 view.showError("Vui lòng chọn sản phẩm cần xoá.");
                 return;
             }
 
-            if (!view.confirm("Bạn có chắc muốn xoá mềm sản phẩm này không?")) {
+            if (!view.confirm("Bạn có chắc muốn xoá sản phẩm này không?")) {
                 return;
             }
 
@@ -126,6 +132,7 @@ public class ProductController {
     private void restoreProduct() {
         try {
             String maSp = view.getSelectedProductId();
+
             if (maSp == null || maSp.trim().isEmpty()) {
                 view.showError("Vui lòng chọn sản phẩm cần khôi phục.");
                 return;
@@ -153,6 +160,7 @@ public class ProductController {
         }
 
         Throwable cause = e.getCause();
+
         if (cause != null && cause.getMessage() != null && !cause.getMessage().trim().isEmpty()) {
             return cause.getMessage();
         }

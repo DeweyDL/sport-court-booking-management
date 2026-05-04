@@ -3,10 +3,18 @@ package com.sportcourt.modules.product.dto;
 import java.math.BigDecimal;
 
 public class ProductCreateRequest {
+    private String maSp;
     private String tenSp;
-    private String danhMuc;
+    private String dvt;
     private BigDecimal gia;
-    private Integer soLuongTon;
+
+    public String getMaSp() {
+        return maSp;
+    }
+
+    public void setMaSp(String maSp) {
+        this.maSp = maSp;
+    }
 
     public String getTenSp() {
         return tenSp;
@@ -16,12 +24,12 @@ public class ProductCreateRequest {
         this.tenSp = tenSp;
     }
 
-    public String getDanhMuc() {
-        return danhMuc;
+    public String getDvt() {
+        return dvt;
     }
 
-    public void setDanhMuc(String danhMuc) {
-        this.danhMuc = danhMuc;
+    public void setDvt(String dvt) {
+        this.dvt = dvt;
     }
 
     public BigDecimal getGia() {
@@ -30,13 +38,5 @@ public class ProductCreateRequest {
 
     public void setGia(BigDecimal gia) {
         this.gia = gia;
-    }
-
-    public Integer getSoLuongTon() {
-        return soLuongTon;
-    }
-
-    public void setSoLuongTon(Integer soLuongTon) {
-        this.soLuongTon = soLuongTon;
     }
 }

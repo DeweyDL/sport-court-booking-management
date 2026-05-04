@@ -44,13 +44,15 @@ public class ProductServiceImpl implements ProductService {
 
         try {
             Optional<ProductResponse> product = productDao.findById(maSp.trim());
+
             if (product.isPresent()) {
                 return product.get();
             }
+
             throw new IllegalArgumentException("Không tìm thấy sản phẩm.");
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Lỗi SQL khi tải chi tiết sản phẩm: " + e.getMessage(), e);
+            throw new RuntimeException("Lỗi SQL khi tải thông tin sản phẩm: " + e.getMessage(), e);
         }
     }
 
@@ -59,27 +61,31 @@ public class ProductServiceImpl implements ProductService {
         validateCreateRequest(request);
 
         try {
-            if (productDao.existsByName(request.getTenSp(), null)) {
-                throw new IllegalArgumentException("Tên sản phẩm đã tồn tại.");
+            Optional<ProductResponse> existing = productDao.findById(request.getMaSp().trim());
+            if (existing.isPresent()) {
+                throw new IllegalArgumentException("Mã sản phẩm đã tồn tại.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Lỗi SQL khi kiểm tra sản phẩm: " + e.getMessage(), e);
+            throw new RuntimeException("Lỗi SQL khi kiểm tra mã sản phẩm: " + e.getMessage(), e);
         }
 
         Connection conn = null;
+
         try {
             conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             Product product = new Product();
+            product.setMaSp(request.getMaSp().trim());
             product.setTenSp(request.getTenSp().trim());
-            product.setDanhMuc(request.getDanhMuc().trim());
+            product.setDvt(request.getDvt().trim());
             product.setGia(request.getGia());
-            product.setSoLuongTon(request.getSoLuongTon());
+            product.setSlTon(1);
             product.setDeleted(false);
 
             productDao.insert(conn, product);
+
             conn.commit();
         } catch (SQLException e) {
             rollbackQuietly(conn);
@@ -94,16 +100,8 @@ public class ProductServiceImpl implements ProductService {
     public void updateProduct(ProductUpdateRequest request) {
         validateUpdateRequest(request);
 
-        try {
-            if (productDao.existsByName(request.getTenSp(), request.getMaSp())) {
-                throw new IllegalArgumentException("Tên sản phẩm đã tồn tại.");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Lỗi SQL khi kiểm tra sản phẩm: " + e.getMessage(), e);
-        }
-
         Connection conn = null;
+
         try {
             conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
@@ -111,11 +109,12 @@ public class ProductServiceImpl implements ProductService {
             Product product = new Product();
             product.setMaSp(request.getMaSp().trim());
             product.setTenSp(request.getTenSp().trim());
-            product.setDanhMuc(request.getDanhMuc().trim());
+            product.setDvt(request.getDvt().trim());
             product.setGia(request.getGia());
-            product.setSoLuongTon(request.getSoLuongTon());
+            product.setSlTon(request.getSlTon());
 
             boolean updated = productDao.update(conn, product);
+
             if (!updated) {
                 throw new IllegalArgumentException("Không thể cập nhật sản phẩm.");
             }
@@ -137,11 +136,13 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Connection conn = null;
+
         try {
             conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             boolean deleted = productDao.softDelete(conn, maSp.trim());
+
             if (!deleted) {
                 throw new IllegalArgumentException("Không thể xoá sản phẩm.");
             }
@@ -163,11 +164,13 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Connection conn = null;
+
         try {
             conn = ConnectionUtils.getMyConnection();
             conn.setAutoCommit(false);
 
             boolean restored = productDao.restore(conn, maSp.trim());
+
             if (!restored) {
                 throw new IllegalArgumentException("Không thể khôi phục sản phẩm.");
             }
@@ -186,7 +189,16 @@ public class ProductServiceImpl implements ProductService {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu sản phẩm không hợp lệ.");
         }
-        validateCommon(request.getTenSp(), request.getDanhMuc(), request.getGia(), request.getSoLuongTon());
+
+        if (isBlank(request.getMaSp())) {
+            throw new IllegalArgumentException("Vui lòng nhập mã sản phẩm.");
+        }
+
+        if (request.getMaSp().trim().length() > 20) {
+            throw new IllegalArgumentException("Mã sản phẩm tối đa 20 ký tự.");
+        }
+
+        validateCommon(request.getTenSp(), request.getDvt(), request.getGia());
     }
 
     private void validateUpdateRequest(ProductUpdateRequest request) {
@@ -198,32 +210,28 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("Thiếu mã sản phẩm.");
         }
 
-        validateCommon(request.getTenSp(), request.getDanhMuc(), request.getGia(), request.getSoLuongTon());
+        validateCommon(request.getTenSp(), request.getDvt(), request.getGia());
     }
 
-    private void validateCommon(String tenSp, String danhMuc, BigDecimal gia, Integer soLuongTon) {
+    private void validateCommon(String tenSp, String dvt, BigDecimal gia) {
         if (isBlank(tenSp)) {
             throw new IllegalArgumentException("Vui lòng nhập tên sản phẩm.");
         }
 
-        if (tenSp.trim().length() > 50) {
-            throw new IllegalArgumentException("Tên sản phẩm tối đa 50 ký tự.");
+        if (tenSp.trim().length() > 100) {
+            throw new IllegalArgumentException("Tên sản phẩm tối đa 100 ký tự.");
         }
 
-        if (isBlank(danhMuc)) {
-            throw new IllegalArgumentException("Vui lòng nhập danh mục sản phẩm.");
+        if (isBlank(dvt)) {
+            throw new IllegalArgumentException("Vui lòng nhập đơn vị tính/danh mục.");
         }
 
-        if (danhMuc.trim().length() > 20) {
-            throw new IllegalArgumentException("Danh mục tối đa 20 ký tự.");
+        if (dvt.trim().length() > 20) {
+            throw new IllegalArgumentException("Đơn vị tính/danh mục tối đa 20 ký tự.");
         }
 
         if (gia == null || gia.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Đơn giá phải lớn hơn 0.");
-        }
-
-        if (soLuongTon == null || soLuongTon < 0) {
-            throw new IllegalArgumentException("Số lượng không được âm.");
         }
     }
 

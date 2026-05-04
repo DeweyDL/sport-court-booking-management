@@ -7,6 +7,7 @@ import com.sportcourt.modules.product.entity.Product;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,11 +25,11 @@ public class JdbcProductDao implements ProductDao {
         ProductSearchCriteria safeCriteria = criteria == null ? new ProductSearchCriteria() : criteria;
 
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT MASP, TENSP, DVT, GIA, SL_TON, NVL(IS_DELETED, 0) AS IS_DELETED ");
+        List<Object> params = new ArrayList<Object>();
+
+        sql.append("SELECT MASP, TENSP, DVT, GIA, SL_TON, CREATED_AT, NVL(IS_DELETED, 0) AS IS_DELETED ");
         sql.append("FROM SAN_PHAM ");
         sql.append("WHERE 1 = 1 ");
-
-        List<Object> params = new ArrayList<>();
 
         if (!Boolean.TRUE.equals(safeCriteria.getIncludeDeleted())) {
             sql.append("AND NVL(IS_DELETED, 0) = 0 ");
@@ -36,17 +37,15 @@ public class JdbcProductDao implements ProductDao {
 
         if (!isBlank(safeCriteria.getKeyword())) {
             String keyword = "%" + safeCriteria.getKeyword().trim() + "%";
-            sql.append("AND (LOWER(MASP) LIKE LOWER(?) ");
+            sql.append("AND (");
+            sql.append("LOWER(MASP) LIKE LOWER(?) ");
             sql.append("OR LOWER(TENSP) LIKE LOWER(?) ");
-            sql.append("OR LOWER(DVT) LIKE LOWER(?)) ");
-            params.add(keyword);
-            params.add(keyword);
-            params.add(keyword);
-        }
+            sql.append("OR LOWER(DVT) LIKE LOWER(?)");
+            sql.append(") ");
 
-        if (!isBlank(safeCriteria.getDanhMuc())) {
-            sql.append("AND LOWER(DVT) = LOWER(?) ");
-            params.add(safeCriteria.getDanhMuc().trim());
+            params.add(keyword);
+            params.add(keyword);
+            params.add(keyword);
         }
 
         sql.append("ORDER BY NVL(IS_DELETED, 0), CREATED_AT DESC, MASP DESC");
@@ -56,14 +55,16 @@ public class JdbcProductDao implements ProductDao {
             bindParams(ps, params);
 
             try (ResultSet rs = ps.executeQuery()) {
-                List<ProductResponse> result = new ArrayList<>();
+                List<ProductResponse> products = new ArrayList<ProductResponse>();
+
                 while (rs.next()) {
-                    result.add(mapResponse(rs));
+                    products.add(mapResponse(rs));
                 }
-                return result;
+
+                return products;
             }
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -74,7 +75,7 @@ public class JdbcProductDao implements ProductDao {
         }
 
         String sql = ""
-                + "SELECT MASP, TENSP, DVT, GIA, SL_TON, NVL(IS_DELETED, 0) AS IS_DELETED "
+                + "SELECT MASP, TENSP, DVT, GIA, SL_TON, CREATED_AT, NVL(IS_DELETED, 0) AS IS_DELETED "
                 + "FROM SAN_PHAM "
                 + "WHERE MASP = ?";
 
@@ -86,10 +87,11 @@ public class JdbcProductDao implements ProductDao {
                 if (rs.next()) {
                     return Optional.of(mapResponse(rs));
                 }
+
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -100,11 +102,12 @@ public class JdbcProductDao implements ProductDao {
         }
 
         StringBuilder sql = new StringBuilder();
-        sql.append("SELECT COUNT(*) FROM SAN_PHAM ");
+        List<Object> params = new ArrayList<Object>();
+
+        sql.append("SELECT COUNT(*) ");
+        sql.append("FROM SAN_PHAM ");
         sql.append("WHERE LOWER(TENSP) = LOWER(?) ");
         sql.append("AND NVL(IS_DELETED, 0) = 0 ");
-
-        List<Object> params = new ArrayList<>();
         params.add(tenSp.trim());
 
         if (!isBlank(exceptMaSp)) {
@@ -115,7 +118,7 @@ public class JdbcProductDao implements ProductDao {
         try (Connection conn = ConnectionUtils.getMyConnection()) {
             return count(conn, sql.toString(), params) > 0;
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -131,14 +134,14 @@ public class JdbcProductDao implements ProductDao {
                 + "VALUES (?, ?, ?, ?, ?, SYSDATE, 0)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, nextProductId(conn));
+            ps.setString(1, product.getMaSp()); // Dùng maSp do người dùng nhập
             ps.setString(2, product.getTenSp());
-            ps.setString(3, product.getDanhMuc());
+            ps.setString(3, product.getDvt());
             ps.setBigDecimal(4, product.getGia());
-            ps.setInt(5, product.getSoLuongTon() == null ? 0 : product.getSoLuongTon());
+            ps.setInt(5, product.getSlTon() == null ? 0 : product.getSlTon());
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -155,13 +158,13 @@ public class JdbcProductDao implements ProductDao {
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, product.getTenSp());
-            ps.setString(2, product.getDanhMuc());
+            ps.setString(2, product.getDvt());
             ps.setBigDecimal(3, product.getGia());
-            ps.setInt(4, product.getSoLuongTon() == null ? 0 : product.getSoLuongTon());
+            ps.setInt(4, product.getSlTon() == null ? 0 : product.getSlTon());
             ps.setString(5, product.getMaSp());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -181,7 +184,7 @@ public class JdbcProductDao implements ProductDao {
             ps.setString(1, maSp);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -201,7 +204,7 @@ public class JdbcProductDao implements ProductDao {
             ps.setString(1, maSp);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw enrichSchemaError(e);
+            throw buildProductSqlException(e);
         }
     }
 
@@ -210,45 +213,34 @@ public class JdbcProductDao implements ProductDao {
 
         response.setMaSp(rs.getString("MASP"));
         response.setTenSp(rs.getString("TENSP"));
-        response.setDanhMuc(rs.getString("DVT"));
+        response.setDvt(rs.getString("DVT"));
 
         BigDecimal gia = rs.getBigDecimal("GIA");
         response.setGia(gia == null ? BigDecimal.ZERO : gia);
 
-        int soLuong = rs.getInt("SL_TON");
+        int slTon = rs.getInt("SL_TON");
         if (rs.wasNull()) {
-            soLuong = 0;
+            slTon = 0;
         }
-        response.setSoLuongTon(soLuong);
+        response.setSlTon(slTon);
+
+        Date createdDate = rs.getDate("CREATED_AT");
+        if (createdDate != null) {
+            response.setCreatedAt(createdDate.toLocalDate().atStartOfDay());
+        }
 
         boolean deleted = rs.getInt("IS_DELETED") == 1;
         response.setDeleted(deleted);
 
         if (deleted) {
             response.setTrangThai(DELETED_STATUS);
-        } else if (soLuong <= 0) {
+        } else if (slTon <= 0) {
             response.setTrangThai(OUT_OF_STOCK_STATUS);
         } else {
             response.setTrangThai(ACTIVE_STATUS);
         }
 
         return response;
-    }
-
-    private String nextProductId(Connection conn) throws SQLException {
-        String sql = ""
-                + "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MASP, '[0-9]+$'))), 0) + 1 AS NEXT_NUM "
-                + "FROM SAN_PHAM "
-                + "WHERE REGEXP_LIKE(MASP, '^SP[0-9]+$')";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            int next = 1;
-            if (rs.next()) {
-                next = rs.getInt("NEXT_NUM");
-            }
-            return String.format("SP%02d", next);
-        }
     }
 
     private int count(Connection conn, String sql, List<Object> params) throws SQLException {
@@ -262,34 +254,33 @@ public class JdbcProductDao implements ProductDao {
     }
 
     private void bindParams(PreparedStatement ps, List<Object> params) throws SQLException {
-        for (int index = 0; index < params.size(); index++) {
-            Object value = params.get(index);
+        for (int i = 0; i < params.size(); i++) {
+            Object value = params.get(i);
+
             if (value instanceof BigDecimal) {
-                ps.setBigDecimal(index + 1, (BigDecimal) value);
+                ps.setBigDecimal(i + 1, (BigDecimal) value);
             } else if (value instanceof Integer) {
-                ps.setInt(index + 1, (Integer) value);
+                ps.setInt(i + 1, (Integer) value);
             } else {
-                ps.setObject(index + 1, value);
+                ps.setObject(i + 1, value);
             }
         }
     }
 
-    private SQLException enrichSchemaError(SQLException e) {
+    private SQLException buildProductSqlException(SQLException e) {
         String message = e.getMessage() == null ? "" : e.getMessage();
 
         if (message.contains("ORA-00904") || message.toLowerCase().contains("invalid identifier")) {
             return new SQLException(
-                    "Lỗi cấu trúc bảng SAN_PHAM. App đang dùng đúng các cột: MASP, TENSP, DVT, GIA, SL_TON, CREATED_AT, IS_DELETED. "
-                            + "Nếu vẫn báo ORA-00904 thì kiểm tra lại schema/user trong db.properties hoặc chạy lại script tạo bảng SAN_PHAM. Chi tiết: "
-                            + message,
+                    "Lỗi SQL với bảng SAN_PHAM. Kiểm tra lại code đang chạy có đúng bảng/cột: "
+                            + "MASP, TENSP, DVT, GIA, SL_TON, CREATED_AT, IS_DELETED. Chi tiết: " + message,
                     e
             );
         }
 
         if (message.contains("ORA-00942") || message.toLowerCase().contains("table or view does not exist")) {
             return new SQLException(
-                    "Không tìm thấy bảng SAN_PHAM trong schema hiện tại. Kiểm tra user/url trong db.properties hoặc tạo bảng SAN_PHAM trước. Chi tiết: "
-                            + message,
+                    "Không tìm thấy bảng SAN_PHAM trong schema app đang kết nối. Kiểm tra db.properties. Chi tiết: " + message,
                     e
             );
         }
