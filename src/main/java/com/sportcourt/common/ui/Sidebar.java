@@ -8,6 +8,7 @@ import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.auth.view.LoginScreen;
 import com.sportcourt.modules.branch.view.BranchManagement;
+import com.sportcourt.modules.cost.view.CostManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
@@ -309,7 +310,7 @@ public class Sidebar extends JFrame {
         if (canView("BRANCH_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView("AREA_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
         if (canView("COURT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
-        if (canView("PRICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", () -> createPage("QUẢN LÝ BẢNG GIÁ"));
+        if (canView("PRICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", CostManagement::new);
         if (canView("BOOKING_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", () -> createPage("QUẢN LÝ ĐẶT SÂN"));
         if (canView("SERVICE_MANAGEMENT")) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
         if (canView("INVOICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
