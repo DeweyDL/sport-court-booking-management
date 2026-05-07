@@ -11,26 +11,32 @@ public class StaffModuleRunner {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                FlatLightLaf.setup();
-            } catch (Exception ignored) {
-                // Chạy được kể cả khi FlatLaf chưa được cấu hình.
-            }
+        // Cài đặt Look and Feel hệ thống (Windows) để các cửa sổ hiển thị đẹp mắt
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-            JFrame frame = new JFrame("Quản lý nhân viên");
-            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            frame.setSize(1366, 768);
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Test UI - Quản Lý Nhân Viên");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            // Khởi tạo Panel Nhân viên
+            StaffPanel mainPanel = new StaffPanel();
+
+            frame.add(mainPanel);
+
+            // Set size và hiển thị giữa màn hình
+            frame.setSize(1200, 800);
+            frame.setMinimumSize(new Dimension(900, 600));
             frame.setLocationRelativeTo(null);
 
-            StaffPanel panel = new StaffPanel();
-            panel.setCurrentBranchId("CN01");
-            panel.setStaffTypeIds("LNV01", "LNV02");
-            new StaffController(panel);
+            // Đặt màu nền chung
+            frame.getContentPane().setBackground(new Color(245, 247, 250));
 
-            frame.setLayout(new BorderLayout());
-            frame.add(panel, BorderLayout.CENTER);
             frame.setVisible(true);
         });
     }
 }
+

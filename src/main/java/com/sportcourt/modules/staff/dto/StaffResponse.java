@@ -1,114 +1,53 @@
 package com.sportcourt.modules.staff.dto;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class StaffResponse {
-    private String maNv;
-    private String hoTen;
-    private String sdt;
-    private String email;
-    private String viTri;
-    private String maCn;
-    private String diaChiChiNhanh;
+    private String    manv;
+    private String    hoten;
+    private String    cccd;
+    private int       isQl;
+    private String    chucVu;
+    private String    trangThai;
     private LocalDate ngayVaoLam;
-    private String cccd;
-    private boolean quanLy;
-    private String trangThai;
-    private boolean deleted;
 
-    public String getMaNv() {
-        return maNv;
-    }
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public void setMaNv(String maNv) {
-        this.maNv = maNv;
-    }
+    public StaffResponse() {}
 
-    public String getHoTen() {
-        return hoTen;
-    }
-
-    public void setHoTen(String hoTen) {
-        this.hoTen = hoTen;
-    }
-
-    public String getSdt() {
-        return sdt;
-    }
-
-    public void setSdt(String sdt) {
-        this.sdt = sdt;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getViTri() {
-        return viTri;
-    }
-
-    public void setViTri(String viTri) {
-        this.viTri = viTri;
-    }
-
-    public String getMaCn() {
-        return maCn;
-    }
-
-    public void setMaCn(String maCn) {
-        this.maCn = maCn;
-    }
-
-    public String getDiaChiChiNhanh() {
-        return diaChiChiNhanh;
-    }
-
-    public void setDiaChiChiNhanh(String diaChiChiNhanh) {
-        this.diaChiChiNhanh = diaChiChiNhanh;
-    }
-
-    public LocalDate getNgayVaoLam() {
-        return ngayVaoLam;
-    }
-
-    public void setNgayVaoLam(LocalDate ngayVaoLam) {
+    public StaffResponse(String manv, String hoten, String cccd, int isQl, String chucVu, String trangThai, LocalDate ngayVaoLam) {
+        this.manv       = manv;
+        this.hoten      = hoten;
+        this.cccd       = cccd;
+        this.isQl       = isQl;
+        this.chucVu     = chucVu;
+        this.trangThai  = trangThai;
         this.ngayVaoLam = ngayVaoLam;
     }
 
-    public String getCccd() {
-        return cccd;
-    }
+    public String    getManv()       { return manv; }
+    public void      setManv(String manv) { this.manv = manv; }
 
-    public void setCccd(String cccd) {
-        this.cccd = cccd;
-    }
+    public String    getHoten()      { return hoten; }
+    public void      setHoten(String hoten) { this.hoten = hoten; }
 
-    public boolean isQuanLy() {
-        return quanLy;
-    }
+    public String    getCccd()       { return cccd; }
+    public void      setCccd(String cccd) { this.cccd = cccd; }
 
-    public void setQuanLy(boolean quanLy) {
-        this.quanLy = quanLy;
-    }
+    public int       getIsQl()       { return isQl; }
+    public void      setIsQl(int isQl) { this.isQl = isQl; }
 
-    public String getTrangThai() {
-        return trangThai;
-    }
+    public String    getChucVu()     { return chucVu; }
+    public void      setChucVu(String chucVu) { this.chucVu = chucVu; }
 
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
-    }
+    public String    getTrangThai()  { return trangThai; }
+    public void      setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public boolean isDeleted() {
-        return deleted;
-    }
+    public LocalDate getNgayVaoLam() { return ngayVaoLam; }
+    public void      setNgayVaoLam(LocalDate ngayVaoLam) { this.ngayVaoLam = ngayVaoLam; }
 
-    public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
+    public String    getNgayVaoLamFormatted() {
+        return ngayVaoLam == null ? "--" : ngayVaoLam.format(FMT);
     }
 }

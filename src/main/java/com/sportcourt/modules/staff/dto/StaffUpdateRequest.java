@@ -1,22 +1,22 @@
 package com.sportcourt.modules.staff.dto;
 
-public class StaffUpdateRequest extends StaffCreateRequest {
-    private String maNv;
-    private String userId;
+public class StaffUpdateRequest {
+    private String hoten;
+    private String cccd;
+    private int isQl;
+    private String trangThai;
 
-    public String getMaNv() {
-        return maNv;
-    }
+    public StaffUpdateRequest() {}
 
-    public void setMaNv(String maNv) {
-        this.maNv = maNv;
-    }
+    public String getHoten() { return hoten; }
+    public void setHoten(String hoten) { this.hoten = hoten; }
 
-    public String getUserId() {
-        return userId;
-    }
+    public String getCccd() { return cccd; }
+    public void setCccd(String cccd) { this.cccd = cccd; }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    public int getIsQl() { return isQl; }
+    public void setIsQl(int isQl) { this.isQl = isQl; }
+
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 }
