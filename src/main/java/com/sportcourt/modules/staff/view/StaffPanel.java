@@ -1,751 +1,499 @@
 package com.sportcourt.modules.staff.view;
 
-import com.sportcourt.modules.staff.dto.StaffCreateRequest;
-import com.sportcourt.modules.staff.dto.StaffDetailResponse;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
+import com.sportcourt.modules.staff.service.StaffService;
+import com.sportcourt.modules.staff.service.StaffServiceImpl;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.JTableHeader;
-import java.awt.AlphaComposite;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.*;
+import java.net.URL;
 import java.util.List;
 
 public class StaffPanel extends JPanel {
-    private static final Color PAGE_BACKGROUND = new Color(247, 248, 252);
-    private static final Color TEXT = new Color(15, 23, 42);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color BORDER = new Color(226, 232, 240);
 
-    private static final Color GREEN = new Color(22, 163, 74);
-    private static final Color GREEN_LIGHT = new Color(220, 252, 231);
+    private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
 
-    private static final Color RED = new Color(220, 38, 38);
-    private static final Color RED_LIGHT = new Color(254, 226, 226);
-
-    private static final Color BLUE = new Color(37, 99, 235);
-    private static final Color BLUE_LIGHT = new Color(219, 234, 254);
-
-    private static final Color YELLOW = new Color(180, 83, 9);
-    private static final Color YELLOW_LIGHT = new Color(254, 243, 199);
-
-    private final StaffTableModel tableModel = new StaffTableModel();
-    private final JTable table = new JTable(tableModel);
-    private final JTextField searchField = new JTextField();
-    private final JButton addButton = createAddButton();
-    private final JLabel footerLabel = new JLabel("Đang hiển thị 0 nhân viên");
-    private final Timer searchTimer;
-
-    private ActionListener searchAction;
-    private ActionListener addAction;
-    private ActionListener updateAction;
-    private ActionListener deleteAction;
-    private ActionListener restoreAction;
-    private ActionListener refreshAction;
-
-    private String selectedStaffId;
-    private String currentBranchId = "CN01";
-    private String managerTypeId = "LNV01";
-    private String staffTypeId = "LNV02";
+    private final StaffService staffService       = new StaffServiceImpl();
+    private final JPanel       tablePanel         = new JPanel();
+    private final JLabel       infoLabel          = new JLabel("Đang tải dữ liệu...");
+    private final JTextField   searchField        = new JTextField(30);
+    private final JPanel       searchWrapper      = new JPanel(new BorderLayout());
+    private final Timer        searchDebounceTimer;
 
     public StaffPanel() {
-        setLayout(new BorderLayout(0, 24));
-        setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(22, 24, 22, 24));
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 247, 250));
+        setBorder(new EmptyBorder(100, 70, 50, 70));
 
-        searchTimer = new Timer(350, e -> fireSearchAction());
-        searchTimer.setRepeats(false);
+        searchDebounceTimer = new Timer(300, e -> loadData());
+        searchDebounceTimer.setRepeats(false);
 
-        add(createPageHeader(), BorderLayout.NORTH);
-        add(createTableCard(), BorderLayout.CENTER);
-
-        bindEvents();
+        add(createPage(), BorderLayout.CENTER);
+        loadData();
     }
 
-    public void setCurrentBranchId(String currentBranchId) {
-        if (currentBranchId != null && !currentBranchId.trim().isEmpty()) {
-            this.currentBranchId = currentBranchId.trim();
-        }
+    // --------- PAGE LAYOUT ---------
+
+    private JPanel createPage() {
+        JPanel page = new JPanel(new BorderLayout(0, 20));
+        page.setOpaque(false);
+        page.add(createHeaderSection(), BorderLayout.NORTH);
+        page.add(createMainSection(), BorderLayout.CENTER);
+        return page;
     }
 
-    public void setStaffTypeIds(String managerTypeId, String staffTypeId) {
-        if (managerTypeId != null && !managerTypeId.trim().isEmpty()) {
-            this.managerTypeId = managerTypeId.trim();
-        }
-
-        if (staffTypeId != null && !staffTypeId.trim().isEmpty()) {
-            this.staffTypeId = staffTypeId.trim();
-        }
-    }
-
-    public void setSearchAction(ActionListener searchAction) {
-        this.searchAction = searchAction;
-    }
-
-    public void setAddAction(ActionListener addAction) {
-        this.addAction = addAction;
-    }
-
-    public void setUpdateAction(ActionListener updateAction) {
-        this.updateAction = updateAction;
-    }
-
-    public void setDeleteAction(ActionListener deleteAction) {
-        this.deleteAction = deleteAction;
-    }
-
-    public void setRestoreAction(ActionListener restoreAction) {
-        this.restoreAction = restoreAction;
-    }
-
-    public void setRefreshAction(ActionListener refreshAction) {
-        this.refreshAction = refreshAction;
-    }
-
-    public StaffSearchCriteria getSearchCriteria() {
-        StaffSearchCriteria criteria = new StaffSearchCriteria();
-        criteria.setKeyword(searchField.getText());
-        criteria.setMaCn(currentBranchId);
-        return criteria;
-    }
-
-    public String getSelectedStaffId() {
-        if (selectedStaffId != null && !selectedStaffId.trim().isEmpty()) {
-            return selectedStaffId;
-        }
-
-        int viewRow = table.getSelectedRow();
-        if (viewRow < 0) {
-            return null;
-        }
-
-        StaffResponse row = getStaffByViewRow(viewRow);
-        return row == null ? null : row.getMaNv();
-    }
-
-    public StaffCreateRequest showCreateDialog() {
-        Window owner = SwingUtilities.getWindowAncestor(this);
-        AddStaffDialog dialog = new AddStaffDialog(owner, currentBranchId, managerTypeId, staffTypeId);
-        return dialog.showDialog();
-    }
-
-    public com.sportcourt.modules.staff.dto.StaffUpdateRequest showUpdateDialog(StaffDetailResponse detail) {
-        Window owner = SwingUtilities.getWindowAncestor(this);
-        EditStaffDialog dialog = new EditStaffDialog(owner, detail, currentBranchId, managerTypeId, staffTypeId);
-        return dialog.showDialog();
-    }
-
-    public void showStaffTable(List<StaffResponse> staff) {
-        boolean searchFocused = searchField.isFocusOwner();
-        int caretPosition = searchField.getCaretPosition();
-
-        tableModel.setRows(staff);
-        selectedStaffId = null;
-        footerLabel.setText("Đang hiển thị " + tableModel.getRowCount() + " nhân viên");
-
-        if (searchFocused) {
-            SwingUtilities.invokeLater(() -> {
-                searchField.requestFocusInWindow();
-                int length = searchField.getText() == null ? 0 : searchField.getText().length();
-                searchField.setCaretPosition(Math.min(caretPosition, length));
-            });
-        }
-    }
-
-    public void setLoading(boolean loading) {
-        table.setEnabled(!loading);
-        searchField.setEnabled(!loading);
-        addButton.setEnabled(!loading);
-
-        if (loading) {
-            footerLabel.setText("Đang tải dữ liệu...");
-        } else {
-            footerLabel.setText("Đang hiển thị " + tableModel.getRowCount() + " nhân viên");
-        }
-    }
-
-    public void showMessage(String message) {
-        JOptionPane.showMessageDialog(
-                this,
-                message,
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-    }
-
-    public void showError(String message) {
-        JOptionPane.showMessageDialog(
-                this,
-                message == null ? "Có lỗi xảy ra." : message,
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE
-        );
-    }
-
-    public boolean confirm(String message) {
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                message,
-                "Xác nhận",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
-        return result == JOptionPane.YES_OPTION;
-    }
-
-    private JPanel createPageHeader() {
+    private JPanel createHeaderSection() {
         JPanel header = new JPanel();
-        header.setLayout(new javax.swing.BoxLayout(header, javax.swing.BoxLayout.Y_AXIS));
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setOpaque(false);
 
         JLabel title = new JLabel("QUẢN LÝ NHÂN VIÊN");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 29));
-        title.setForeground(TEXT);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        title.setFont(new Font("Lexend", Font.BOLD, 30));
+        title.setForeground(new Color(30, 31, 36));
+        title.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        JLabel subtitle = new JLabel("Hiển thị danh sách nhân viên và hỗ trợ tìm kiếm.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setForeground(MUTED);
-        subtitle.setBorder(new EmptyBorder(8, 0, 0, 0));
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel subtitle = new JLabel("Quản lý danh sách nhân sự, tìm kiếm và phân quyền.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(new Color(103, 112, 133));
+        subtitle.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         header.add(title);
         header.add(subtitle);
-
         return header;
     }
 
-    private JPanel createTableCard() {
-        JPanel card = new RoundedPanel(18, Color.WHITE, BORDER);
-        card.setLayout(new BorderLayout());
-        card.add(createToolbar(), BorderLayout.NORTH);
-        card.add(createTableScroll(), BorderLayout.CENTER);
-        card.add(createFooter(), BorderLayout.SOUTH);
-        return card;
+    // --------- MAIN CONTENT (rounded card) ---------
+
+    private JPanel createMainSection() {
+        JPanel container = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 50, 50);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintChildren(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
+                super.paintChildren(g2);
+                g2.dispose();
+            }
+        };
+        container.setOpaque(false);
+        container.setBackground(Color.WHITE);
+        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+
+        JPanel topSection = new JPanel();
+        topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+        topSection.setBackground(Color.WHITE);
+        topSection.add(createToolbar());
+        topSection.add(createTableHeader());
+        container.add(topSection, BorderLayout.NORTH);
+
+        tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
+        tablePanel.setBackground(Color.WHITE);
+
+        JScrollPane scrollPane = new JScrollPane(tablePanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        container.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBackground(Color.WHITE);
+        footer.setBorder(new EmptyBorder(20, 20, 0, 20));
+        infoLabel.setForeground(new Color(107, 114, 128));
+        footer.add(infoLabel, BorderLayout.WEST);
+        container.add(footer, BorderLayout.SOUTH);
+
+        return container;
     }
 
+    // --------- TOOLBAR ---------
+
     private JPanel createToolbar() {
-        JPanel toolbar = new JPanel(new BorderLayout(16, 0));
-        toolbar.setOpaque(false);
-        toolbar.setBorder(new EmptyBorder(18, 26, 18, 26));
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setBackground(Color.WHITE);
+        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 22, 0));
-        left.setOpaque(false);
+        JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftToolbar.setBackground(Color.WHITE);
 
-        JLabel listTitle = new JLabel("DANH SÁCH NHÂN VIÊN");
-        listTitle.setFont(new Font("Segoe UI", Font.BOLD, 23));
-        listTitle.setForeground(TEXT);
+        JLabel tableTitle = new JLabel("DANH SÁCH NHÂN VIÊN");
+        tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
-        left.add(listTitle);
-        left.add(addButton);
+        JButton addBtn = createPillButton("+ Thêm nhân viên", new Color(228, 250, 226), new Color(16, 110, 0), true);
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
+        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this).setVisible(true));
 
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        searchField.setPreferredSize(new Dimension(340, 40));
-        searchField.putClientProperty("JTextField.placeholderText", "Tìm kiếm");
-        searchField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                BorderFactory.createEmptyBorder(0, 16, 0, 16)
-        ));
+        leftToolbar.add(tableTitle);
+        leftToolbar.add(addBtn);
+        toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        toolbar.add(left, BorderLayout.WEST);
-        toolbar.add(searchField, BorderLayout.EAST);
+        JPanel rightToolbar = new JPanel();
+        rightToolbar.setLayout(new BoxLayout(rightToolbar, BoxLayout.X_AXIS));
+        rightToolbar.setBackground(Color.WHITE);
+        rightToolbar.add(createSearchFieldWithIcon());
+        toolbar.add(rightToolbar, BorderLayout.EAST);
 
         return toolbar;
     }
 
-    private JScrollPane createTableScroll() {
-        setupTable();
+    private JPanel createSearchFieldWithIcon() {
+        searchWrapper.removeAll();
+        searchWrapper.setOpaque(false);
+        searchWrapper.setPreferredSize(new Dimension(320, 45));
+        searchWrapper.setMaximumSize(new Dimension(320, 45));
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER));
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(48);
-        scrollPane.getVerticalScrollBar().setBlockIncrement(260);
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo Mã NV, Tên, CCCD...");
+        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
+        searchField.putClientProperty("JComponent.roundRect", true);
+        searchField.setBorder(null);
+        searchField.setOpaque(false);
+        bindSearchListener();
 
-        return scrollPane;
-    }
+        JLabel iconLabel = new JLabel(loadSearchIcon());
+        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
 
-    private JPanel createFooter() {
-        JPanel footer = new JPanel(new BorderLayout());
-        footer.setOpaque(false);
-        footer.setBorder(new EmptyBorder(14, 34, 14, 34));
-
-        footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        footerLabel.setForeground(MUTED);
-
-        footer.add(footerLabel, BorderLayout.WEST);
-
-        return footer;
-    }
-
-    private void setupTable() {
-        table.setRowHeight(68);
-        table.setShowGrid(true);
-        table.setShowHorizontalLines(true);
-        table.setShowVerticalLines(true);
-        table.setGridColor(BORDER);
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.setSelectionBackground(new Color(240, 253, 244));
-        table.setSelectionForeground(TEXT);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setForeground(MUTED);
-        table.setFillsViewportHeight(true);
-        table.setAutoCreateRowSorter(false);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-
-        JTableHeader header = table.getTableHeader();
-        header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(0, 52));
-        header.setBackground(Color.WHITE);
-        header.setForeground(new Color(71, 85, 105));
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
-
-        table.getColumnModel().getColumn(StaffTableModel.COL_ID).setPreferredWidth(95);
-        table.getColumnModel().getColumn(StaffTableModel.COL_NAME).setPreferredWidth(185);
-        table.getColumnModel().getColumn(StaffTableModel.COL_PHONE).setPreferredWidth(125);
-        table.getColumnModel().getColumn(StaffTableModel.COL_EMAIL).setPreferredWidth(220);
-        table.getColumnModel().getColumn(StaffTableModel.COL_ROLE).setPreferredWidth(125);
-        table.getColumnModel().getColumn(StaffTableModel.COL_START_DATE).setPreferredWidth(145);
-        table.getColumnModel().getColumn(StaffTableModel.COL_STATUS).setPreferredWidth(150);
-        table.getColumnModel().getColumn(StaffTableModel.COL_ACTION).setPreferredWidth(210);
-
-        table.setDefaultRenderer(Object.class, new StaffCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_ROLE).setCellRenderer(new RoleCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_STATUS).setCellRenderer(new StatusCellRenderer());
-        table.getColumnModel().getColumn(StaffTableModel.COL_ACTION).setCellRenderer(new ActionCellRenderer());
-    }
-
-    private JButton createAddButton() {
-        RoundedButton button = new RoundedButton("+ Thêm nhân viên", GREEN_LIGHT, new Color(187, 247, 208), 28);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        button.setForeground(new Color(21, 128, 61));
-        button.setBorder(new EmptyBorder(10, 22, 10, 22));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.setOpaque(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    private void bindEvents() {
-        addButton.addActionListener(e -> {
-            selectedStaffId = null;
-            if (addAction != null) {
-                addAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "add"));
+        JPanel innerPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.setColor(new Color(229, 231, 235));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
+                g2.dispose();
             }
+        };
+        innerPanel.setOpaque(false);
+        innerPanel.setPreferredSize(new Dimension(320, 45));
+        innerPanel.setMaximumSize(new Dimension(320, 45));
+        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
+        innerPanel.add(iconLabel, BorderLayout.WEST);
+        innerPanel.add(searchField, BorderLayout.CENTER);
+
+        searchWrapper.add(innerPanel, BorderLayout.CENTER);
+        return searchWrapper;
+    }
+
+    // --------- TABLE HEADER ---------
+
+    private JPanel createTableHeader() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(0, 45));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+
+        header.add(createFixedCell(createHeaderLabel("MÃ NV"),         110, 45, SwingConstants.LEFT,   new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("HỌ TÊN"),        180, 45, SwingConstants.LEFT,   new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("CĂN CƯỚC CD"),   150, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("NGÀY VÀO LÀM"), 135, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("CHỨC VỤ"),       110, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("TRẠNG THÁI"),    120, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
+        header.add(Box.createHorizontalStrut(8));
+        header.add(createFixedCell(createHeaderLabel("THAO TÁC"),      200, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 0));
+        return header;
+    }
+
+    private JLabel createHeaderLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setForeground(new Color(107, 114, 128));
+        return label;
+    }
+
+    // --------- DATA ROW ---------
+
+    private JPanel createDataRow(StaffResponse staff, int rowIndex) {
+        Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
+
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setBackground(rowBg);
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        row.setPreferredSize(new Dimension(0, 64));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+
+        // Cột 1: Mã NV
+        JLabel idLabel = new JLabel(staff.getManv());
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setForeground(new Color(22, 163, 74));
+        row.add(createFixedCell(idLabel, 110, 64, SwingConstants.LEFT, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 2: Họ tên
+        row.add(createFixedCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), 180, 64, SwingConstants.LEFT, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 3: CCCD
+        JLabel cccdLabel = createCellLabel(staff.getCccd(), new Color(75, 85, 99));
+        cccdLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        row.add(createFixedCell(cccdLabel, 150, 64, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 4: Ngày vào làm
+        JLabel dateLabel = createCellLabel(staff.getNgayVaoLamFormatted(), new Color(75, 85, 99));
+        dateLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        row.add(createFixedCell(dateLabel, 135, 64, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 5: Chức vụ - badge
+        JPanel chucVuBadge = createRoleBadge(staff.getIsQl());
+        JPanel chucVuCell  = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        chucVuCell.setBackground(rowBg);
+        chucVuCell.add(chucVuBadge);
+        row.add(createFixedCell(chucVuCell, 110, 64, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 6: Trạng thái - badge
+        JPanel statusBadge = createStatusBadge(staff.getTrangThai());
+        JPanel statusCell  = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        statusCell.setBackground(rowBg);
+        statusCell.add(statusBadge);
+        row.add(createFixedCell(statusCell, 120, 64, SwingConstants.CENTER, rowBg, 0, 8));
+        row.add(Box.createHorizontalStrut(8));
+
+        // Cột 7: Thao tác
+        JPanel actionGroup = new JPanel();
+        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
+        actionGroup.setOpaque(false);
+
+        JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+        Dimension deleteBtnSize = new Dimension(80, 30);
+        deleteBtn.setPreferredSize(deleteBtnSize);
+        deleteBtn.setMinimumSize(deleteBtnSize);
+        deleteBtn.setMaximumSize(deleteBtnSize);
+        deleteBtn.addActionListener(e -> confirmDelete(staff));
+        actionGroup.add(deleteBtn);
+        actionGroup.add(Box.createHorizontalStrut(10));
+
+        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+        Dimension editBtnSize = new Dimension(89, 30);
+        editBtn.setPreferredSize(editBtnSize);
+        editBtn.setMinimumSize(editBtnSize);
+        editBtn.setMaximumSize(editBtnSize);
+        editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
+        actionGroup.add(editBtn);
+
+        JPanel actionCell = new JPanel(new BorderLayout());
+        actionCell.setBackground(rowBg);
+        actionCell.setOpaque(true);
+        actionCell.setBorder(new EmptyBorder(0, 16, 0, 4));
+        actionCell.add(actionGroup, BorderLayout.CENTER);
+        row.add(createFixedCell(actionCell, 200, 64, SwingConstants.LEFT, rowBg, 0, 0));
+
+        // Hover effect
+        row.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { row.setBackground(new Color(249, 250, 251)); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e)  { row.setBackground(rowBg); }
         });
 
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
+        return row;
+    }
+
+    // --------- BADGES ---------
+
+    private JPanel createRoleBadge(int isQl) {
+        boolean isManager = isQl == 1;
+        Color badgeBg = isManager ? new Color(219, 234, 254) : new Color(243, 244, 246);
+        Color badgeFg = isManager ? new Color(29, 78, 216)   : new Color(75, 85, 99);
+        String text   = isManager ? "Quản lý" : "Nhân viên";
+        return makeBadge(text, badgeBg, badgeFg);
+    }
+
+    private JPanel createStatusBadge(String trangThai) {
+        boolean active = "ACTIVE".equalsIgnoreCase(trangThai);
+        Color badgeBg  = active ? new Color(220, 252, 231)  : new Color(254, 226, 226);
+        Color badgeFg  = active ? new Color(22, 101, 52)    : new Color(185, 28, 28);
+        String text    = active ? "Hoạt động" : (trangThai == null ? "--" : trangThai);
+        return makeBadge(text, badgeBg, badgeFg);
+    }
+
+    private JPanel makeBadge(String text, Color bg, Color fg) {
+        JLabel label = new JLabel(text) {
             @Override
-            public void insertUpdate(DocumentEvent e) {
-                restartSearchTimer();
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
             }
+        };
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(fg);
+        label.setOpaque(false);
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setBorder(new EmptyBorder(4, 12, 4, 12));
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                restartSearchTimer();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                restartSearchTimer();
-            }
-        });
-
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int viewRow = table.rowAtPoint(e.getPoint());
-                int viewColumn = table.columnAtPoint(e.getPoint());
-
-                if (viewRow < 0 || viewColumn < 0) {
-                    return;
-                }
-
-                StaffResponse staff = getStaffByViewRow(viewRow);
-                if (staff == null) {
-                    return;
-                }
-
-                selectedStaffId = staff.getMaNv();
-
-                int modelColumn = table.convertColumnIndexToModel(viewColumn);
-                if (modelColumn != StaffTableModel.COL_ACTION) {
-                    return;
-                }
-
-                Rectangle cellRect = table.getCellRect(viewRow, viewColumn, false);
-                int relativeX = e.getX() - cellRect.x;
-
-                if (relativeX < cellRect.width / 2) {
-                    if (staff.isDeleted()) {
-                        fireRestoreAction();
-                    } else {
-                        fireDeleteAction();
-                    }
-                } else {
-                    fireUpdateAction();
-                }
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                table.setCursor(Cursor.getDefaultCursor());
-            }
-        });
-
-        table.addMouseMotionListener(new MouseAdapter() {
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                int viewColumn = table.columnAtPoint(e.getPoint());
-
-                if (viewColumn < 0) {
-                    table.setCursor(Cursor.getDefaultCursor());
-                    return;
-                }
-
-                int modelColumn = table.convertColumnIndexToModel(viewColumn);
-
-                if (modelColumn == StaffTableModel.COL_ACTION) {
-                    table.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                } else {
-                    table.setCursor(Cursor.getDefaultCursor());
-                }
-            }
-        });
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 17));
+        wrapper.setOpaque(false);
+        wrapper.add(label);
+        return wrapper;
     }
 
-    private StaffResponse getStaffByViewRow(int viewRow) {
-        int modelRow = table.convertRowIndexToModel(viewRow);
-        return tableModel.getRow(modelRow);
+    private JPanel createMessageRow(String message) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setBackground(Color.WHITE);
+        row.setBorder(new EmptyBorder(24, 26, 24, 26));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+
+        JLabel msg = new JLabel(message);
+        msg.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        msg.setForeground(new Color(107, 114, 128));
+        row.add(msg, BorderLayout.CENTER);
+        return row;
     }
 
-    private void restartSearchTimer() {
-        searchTimer.restart();
-    }
+    // --------- DATA LOAD ---------
 
-    private void fireSearchAction() {
-        if (searchAction != null) {
-            searchAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "search"));
-        }
-    }
+    public void loadData() {
+        infoLabel.setText("Đang tải dữ liệu...");
+        tablePanel.removeAll();
 
-    private void fireUpdateAction() {
-        if (updateAction != null) {
-            updateAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "update"));
-        }
-    }
+        StaffSearchCriteria criteria = new StaffSearchCriteria();
+        criteria.setKeyword(searchField.getText().trim());
 
-    private void fireDeleteAction() {
-        if (deleteAction != null) {
-            deleteAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "delete"));
-        }
-    }
+        try {
+            List<StaffResponse> staffList = staffService.searchStaff(criteria);
 
-    private void fireRestoreAction() {
-        if (restoreAction != null) {
-            restoreAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "restore"));
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private void fireRefreshAction() {
-        if (refreshAction != null) {
-            refreshAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "refresh"));
-        }
-    }
-
-    private class StaffCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(
-                    table,
-                    value,
-                    isSelected,
-                    hasFocus,
-                    row,
-                    column
-            );
-
-            StaffResponse staff = tableModel.getRow(table.convertRowIndexToModel(row));
-            boolean deleted = staff != null && staff.isDeleted();
-
-            label.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER),
-                    new EmptyBorder(0, 10, 0, 10)
-            ));
-            label.setFont(new Font("Segoe UI", column == StaffTableModel.COL_ID ? Font.BOLD : Font.PLAIN, 15));
-            label.setForeground(column == StaffTableModel.COL_ID ? new Color(0, 150, 40) : MUTED);
-            label.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-
-            if (deleted) {
-                label.setForeground(new Color(148, 163, 184));
-            }
-
-            if (column == StaffTableModel.COL_ID) {
-                label.setText(shorten(String.valueOf(value), 12));
-            }
-
-            return label;
-        }
-
-        private String shorten(String value, int maxLength) {
-            if (value == null || value.length() <= maxLength) {
-                return value;
-            }
-
-            return value.substring(0, Math.max(0, maxLength - 3)) + "...";
-        }
-    }
-
-    private class RoleCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            String rawText = String.valueOf(value);
-            boolean isManager = "QUẢN LÝ".equalsIgnoreCase(rawText);
-            String text = isManager ? "QUẢN LÝ" : "THU NGÂN";
-
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
-            wrapper.setOpaque(true);
-            wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-
-            wrapper.add(createPill(
-                    text,
-                    isManager ? GREEN : TEXT,
-                    isManager ? GREEN_LIGHT : new Color(241, 245, 249),
-                    112,
-                    30,
-                    22
-            ));
-
-            return wrapper;
-        }
-    }
-
-    private class StatusCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            String status = String.valueOf(value);
-            boolean deleted = "ĐÃ XOÁ".equalsIgnoreCase(status);
-
-            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
-            wrapper.setOpaque(true);
-            wrapper.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            wrapper.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-
-            wrapper.add(createPill(
-                    "• " + status,
-                    deleted ? RED : GREEN,
-                    deleted ? RED_LIGHT : GREEN_LIGHT,
-                    126,
-                    30,
-                    22
-            ));
-
-            return wrapper;
-        }
-    }
-
-    private class ActionCellRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column
-        ) {
-            StaffResponse staff = tableModel.getRow(table.convertRowIndexToModel(row));
-            boolean deleted = staff != null && staff.isDeleted();
-
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 11));
-            panel.setOpaque(true);
-            panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            panel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, BORDER));
-
-            if (deleted) {
-                panel.add(createActionPill("Khôi phục", GREEN, GREEN_LIGHT, 88, 30, 22));
+            if (staffList.isEmpty()) {
+                tablePanel.add(createMessageRow("Không tìm thấy nhân viên phù hợp."));
+                infoLabel.setText("Hiển thị 0 nhân viên");
             } else {
-                panel.add(createActionPill("Xóa", RED, RED_LIGHT, 62, 30, 22));
+                int idx = 0;
+                for (StaffResponse staff : staffList) {
+                    tablePanel.add(createDataRow(staff, idx++));
+                }
+                infoLabel.setText("Hiển thị " + staffList.size() + " nhân viên");
             }
+        } catch (Exception e) {
+            tablePanel.add(createMessageRow("Lỗi tải dữ liệu: " + e.getMessage()));
+            e.printStackTrace();
+        }
 
-            panel.add(createActionPill("Chỉnh sửa", BLUE, BLUE_LIGHT, 96, 30, 22));
+        tablePanel.revalidate();
+        tablePanel.repaint();
+    }
 
-            return panel;
+    // --------- SEARCH ---------
+
+    private void bindSearchListener() {
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e)  { searchDebounceTimer.restart(); }
+            @Override public void removeUpdate(DocumentEvent e)  { searchDebounceTimer.restart(); }
+            @Override public void changedUpdate(DocumentEvent e) { searchDebounceTimer.restart(); }
+        });
+    }
+
+    // --------- DELETE ---------
+
+    private void confirmDelete(StaffResponse staff) {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn xóa nhân viên \"" + staff.getHoten() + "\" (Mã: " + staff.getManv() + ")?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                staffService.deleteStaff(staff.getManv());
+                JOptionPane.showMessageDialog(this, "Đã xóa nhân viên thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                loadData();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi xóa nhân viên: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
-    private JLabel createPill(String text, Color foreground, Color background, int width, int height, int radius) {
-        RoundedLabel label = new RoundedLabel(text, radius);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(foreground);
-        label.setBackground(background);
-        label.setPreferredSize(new Dimension(width, height));
-        label.setBorder(new EmptyBorder(5, 12, 5, 12));
+    // --------- HELPERS ---------
+
+    private JPanel createFixedCell(Component component, int width, int height, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(bg);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
+        panel.add(component, BorderLayout.CENTER);
+
+        Dimension size = new Dimension(width, height);
+        panel.setPreferredSize(size);
+        panel.setMinimumSize(size);
+        panel.setMaximumSize(size);
+        return panel;
+    }
+
+    private JLabel createCellLabel(String text, Color fg) {
+        JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setForeground(fg);
         return label;
     }
 
-    private JLabel createActionPill(String text, Color foreground, Color background, int width, int height, int radius) {
-        RoundedLabel label = new RoundedLabel(text, radius);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(foreground);
-        label.setBackground(background);
-        label.setPreferredSize(new Dimension(width, height));
-        label.setBorder(new EmptyBorder(5, 12, 5, 12));
-        return label;
+    private Icon loadSearchIcon() {
+        URL iconUrl = getClass().getResource("/icon/search.png");
+        if (iconUrl == null) return UIManager.getIcon("FileView.fileIcon");
+        Image image = new ImageIcon(iconUrl).getImage().getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+        return new ImageIcon(image);
     }
 
-    private static class RoundedLabel extends JLabel {
-        private final int radius;
-
-        private RoundedLabel(String text, int radius) {
-            super(text);
-            this.radius = radius;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-
-            g2.dispose();
-
-            super.paintComponent(g);
-        }
+    private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
+        btn.setForeground(fg);
+        btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(5, 12, 5, 12));
+        return btn;
     }
 
-    private static class RoundedButton extends JButton {
-        private final Color backgroundColor;
-        private final Color borderColor;
-        private final int radius;
-
-        private RoundedButton(String text, Color backgroundColor, Color borderColor, int radius) {
-            super(text);
-            this.backgroundColor = backgroundColor;
-            this.borderColor = borderColor;
-            this.radius = radius;
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (!isEnabled()) {
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.55f));
-            }
-
-            g2.setColor(backgroundColor);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-
-            if (borderColor != null) {
-                g2.setColor(borderColor);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-            }
-
-            g2.dispose();
-
-            super.paintComponent(g);
-        }
-    }
-
-    private static class RoundedPanel extends JPanel {
-        private final int radius;
-        private final Color backgroundColor;
-        private final Color borderColor;
-
-        private RoundedPanel(int radius, Color backgroundColor, Color borderColor) {
-            this.radius = radius;
-            this.backgroundColor = backgroundColor;
-            this.borderColor = borderColor;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(backgroundColor);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
-            g2.dispose();
-
-            super.paintComponent(g);
-        }
-
-        @Override
-        protected void paintBorder(Graphics g) {
-            if (borderColor == null) {
-                return;
-            }
-
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(borderColor);
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
-
-            g2.dispose();
-        }
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton btn = createPillButton(text, bg, fg, true);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btn.setBorder(new EmptyBorder(6, 10, 6, 10));
+        return btn;
     }
 }

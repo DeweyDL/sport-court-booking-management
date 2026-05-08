@@ -1,96 +1,34 @@
 package com.sportcourt.modules.staff.dto;
 
-import java.time.LocalDate;
-
 public class StaffCreateRequest {
-    private String hoTen;
-    private String sdt;
+    private String manv;
+    private String hoten;
     private String cccd;
-    private String email;
-    private LocalDate ngaySinh;
-    private String diaChi;
-    private String maCn;
-    private String maLoaiNv;
-    private LocalDate ngayVaoLam;
-    private boolean quanLy;
+    private int    isQl;
+    private String trangThai;
+    private String maCn;      // Mã chi nhánh — bắt buộc (FK_NHAN_VIEN_CHI_NHANH)
+    private String maLoaiNv;  // Mã loại nhân viên — bắt buộc (FK_NHAN_VIEN_LOAI)
 
-    public String getHoTen() {
-        return hoTen;
-    }
+    public StaffCreateRequest() {}
 
-    public void setHoTen(String hoTen) {
-        this.hoTen = hoTen;
-    }
+    public String getManv()      { return manv; }
+    public void   setManv(String manv) { this.manv = manv; }
 
-    public String getSdt() {
-        return sdt;
-    }
+    public String getHoten()     { return hoten; }
+    public void   setHoten(String hoten) { this.hoten = hoten; }
 
-    public void setSdt(String sdt) {
-        this.sdt = sdt;
-    }
+    public String getCccd()      { return cccd; }
+    public void   setCccd(String cccd) { this.cccd = cccd; }
 
-    public String getCccd() {
-        return cccd;
-    }
+    public int    getIsQl()      { return isQl; }
+    public void   setIsQl(int isQl) { this.isQl = isQl; }
 
-    public void setCccd(String cccd) {
-        this.cccd = cccd;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void   setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getMaCn()      { return maCn; }
+    public void   setMaCn(String maCn) { this.maCn = maCn; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public LocalDate getNgaySinh() {
-        return ngaySinh;
-    }
-
-    public void setNgaySinh(LocalDate ngaySinh) {
-        this.ngaySinh = ngaySinh;
-    }
-
-    public String getDiaChi() {
-        return diaChi;
-    }
-
-    public void setDiaChi(String diaChi) {
-        this.diaChi = diaChi;
-    }
-
-    public String getMaCn() {
-        return maCn;
-    }
-
-    public void setMaCn(String maCn) {
-        this.maCn = maCn;
-    }
-
-    public String getMaLoaiNv() {
-        return maLoaiNv;
-    }
-
-    public void setMaLoaiNv(String maLoaiNv) {
-        this.maLoaiNv = maLoaiNv;
-    }
-
-    public LocalDate getNgayVaoLam() {
-        return ngayVaoLam;
-    }
-
-    public void setNgayVaoLam(LocalDate ngayVaoLam) {
-        this.ngayVaoLam = ngayVaoLam;
-    }
-
-    public boolean isQuanLy() {
-        return quanLy;
-    }
-
-    public void setQuanLy(boolean quanLy) {
-        this.quanLy = quanLy;
-    }
+    public String getMaLoaiNv()  { return maLoaiNv; }
+    public void   setMaLoaiNv(String maLoaiNv) { this.maLoaiNv = maLoaiNv; }
 }

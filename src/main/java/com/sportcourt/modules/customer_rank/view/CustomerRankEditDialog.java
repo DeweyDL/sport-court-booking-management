@@ -1,16 +1,11 @@
-package com.sportcourt.modules.staff.view;
-
-import com.sportcourt.modules.staff.dto.StaffResponse;
-import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
-import com.sportcourt.modules.staff.service.StaffService;
-import com.sportcourt.modules.staff.service.StaffServiceImpl;
-
+package com.sportcourt.modules.customer_rank.view;
+import com.sportcourt.modules.customer_rank.view.CustomerRankMockData.CustomerRankItem;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class EditStaffDialog extends JDialog {
+final class CustomerRankEditDialog {
 
     private static final Color DIALOG_BG    = new Color(248, 249, 252);
     private static final Color CARD_BG      = Color.WHITE;
@@ -20,27 +15,26 @@ public class EditStaffDialog extends JDialog {
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
 
-    private final StaffService staffService = new StaffServiceImpl();
-    private final StaffPanel   parentPanel;
+    private CustomerRankEditDialog() {
+    }
 
-    public EditStaffDialog(JFrame parent, StaffPanel parentPanel, StaffResponse staff) {
-        super(parent, "Chỉnh sửa nhân viên", ModalityType.APPLICATION_MODAL);
-        this.parentPanel = parentPanel;
-
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setResizable(false);
+    static void show(Component parent, CustomerRankItem item) {
+        Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
+        JDialog dialog = new JDialog(owner, "Chỉnh sửa hạng khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        dialog.setResizable(false);
 
         JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
         root.setBorder(new EmptyBorder(22, 22, 22, 22));
-        setContentPane(root);
+        dialog.setContentPane(root);
 
         // Header
-        JLabel title = new JLabel("Chỉnh sửa: " + staff.getHoten());
+        JLabel title = new JLabel("Chỉnh sửa hạng: " + item.tenHang());
         title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
 
-        JLabel subtitle = new JLabel("Mã nhân viên: " + staff.getManv());
+        JLabel subtitle = new JLabel("Mã hạng: " + item.maHang());
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -53,68 +47,66 @@ public class EditStaffDialog extends JDialog {
         header.add(title);
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
-
-        // Form — prefill hiện tại
-        JTextField txtHoTen   = new JTextField(staff.getHoten());
-        JTextField txtCCCD    = new JTextField(staff.getCccd() == null ? "" : staff.getCccd());
-        JComboBox<String> cbChucVu    = new JComboBox<>(new String[]{"Nhân viên", "Quản lý"});
-        JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE", "ĐÃ NGHỈ"});
-
-        // Chọn giá trị mặc định theo dữ liệu hiện tại
-        cbChucVu.setSelectedIndex(staff.getIsQl() == 1 ? 1 : 0);
-        String currentStatus = staff.getTrangThai();
-        if (currentStatus != null) {
-            for (int i = 0; i < cbTrangThai.getItemCount(); i++) {
-                if (cbTrangThai.getItemAt(i).equalsIgnoreCase(currentStatus)) {
-                    cbTrangThai.setSelectedIndex(i);
-                    break;
-                }
-            }
-        }
+        JTextField txtTenHang   = new JTextField(item.tenHang());
+        JTextField txtChietKhau = new JTextField(item.chietKhau().toPlainString());
+        JTextField txtMucTien   = new JTextField(item.mucTien().toPlainString());
 
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        form.add(createField("Họ và tên", txtHoTen));
+        form.add(createField("Tên hạng", txtTenHang));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Căn cước công dân", txtCCCD));
+        form.add(createField("Chiết khấu (%)", txtChietKhau));
         form.add(Box.createVerticalStrut(14));
+        form.add(createField("Mức tiền (VNĐ)", txtMucTien)); // Cập nhật tên nhãn
 
-        // 2 cột: Chức vụ + Trạng thái
-        JPanel splitPanel = new JPanel(new GridLayout(1, 2, 14, 0));
-        splitPanel.setOpaque(false);
-        splitPanel.add(createField("Chức vụ", cbChucVu));
-        splitPanel.add(createField("Trạng thái", cbTrangThai));
-        splitPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        form.add(splitPanel);
+        JLabel hint = new JLabel("* Chiết khấu từ 0 đến 100. Mức tiền >= 0.");
+        hint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        hint.setForeground(TEXT_MUTED);
+        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hint.setBorder(new EmptyBorder(10, 0, 0, 0));
+        form.add(hint);
 
         root.add(form, BorderLayout.CENTER);
-
-        // Actions
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
         JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
         JButton saveBtn   = createPillButton("Lưu thay đổi", BRAND_BG, BRAND_COLOR);
 
-        cancelBtn.addActionListener(e -> dispose());
-        saveBtn.addActionListener(e -> {
-            try {
-                StaffUpdateRequest req = new StaffUpdateRequest();
-                req.setHoten(txtHoTen.getText().trim());
-                req.setCccd(txtCCCD.getText().trim());
-                req.setIsQl(cbChucVu.getSelectedIndex());  // 0: Nhân viên, 1: Quản lý
-                req.setTrangThai(cbTrangThai.getSelectedItem().toString());
+        cancelBtn.addActionListener(event -> dialog.dispose());
+        saveBtn.addActionListener(event -> {
+            String tenHang      = txtTenHang.getText().trim();
+            String chietKhauStr = txtChietKhau.getText().trim();
+            String mucTienStr   = txtMucTien.getText().trim();
 
-                staffService.updateStaff(staff.getManv(), req);
-                JOptionPane.showMessageDialog(this, "Đã cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                parentPanel.loadData();
-                dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi cập nhật", JOptionPane.ERROR_MESSAGE);
+            if (tenHang.isEmpty() || chietKhauStr.isEmpty() || mucTienStr.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ tất cả các trường.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            try {
+                double chietKhau = Double.parseDouble(chietKhauStr);
+                double mucTien   = Double.parseDouble(mucTienStr);
+
+                if (chietKhau < 0 || chietKhau > 100) {
+                    JOptionPane.showMessageDialog(dialog, "Chiết khấu phải từ 0 đến 100.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                if (mucTien < 0) {
+                    JOptionPane.showMessageDialog(dialog, "Mức tiền không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                System.out.println("[CustomerRank Edit] Mã: " + item.maHang()
+                        + ", Tên: " + tenHang
+                        + ", Chiết khấu: " + chietKhau + "%"
+                        + ", Mức tiền: " + mucTien);
+                JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog, "Chiết khấu và mức tiền phải là số hợp lệ.", "Lỗi định dạng", JOptionPane.WARNING_MESSAGE);
             }
         });
 
@@ -122,33 +114,33 @@ public class EditStaffDialog extends JDialog {
         actions.add(saveBtn);
         root.add(actions, BorderLayout.SOUTH);
 
-        pack();
-        setSize(Math.max(getWidth(), 450), getHeight());
-        setLocationRelativeTo(parent);
+        dialog.pack();
+        dialog.setSize(Math.max(dialog.getWidth(), 480), dialog.getHeight());
+        dialog.setLocationRelativeTo(parent);
+        dialog.setVisible(true);
     }
 
-    // --------- HELPERS ---------
-
-    private JPanel createField(String labelText, JComponent field) {
+    private static JPanel createField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 12),
-                BorderFactory.createEmptyBorder(7, 10, 7, 10)
+                new RoundedLineBorder(BORDER_COLOR, 18),
+                BorderFactory.createEmptyBorder(9, 14, 9, 14)
         ));
         field.setBackground(new Color(249, 250, 251));
-
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
         panel.add(label);
         panel.add(Box.createVerticalStrut(6));
@@ -156,7 +148,7 @@ public class EditStaffDialog extends JDialog {
         return panel;
     }
 
-    private JButton createPillButton(String text, Color bg, Color fg) {
+    private static JButton createPillButton(String text, Color bg, Color fg) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -180,7 +172,7 @@ public class EditStaffDialog extends JDialog {
 
     private static final class RoundedLineBorder extends AbstractBorder {
         private final Color color;
-        private final int   arc;
+        private final int arc;
 
         private RoundedLineBorder(Color color, int arc) {
             this.color = color;
@@ -197,6 +189,8 @@ public class EditStaffDialog extends JDialog {
         }
 
         @Override
-        public Insets getBorderInsets(Component c) { return new Insets(1, 1, 1, 1); }
+        public Insets getBorderInsets(Component c) {
+            return new Insets(1, 1, 1, 1);
+        }
     }
 }

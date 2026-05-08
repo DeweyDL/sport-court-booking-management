@@ -3,76 +3,42 @@ package com.sportcourt.modules.staff.entity;
 import java.time.LocalDate;
 
 public class Staff {
-    private String maNv;
-    private String userId;
-    private String maLoaiNv;
-    private String maCn;
-    private LocalDate ngayVaoLam;
-    private String cccd;
-    private boolean quanLy;
-    private String trangThai;
+    private String manv;        // MANV
+    private String userId;      // USER_ID (Khóa ngoại tới USERS)
+    private String malnv;       // MALNV (Mã loại nhân viên)
+    private String macn;        // MACN (Mã chi nhánh)
+    private LocalDate nvl;      // NVL (Ngày vào làm)
+    private String cccd;        // CCCD
+    private int isQl;           // IS_QL (1: Quản lý, 0: Nhân viên)
+    private String trangThai;   // TRANG_THAI
+    private int isDeleted;      // IS_DELETED
 
-    public String getMaNv() {
-        return maNv;
-    }
+    public Staff() {}
 
-    public void setMaNv(String maNv) {
-        this.maNv = maNv;
-    }
+    public String getManv() { return manv; }
+    public void setManv(String manv) { this.manv = manv; }
 
-    public String getUserId() {
-        return userId;
-    }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    public String getMalnv() { return malnv; }
+    public void setMalnv(String malnv) { this.malnv = malnv; }
 
-    public String getMaLoaiNv() {
-        return maLoaiNv;
-    }
+    public String getMacn() { return macn; }
+    public void setMacn(String macn) { this.macn = macn; }
 
-    public void setMaLoaiNv(String maLoaiNv) {
-        this.maLoaiNv = maLoaiNv;
-    }
+    public LocalDate getNvl() { return nvl; }
+    public void setNvl(LocalDate nvl) { this.nvl = nvl; }
 
-    public String getMaCn() {
-        return maCn;
-    }
+    public String getCccd() { return cccd; }
+    public void setCccd(String cccd) { this.cccd = cccd; }
 
-    public void setMaCn(String maCn) {
-        this.maCn = maCn;
-    }
+    public int getIsQl() { return isQl; }
+    public void setIsQl(int isQl) { this.isQl = isQl; }
 
-    public LocalDate getNgayVaoLam() {
-        return ngayVaoLam;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public void setNgayVaoLam(LocalDate ngayVaoLam) {
-        this.ngayVaoLam = ngayVaoLam;
-    }
-
-    public String getCccd() {
-        return cccd;
-    }
-
-    public void setCccd(String cccd) {
-        this.cccd = cccd;
-    }
-
-    public boolean isQuanLy() {
-        return quanLy;
-    }
-
-    public void setQuanLy(boolean quanLy) {
-        this.quanLy = quanLy;
-    }
-
-    public String getTrangThai() {
-        return trangThai;
-    }
-
-    public void setTrangThai(String trangThai) {
-        this.trangThai = trangThai;
-    }
+    public int getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(int isDeleted) { this.isDeleted = isDeleted; }
 }
