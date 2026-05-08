@@ -42,7 +42,7 @@ src/main/resources/db/db.properties
 src/main/resources/mail/mail.properties
 docs/
 ./agent_rules_sport_court_booking_management.md
-./.claude
-./.agents
+.claude/
+.agents/
 ./CLAUDE.md
 ./.rtk
