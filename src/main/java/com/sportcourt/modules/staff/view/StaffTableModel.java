@@ -3,25 +3,26 @@ package com.sportcourt.modules.staff.view;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 
 import javax.swing.table.AbstractTableModel;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * TableModel dự phòng (không dùng trực tiếp trong StaffPanel custom-row layout).
+ * Giữ lại để tương thích nếu có nơi khác tham chiếu.
+ */
 public class StaffTableModel extends AbstractTableModel {
-    public static final int COL_ID = 0;
-    public static final int COL_NAME = 1;
-    public static final int COL_PHONE = 2;
-    public static final int COL_EMAIL = 3;
-    public static final int COL_ROLE = 4;
-    public static final int COL_START_DATE = 5;
-    public static final int COL_STATUS = 6;
-    public static final int COL_ACTION = 7;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    public static final int COL_ID         = 0;
+    public static final int COL_NAME       = 1;
+    public static final int COL_CCCD       = 2;
+    public static final int COL_START_DATE = 3;
+    public static final int COL_ROLE       = 4;
+    public static final int COL_STATUS     = 5;
+    public static final int COL_ACTION     = 6;
+
     private static final String[] COLUMNS = {
-            "MÃ NV", "HỌ TÊN", "SĐT", "EMAIL", "CHỨC VỤ", "NGÀY VÀO LÀM", "TRẠNG THÁI", "THAO TÁC"
+            "MÃ NV", "HỌ TÊN", "CĂN CƯỚC CD", "NGÀY VÀO LÀM", "CHỨC VỤ", "TRẠNG THÁI", "THAO TÁC"
     };
 
     private final List<StaffResponse> rows = new ArrayList<>();
@@ -39,26 +40,13 @@ public class StaffTableModel extends AbstractTableModel {
     }
 
     public StaffResponse getRow(int modelRow) {
-        if (modelRow < 0 || modelRow >= rows.size()) {
-            return null;
-        }
+        if (modelRow < 0 || modelRow >= rows.size()) return null;
         return rows.get(modelRow);
     }
 
-    @Override
-    public int getRowCount() {
-        return rows.size();
-    }
-
-    @Override
-    public int getColumnCount() {
-        return COLUMNS.length;
-    }
-
-    @Override
-    public String getColumnName(int column) {
-        return COLUMNS[column];
-    }
+    @Override public int getRowCount()    { return rows.size(); }
+    @Override public int getColumnCount() { return COLUMNS.length; }
+    @Override public String getColumnName(int column) { return COLUMNS[column]; }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -68,45 +56,21 @@ public class StaffTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         StaffResponse staff = getRow(rowIndex);
-        if (staff == null) {
-            return "";
-        }
+        if (staff == null) return "";
 
         return switch (columnIndex) {
-            case COL_ID -> value(staff.getMaNv());
-            case COL_NAME -> value(staff.getHoTen());
-            case COL_PHONE -> value(staff.getSdt());
-            case COL_EMAIL -> shorten(staff.getEmail(), 28);
-            case COL_ROLE -> staff.isQuanLy() ? "QUẢN LÝ" : "THU NGÂN";
-            case COL_START_DATE -> formatDate(staff.getNgayVaoLam());
-            case COL_STATUS -> staff.isDeleted() ? "ĐÃ XOÁ" : value(staff.getTrangThai(), "HOẠT ĐỘNG");
-            case COL_ACTION -> staff.isDeleted() ? "Khôi phục    Chỉnh sửa" : "Xóa    Chỉnh sửa";
-            default -> "";
+            case COL_ID         -> nvl(staff.getManv());
+            case COL_NAME       -> nvl(staff.getHoten());
+            case COL_CCCD       -> nvl(staff.getCccd());
+            case COL_START_DATE -> staff.getNgayVaoLamFormatted();
+            case COL_ROLE       -> staff.getIsQl() == 1 ? "Quản lý" : "Nhân viên";
+            case COL_STATUS     -> nvl(staff.getTrangThai());
+            case COL_ACTION     -> "Xóa | Chỉnh sửa";
+            default             -> "";
         };
     }
 
-    private String formatDate(LocalDate date) {
-        return date == null ? "" : DATE_FORMATTER.format(date);
-    }
-
-    private String value(String value) {
-        return value(value, "");
-    }
-
-    private String value(String value, String defaultValue) {
-        return value == null || value.trim().isEmpty() ? defaultValue : value.trim();
-    }
-
-    private String shorten(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-
-        String trimmed = value.trim();
-        if (trimmed.length() <= maxLength) {
-            return trimmed;
-        }
-
-        return trimmed.substring(0, Math.max(0, maxLength - 3)) + "...";
+    private String nvl(String value) {
+        return (value == null || value.isBlank()) ? "--" : value.trim();
     }
 }
