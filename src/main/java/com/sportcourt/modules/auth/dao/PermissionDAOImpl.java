@@ -2,6 +2,7 @@ package com.sportcourt.modules.auth.dao;
 
 import com.sportcourt.common.db.ConnectionUtils;
 import com.sportcourt.modules.auth.dto.Permission;
+import com.sportcourt.modules.auth.dto.RoleGroupId;
 import com.sportcourt.modules.auth.dto.UserSession;
 
 import java.sql.*;
@@ -27,7 +28,7 @@ public class PermissionDAOImpl implements PermissionDAO {
             permissions.put(entry.getKey(), entry.getValue().toPermission(entry.getKey()));
         }
 
-        boolean isOwner = roleGroups.contains("OWNER");
+        boolean isOwner = roleGroups.contains(RoleGroupId.OWNER);
 
         return new UserSession(
                 scope.accountId(),

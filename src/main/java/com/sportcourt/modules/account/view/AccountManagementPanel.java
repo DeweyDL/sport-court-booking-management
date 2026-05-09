@@ -5,6 +5,7 @@ import com.sportcourt.modules.account.controller.AccountManagementController;
 import com.sportcourt.modules.account.dto.AccountRow;
 import com.sportcourt.modules.account.dto.AccountUpsertRequest;
 import com.sportcourt.modules.account.dto.RoleGroupOption;
+import com.sportcourt.modules.auth.dto.FunctionId;
 import com.sportcourt.modules.auth.dto.PermissionAction;
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
@@ -632,18 +633,18 @@ public class AccountManagementPanel extends JPanel {
     }
 
     private boolean canAdd() {
-        return session.hasPermission("ACCOUNT_MANAGEMENT", PermissionAction.ADD);
+        return session.hasPermission(FunctionId.ACCOUNT_MANAGEMENT, PermissionAction.ADD);
     }
 
     private boolean canEdit() {
-        return session.hasPermission("ACCOUNT_MANAGEMENT", PermissionAction.EDIT);
+        return session.hasPermission(FunctionId.ACCOUNT_MANAGEMENT, PermissionAction.EDIT);
     }
 
     private boolean canDelete() {
-        return session.hasPermission("ACCOUNT_MANAGEMENT", PermissionAction.DELETE);
+        return session.hasPermission(FunctionId.ACCOUNT_MANAGEMENT, PermissionAction.DELETE);
     }
 
     private boolean canRestore() {
-        return session.hasPermission("ACCOUNT_MANAGEMENT", PermissionAction.EDIT);
+        return session.hasPermission(FunctionId.ACCOUNT_MANAGEMENT, PermissionAction.EDIT);
     }
 }
