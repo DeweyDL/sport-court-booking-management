@@ -5,6 +5,7 @@ import com.sportcourt.modules.account.dao.JdbcAccountManagementDAO;
 import com.sportcourt.modules.account.dto.AccountRow;
 import com.sportcourt.modules.account.dto.AccountUpsertRequest;
 import com.sportcourt.modules.account.dto.RoleGroupOption;
+import com.sportcourt.modules.auth.dto.FunctionId;
 import com.sportcourt.modules.auth.dto.PermissionAction;
 import com.sportcourt.modules.auth.service.PermissionService;
 import com.sportcourt.modules.auth.service.PermissionServiceImpl;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class AccountManagementServiceImpl implements AccountManagementService {
-    private static final String FUNCTION_ID = "ACCOUNT_MANAGEMENT";
+    private static final String FUNCTION_ID = FunctionId.ACCOUNT_MANAGEMENT;
 
     private final AccountManagementDAO accountManagementDAO;
     private final PermissionService permissionService;
