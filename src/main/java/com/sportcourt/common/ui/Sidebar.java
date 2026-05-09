@@ -3,7 +3,9 @@ package com.sportcourt.common.ui;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.modules.account.view.AccountManagementPanel;
 import com.sportcourt.modules.area.view.AreaManagement;
+import com.sportcourt.modules.auth.dto.FunctionId;
 import com.sportcourt.modules.auth.dto.PermissionAction;
+import com.sportcourt.modules.auth.dto.RoleGroupId;
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.auth.view.LoginScreen;
@@ -11,8 +13,10 @@ import com.sportcourt.modules.branch.view.BranchManagement;
 import com.sportcourt.modules.cost.view.CostManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
+import com.sportcourt.modules.customer_rank.view.CustomerRankManagement;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
 import com.sportcourt.modules.imports.view.ImportManagement;
+import com.sportcourt.modules.product.view.ProductPanel;
 import com.sportcourt.modules.staff.view.StaffPanel;
 
 import javax.swing.*;
@@ -115,23 +119,27 @@ public class Sidebar extends JFrame {
 
         menuPanel.add(createMenuButton("TRANG CHỦ", "/icon/home.1.png"));
 
-        if (canView("ACCOUNT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
-        if (canView("REPORT_MANAGEMENT")) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
-        if (canView("BRANCH_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
-        if (canView("AREA_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ KHU VỰC", "/icon/branch.1.png"));
-        if (canView("COURT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
-        if (canView("PRICE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ BẢNG GIÁ", "/icon/report.1.png"));
-        if (canView("BOOKING_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ ĐẶT SÂN", "/icon/home.1.png"));
-        if (canView("SERVICE_MANAGEMENT")) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));
-        if (canView("INVOICE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ HÓA ĐƠN", "/icon/report.1.png"));
-        if (canView("CUSTOMER_MANAGEMENT") && !isCustomerAccount()) {
+        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) menuPanel.add(createMenuButton("ĐẶT SÂN KHÁCH HÀNG", "/icon/home.1.png"));
+        if (canView(FunctionId.BRANCH_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
+        if (canView(FunctionId.AREA_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ KHU VỰC", "/icon/branch.1.png"));
+        if (canView(FunctionId.COURT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
+        if (canView(FunctionId.PRICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ BẢNG GIÁ", "/icon/report.1.png"));
+        if (canView(FunctionId.BOOKING_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ ĐẶT SÂN", "/icon/home.1.png"));
+        if (canView(FunctionId.SERVICE_MANAGEMENT)) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));
+        if (canView(FunctionId.INVOICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ HÓA ĐƠN", "/icon/report.1.png"));
+        if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
         }
-        if (canView("EMPLOYEE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
-        if (canView("PRODUCT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM", "/icon/products.1.png"));
-        if (canView("EQUIPMENT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
-        if (canView("IMPORT_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ NHẬP HÀNG", "/icon/report.1.png"));
-        if (canView("FINANCE_MANAGEMENT")) menuPanel.add(createMenuButton("QUẢN LÝ TÀI CHÍNH", "/icon/report.1.png"));
+        if (canView(FunctionId.CUSTOMER_RANK_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ HẠNG KHÁCH HÀNG", "/icon/user.1.png"));
+        if (canView(FunctionId.EMPLOYEE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ NHÂN VIÊN", "/icon/staff.1.png"));
+        if (canView(FunctionId.PRODUCT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ SẢN PHẨM", "/icon/products.1.png"));
+        if (canView(FunctionId.EQUIPMENT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ DỤNG CỤ", "/icon/tools.1.png"));
+        if (canView(FunctionId.IMPORT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ NHẬP HÀNG", "/icon/report.1.png"));
+        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ NHÀ CUNG CẤP", "/icon/products.1.png"));
+        if (canView(FunctionId.REVENUE_MANAGEMENT)) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
+        if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI THỂ THAO", "/icon/tools.1.png"));
+        if (canView(FunctionId.ACCOUNT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
+        if (canView(FunctionId.ROLE_PERMISSION_MANAGEMENT)) menuPanel.add(createMenuButton("PHÂN QUYỀN TÀI KHOẢN", "/icon/user.1.png"));
         JScrollPane menuScrollPane = new JScrollPane(menuPanel);
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
         menuScrollPane.getViewport().setOpaque(false);
@@ -146,7 +154,7 @@ public class Sidebar extends JFrame {
         bottomPanel.setOpaque(false);
         bottomPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
 
-        bottomPanel.add(createMenuButton("TRANG CÁ NHÂN", "/icon/user.1.png"));
+        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) bottomPanel.add(createMenuButton("TRANG CÁ NHÂN", "/icon/user.1.png"));
         bottomPanel.add(createMenuButton("ĐĂNG XUẤT", "/icon/logout.png"));
 
         sidebar.add(bottomPanel, BorderLayout.SOUTH);
@@ -305,24 +313,27 @@ public class Sidebar extends JFrame {
 
     private void registerModuleViews() {
         contentPanel.registerView("TRANG CHỦ", () -> createPage("TRANG CHỦ"));
-        if (canView("ACCOUNT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
-        if (canView("REPORT_MANAGEMENT")) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
-        if (canView("BRANCH_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
-        if (canView("AREA_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
-        if (canView("COURT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
-        if (canView("PRICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", CostManagement::new);
-        if (canView("BOOKING_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", () -> createPage("QUẢN LÝ ĐẶT SÂN"));
-        if (canView("SERVICE_MANAGEMENT")) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
-        if (canView("INVOICE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
-        if (canView("CUSTOMER_MANAGEMENT") && !isCustomerAccount()) {
+        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN KHÁCH HÀNG", () -> createPage("ĐẶT SÂN KHÁCH HÀNG"));
+        if (canView(FunctionId.BRANCH_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
+        if (canView(FunctionId.AREA_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
+        if (canView(FunctionId.COURT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
+        if (canView(FunctionId.PRICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", CostManagement::new);
+        if (canView(FunctionId.BOOKING_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", () -> createPage("QUẢN LÝ ĐẶT SÂN"));
+        if (canView(FunctionId.SERVICE_MANAGEMENT)) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
+        if (canView(FunctionId.INVOICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
+        if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerScreen::new);
         }
-        if (canView("EMPLOYEE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHÂN VIÊN", StaffPanel::new);
-        if (canView("PRODUCT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", () -> createPage("QUẢN LÝ SẢN PHẨM"));
-        if (canView("EQUIPMENT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", EquipmentManagement::new);
-        if (canView("IMPORT_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
-        if (canView("FINANCE_MANAGEMENT")) contentPanel.registerView("QUẢN LÝ TÀI CHÍNH", () -> createPage("QUẢN LÝ TÀI CHÍNH"));
-        contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
+        if (canView(FunctionId.CUSTOMER_RANK_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HẠNG KHÁCH HÀNG", CustomerRankManagement::new);
+        if (canView(FunctionId.EMPLOYEE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÂN VIÊN", StaffPanel::new);
+        if (canView(FunctionId.PRODUCT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", ProductPanel::new);
+        if (canView(FunctionId.EQUIPMENT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", EquipmentManagement::new);
+        if (canView(FunctionId.IMPORT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
+        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", () -> createPage("QUẢN LÝ NHÀ CUNG CẤP"));
+        if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
+        if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", () -> createPage("QUẢN LÝ LOẠI THỂ THAO"));
+        if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
+        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
     }
 
     private void openView(String key) {
@@ -366,7 +377,7 @@ public class Sidebar extends JFrame {
     }
 
     private boolean isCustomerAccount() {
-        return session.getRoleGroups().contains("CUSTOMER") && !session.isOwner();
+        return session.getRoleGroups().contains(RoleGroupId.CUSTOMER) && !session.isOwner();
     }
 
     public static void main(String[] args) {
