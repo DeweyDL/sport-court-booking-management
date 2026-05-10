@@ -71,6 +71,22 @@ public class JdbcAuthDao implements AuthDao {
     }
 
     @Override
+    public int countCustomers() throws SQLException {
+        String sql = """
+                SELECT COUNT(*) AS CUSTOMER_COUNT
+                FROM KHACH_HANG
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("CUSTOMER_COUNT");
+            }
+        }
+        throw new SQLException("Khong the dem so luong khach hang.");
+    }
+
+    @Override
     public void createUserAndAccount(String userId,
                                      String accountId,
                                      String customerId,
