@@ -17,6 +17,7 @@ import com.sportcourt.modules.customer_rank.view.CustomerRankManagement;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
 import com.sportcourt.modules.imports.view.ImportManagement;
 import com.sportcourt.modules.product.view.ProductPanel;
+import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
 
 import javax.swing.*;
@@ -331,7 +332,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.IMPORT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
         if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", () -> createPage("QUẢN LÝ NHÀ CUNG CẤP"));
         if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
-        if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", () -> createPage("QUẢN LÝ LOẠI THỂ THAO"));
+        if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
         if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
     }
