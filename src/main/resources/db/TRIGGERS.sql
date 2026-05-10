@@ -1,5 +1,3 @@
-
-
 -- RB68, RB65, RB64
 -- Validate court rental detail, copy snapshot price from BANG_GIA.GIA,
 -- and guard arrival transition to DANG SU DUNG.
@@ -41,11 +39,13 @@ BEGIN
             :NEW.DON_GIA_THUE := V_GIA;
         END IF;
     ELSIF NVL(:OLD.DON_GIA_THUE, -1) <> NVL(:NEW.DON_GIA_THUE, -1) THEN
-        RAISE_APPLICATION_ERROR(-20068, 'Khong duoc sua DON_GIA_THUE thu cong. Hay doi MABG/MASAN neu can lay gia moi.');
+        RAISE_APPLICATION_ERROR(-20068,
+                                'Khong duoc sua DON_GIA_THUE thu cong. Hay doi MABG/MASAN neu can lay gia moi.');
     END IF;
 
     IF INSERTING AND :NEW.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN
-        RAISE_APPLICATION_ERROR(-20064, 'Khong duoc tao moi chi tiet thue san o trang thai DANG SU DUNG. Hay tao DA XAC NHAN roi xac nhan khach den san.');
+        RAISE_APPLICATION_ERROR(-20064,
+                                'Khong duoc tao moi chi tiet thue san o trang thai DANG SU DUNG. Hay tao DA XAC NHAN roi xac nhan khach den san.');
     END IF;
 
     IF UPDATING
@@ -53,7 +53,8 @@ BEGIN
         AND :NEW.TRANGTHAI = 'ĐANG SỬ DỤNG'
         AND NVL(:OLD.TRANGTHAI, '#') <> 'ĐANG SỬ DỤNG' THEN
         IF :OLD.TRANGTHAI <> 'ĐÃ XÁC NHẬN' THEN
-            RAISE_APPLICATION_ERROR(-20064, 'Chi duoc xac nhan khach den san khi chi tiet dang o trang thai DA XAC NHAN.');
+            RAISE_APPLICATION_ERROR(-20064,
+                                    'Chi duoc xac nhan khach den san khi chi tiet dang o trang thai DA XAC NHAN.');
         END IF;
     END IF;
 EXCEPTION
@@ -70,7 +71,6 @@ CREATE OR REPLACE TRIGGER TRG_FIUD_CTHD_THUE_SAN_RECALC
     FOR INSERT OR UPDATE OR DELETE
     ON CHI_TIET_HOA_DON_THUE_SAN
     COMPOUND TRIGGER
-
     TYPE T_MAHD_LIST IS TABLE OF HOA_DON.MAHD%TYPE INDEX BY PLS_INTEGER;
     G_MAHD_LIST T_MAHD_LIST;
     G_COUNT PLS_INTEGER := 0;
@@ -108,11 +108,11 @@ END BEFORE EACH ROW;
 
     AFTER STATEMENT IS
     BEGIN
-        FOR I IN 1 .. G_COUNT LOOP
+        FOR I IN 1 .. G_COUNT
+            LOOP
                 PRC_CAP_NHAT_SO_TIEN_HOA_DON(G_MAHD_LIST(I));
             END LOOP;
     END AFTER STATEMENT;
-
     END;
 /
 
@@ -152,7 +152,8 @@ BEGIN
             :NEW.DON_GIA := V_GIA;
         END IF;
     ELSIF NVL(:OLD.DON_GIA, -1) <> NVL(:NEW.DON_GIA, -1) THEN
-        RAISE_APPLICATION_ERROR(-20052, 'Khong duoc sua DON_GIA dich vu thu cong. Hay doi MASP/MADC neu can lay gia moi.');
+        RAISE_APPLICATION_ERROR(-20052,
+                                'Khong duoc sua DON_GIA dich vu thu cong. Hay doi MASP/MADC neu can lay gia moi.');
     END IF;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -168,7 +169,6 @@ CREATE OR REPLACE TRIGGER TRG_FIUD_CTHD_DICH_VU_RECALC
     FOR INSERT OR UPDATE OR DELETE
     ON CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
     COMPOUND TRIGGER
-
     TYPE T_MAHD_LIST IS TABLE OF HOA_DON.MAHD%TYPE INDEX BY PLS_INTEGER;
     G_MAHD_LIST T_MAHD_LIST;
     G_COUNT PLS_INTEGER := 0;
@@ -204,11 +204,11 @@ END BEFORE EACH ROW;
 
     AFTER STATEMENT IS
     BEGIN
-        FOR I IN 1 .. G_COUNT LOOP
+        FOR I IN 1 .. G_COUNT
+            LOOP
                 PRC_CAP_NHAT_SO_TIEN_HOA_DON(G_MAHD_LIST(I));
             END LOOP;
     END AFTER STATEMENT;
-
     END;
 /
 
@@ -222,10 +222,10 @@ CREATE OR REPLACE TRIGGER TRG_BIU_HOA_DON_VALIDATE
     ON HOA_DON
     FOR EACH ROW
 BEGIN
-    :NEW.GIAMGIA    := NVL(:NEW.GIAMGIA, 0);
-    :NEW.TIEN_COC   := NVL(:NEW.TIEN_COC, 0);
+    :NEW.GIAMGIA := NVL(:NEW.GIAMGIA, 0);
+    :NEW.TIEN_COC := NVL(:NEW.TIEN_COC, 0);
     :NEW.TONGGIATRI := NVL(:NEW.TONGGIATRI, 0);
-    :NEW.TONGTIEN   := NVL(:NEW.TONGTIEN, 0);
+    :NEW.TONGTIEN := NVL(:NEW.TONGTIEN, 0);
 
     IF :NEW.GIAMGIA < 0 OR :NEW.GIAMGIA > 100 THEN
         RAISE_APPLICATION_ERROR(-20057, 'GIAMGIA phai nam trong khoang 0 den 100.');
@@ -246,7 +246,6 @@ CREATE OR REPLACE TRIGGER TRG_FU_HOA_DON_RECALC_AMOUNT
     FOR UPDATE OF MAKH, GIAMGIA, TIEN_COC, IS_DELETED
     ON HOA_DON
     COMPOUND TRIGGER
-
     TYPE T_MAHD_LIST IS TABLE OF HOA_DON.MAHD%TYPE INDEX BY PLS_INTEGER;
     G_MAHD_LIST T_MAHD_LIST;
     G_COUNT PLS_INTEGER := 0;
@@ -269,12 +268,12 @@ END BEFORE EACH ROW;
     AFTER STATEMENT IS
     BEGIN
         IF NOT PKG_COURT_CTX.G_INTERNAL_RECALC THEN
-            FOR I IN 1 .. G_COUNT LOOP
+            FOR I IN 1 .. G_COUNT
+                LOOP
                     PRC_CAP_NHAT_SO_TIEN_HOA_DON(G_MAHD_LIST(I));
                 END LOOP;
         END IF;
     END AFTER STATEMENT;
-
     END;
 /
 
@@ -287,8 +286,8 @@ CREATE OR REPLACE TRIGGER TRG_BU_HOA_DON_THANH_TOAN_CHECK
     ON HOA_DON
     FOR EACH ROW
 DECLARE
-    V_COUNT        PLS_INTEGER := 0;
-    V_INVALID_SAN  PLS_INTEGER := 0;
+    V_COUNT       PLS_INTEGER := 0;
+    V_INVALID_SAN PLS_INTEGER := 0;
 BEGIN
     IF :OLD.TRANGTHAI IN ('ĐÃ THANH TOÁN', 'ĐÃ HUỶ')
         AND :NEW.TRANGTHAI <> :OLD.TRANGTHAI THEN
@@ -323,6 +322,20 @@ BEGIN
         IF V_INVALID_SAN > 0 THEN
             RAISE_APPLICATION_ERROR(-20063, 'Khong the thanh toan vi co san con da xoa hoac dang bao tri.');
         END IF;
+
+        SELECT COUNT(1)
+        INTO V_COUNT
+        FROM CHI_TIET_HOA_DON_THUE_SAN
+        WHERE MAHD = :OLD.MAHD
+          AND IS_DELETED = 0
+          AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
+
+        IF V_COUNT > 0 THEN
+            RAISE_APPLICATION_ERROR(
+                    -20062,
+                    'Khong the thanh toan khi con chi tiet thue san chua bat dau su dung.'
+            );
+        END IF;
     END IF;
 END;
 /
@@ -333,17 +346,7 @@ CREATE OR REPLACE TRIGGER TRG_AU_HOA_DON_COMPLETE_DETAILS
     FOR EACH ROW
 BEGIN
     IF :OLD.TRANGTHAI <> 'ĐÃ THANH TOÁN' AND :NEW.TRANGTHAI = 'ĐÃ THANH TOÁN' THEN
-        UPDATE CHI_TIET_HOA_DON_THUE_SAN
-        SET TRANGTHAI = 'ĐÃ HOÀN THÀNH'
-        WHERE MAHD = :NEW.MAHD
-          AND TRANGTHAI IN ('ĐÃ XÁC NHẬN', 'ĐANG SỬ DỤNG')
-          AND IS_DELETED = 0;
-
-        UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
-        SET TRANGTHAI = 'ĐÃ HOÀN THÀNH'
-        WHERE MAHD = :NEW.MAHD
-          AND TRANGTHAI = 'ĐANG SỬ DỤNG'
-          AND IS_DELETED = 0;
+        PRC_CAP_NHAT_THANH_TOAN_CHI_TIET_HD(:NEW.MAHD);
     END IF;
 END;
 /
@@ -440,13 +443,14 @@ END;
 /
 --69 
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_DOANHTHU_KH
-AFTER INSERT OR UPDATE OF MAKH, TONGTIEN, TRANGTHAI, IS_DELETED OR DELETE ON HOA_DON
-FOR EACH ROW
+    AFTER INSERT OR UPDATE OF MAKH, TONGTIEN, TRANGTHAI, IS_DELETED OR DELETE
+    ON HOA_DON
+    FOR EACH ROW
 DECLARE
     old_money NUMBER(12, 2) := 0;
     new_money NUMBER(12, 2) := 0;
 BEGIN
-  
+
     IF UPDATING OR DELETING THEN
         IF :OLD.TRANGTHAI = 'ĐÃ THANH TOÁN' AND :OLD.IS_DELETED = 0 THEN
             old_money := :OLD.TONGTIEN;
@@ -459,7 +463,7 @@ BEGIN
         END IF;
     END IF;
 
- 
+
     IF INSERTING THEN
         UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU + new_money WHERE MAKH = :NEW.MAKH;
 
@@ -468,8 +472,8 @@ BEGIN
 
     ELSIF UPDATING THEN
         IF :OLD.MAKH = :NEW.MAKH THEN
-            
-            UPDATE KHACH_HANG 
+
+            UPDATE KHACH_HANG
             SET DOANH_THU = DOANH_THU + (new_money - old_money)
             WHERE MAKH = :NEW.MAKH;
         ELSE
@@ -482,44 +486,37 @@ END;
 /
 --70 
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_HANG_KH
-BEFORE UPDATE OF DOANH_THU ON KHACH_HANG
-FOR EACH ROW
+    BEFORE INSERT OR UPDATE OF DOANH_THU
+    ON KHACH_HANG
+    FOR EACH ROW
 DECLARE
     v_ma_hang_moi VARCHAR2(20);
 BEGIN
-    SELECT MA_HANG 
-    INTO v_ma_hang_moi
-    FROM HANG_KHACH_HANG
-    WHERE MUC_TIEN = (
-        SELECT MAX(MUC_TIEN) 
-        FROM HANG_KHACH_HANG 
-        WHERE :NEW.DOANH_THU >= MUC_TIEN 
-          AND IS_DELETED = 0
-    )
-    AND IS_DELETED = 0;
 
-    :NEW.MA_HANG := v_ma_hang_moi;
+    :NEW.MA_HANG := FN_TIM_HANG_KHACH_HANG(:NEW.DOANH_THU);
 
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         :NEW.MA_HANG := NULL;
 END;
+/
 --rb71 
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_SL_SAN_KV
-AFTER INSERT OR UPDATE OF MAKV, IS_DELETED OR DELETE ON SAN_CON
-FOR EACH ROW
+    AFTER INSERT OR UPDATE OF MAKV, IS_DELETED OR DELETE
+    ON SAN_CON
+    FOR EACH ROW
 BEGIN
     IF INSERTING THEN
         IF :NEW.IS_DELETED = 0 THEN
-            UPDATE KHU_VUC 
-            SET SO_LUONG_SAN = SO_LUONG_SAN + 1 
+            UPDATE KHU_VUC
+            SET SO_LUONG_SAN = SO_LUONG_SAN + 1
             WHERE MAKV = :NEW.MAKV;
         END IF;
 
     ELSIF DELETING THEN
         IF :OLD.IS_DELETED = 0 THEN
-            UPDATE KHU_VUC 
-            SET SO_LUONG_SAN = SO_LUONG_SAN - 1 
+            UPDATE KHU_VUC
+            SET SO_LUONG_SAN = SO_LUONG_SAN - 1
             WHERE MAKV = :OLD.MAKV;
         END IF;
 
