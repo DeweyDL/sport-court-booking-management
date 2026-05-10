@@ -181,12 +181,20 @@ final class CustomerEditDialog {
         });
 
         dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth(), 560), 520);
-        dialog.setMinimumSize(new Dimension(560, 520));
+        applyResponsiveWindowSize(dialog, 0.45, 0.7, 560, 520);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
     }
+
+    private static void applyResponsiveWindowSize(JDialog dialog, double widthRatio, double heightRatio, int minWidth, int minHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = Math.max(minWidth, (int) (screenSize.width * widthRatio));
+        int height = Math.max(minHeight, (int) (screenSize.height * heightRatio));
+        dialog.setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
+        dialog.setMinimumSize(new Dimension(minWidth, minHeight));
+    }
+
 
     private static JTextField createReadOnlyField(String value) {
         JTextField field = createBaseField(value);
