@@ -10,6 +10,17 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
 
 public class BranchAdd extends JPanel {
+    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        double widthRatio = screenSize.getWidth() / 1920.0;
+        double heightRatio = screenSize.getHeight() / 1080.0;
+        double ratio = Math.min(widthRatio, heightRatio);
+        if (ratio < 0.8) ratio = 0.8;
+
+        int width = (int) (baseWidth * ratio);
+        int height = (int) (baseHeight * ratio);
+        dialog.setSize(width, height);
+    }
     private final BranchController branchController;
     private final Consumer<String> onSaved;
 
@@ -57,6 +68,7 @@ public class BranchAdd extends JPanel {
             dialog.setContentPane(this);
             dialog.setResizable(false);
             dialog.pack();
+            applyResponsiveWindowSize(dialog, 560, dialog.getHeight());
         }
         return dialog;
     }
