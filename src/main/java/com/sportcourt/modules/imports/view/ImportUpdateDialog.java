@@ -41,7 +41,6 @@ final class ImportUpdateDialog {
     private static final Color TOGGLE_INACTIVE_BG = new Color(243, 244, 246);
     private static final Color TOGGLE_INACTIVE_FG = new Color(107, 114, 128);
     private static final int DETAIL_ROW_HEIGHT = 46;
-    private static final int[] DETAIL_WIDTHS = {70, 150, 65, 65, 100, 65, 110, 76};
     private static final String[] MOCK_EMPLOYEES = {
             "Nguyễn Văn An", "Trần Thị Bình", "Lê Minh Châu", "Phạm Đức Duy", "Hoàng Thị Eo", "Vũ Quang Phúc", "Đỗ Thanh Giang", "Bùi Thị Hạnh"
     };
@@ -70,6 +69,18 @@ final class ImportUpdateDialog {
     }
 
     private ImportUpdateDialog() {
+    }
+
+    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        double widthRatio = screenSize.getWidth() / 1920.0;
+        double heightRatio = screenSize.getHeight() / 1080.0;
+        double ratio = Math.min(widthRatio, heightRatio);
+        if (ratio < 0.8) ratio = 0.8;
+
+        int width = (int) (baseWidth * ratio);
+        int height = (int) (baseHeight * ratio);
+        dialog.setSize(width, height);
     }
 
     static void show(Component parent, ImportItem item) {
@@ -225,7 +236,7 @@ final class ImportUpdateDialog {
         actions.add(cancelBtn);
         root.add(actions, BorderLayout.SOUTH);
 
-        dialog.setSize(850, 750);
+        applyResponsiveWindowSize(dialog, 900, 800);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
     }
@@ -336,37 +347,40 @@ final class ImportUpdateDialog {
     // --------- Detail table UI ---------
 
     private static JPanel createDetailHeader(String[] columns) {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(HEADER_BG);
         header.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 8, 0, 8)
         ));
         header.setPreferredSize(new Dimension(0, 36));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        header.setMinimumSize(new Dimension(0, 36));
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.22, 0.09, 0.09, 0.14, 0.09, 0.16, 0.11};
         for (int i = 0; i < columns.length; i++) {
             JLabel lbl = new JLabel(columns[i]);
             lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lbl.setForeground(new Color(107, 114, 128));
             lbl.setHorizontalAlignment(SwingConstants.CENTER);
-            Dimension d = new Dimension(DETAIL_WIDTHS[i], 36);
+            
             JPanel cell = new JPanel(new BorderLayout());
             cell.setOpaque(false);
             cell.add(lbl, BorderLayout.CENTER);
-            cell.setPreferredSize(d);
-            cell.setMinimumSize(d);
-            cell.setMaximumSize(d);
-            header.add(cell);
-            if (i < columns.length - 1) header.add(Box.createHorizontalStrut(4));
+            
+            gbc.weightx = weights[i];
+            if (i == columns.length - 1) gbc.insets = new Insets(0, 0, 0, 0);
+            header.add(cell, gbc);
         }
         return header;
     }
 
     private static JPanel createReadonlyDetailRow(DetailTableView view, int idx, String[] values) {
-        JPanel row = new JPanel();
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        JPanel row = new JPanel(new GridBagLayout());
         Color bg = idx % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
         row.setBackground(bg);
         row.setBorder(BorderFactory.createCompoundBorder(
@@ -374,25 +388,30 @@ final class ImportUpdateDialog {
                 new EmptyBorder(0, 8, 0, 8)
         ));
         row.setPreferredSize(new Dimension(0, DETAIL_ROW_HEIGHT));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAIL_ROW_HEIGHT));
+        row.setMinimumSize(new Dimension(0, DETAIL_ROW_HEIGHT));
 
-        for (int i = 0; i < values.length && i < DETAIL_WIDTHS.length - 1; i++) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.22, 0.09, 0.09, 0.14, 0.09, 0.16, 0.11};
+        for (int i = 0; i < values.length && i < weights.length - 1; i++) {
             JLabel lbl = new JLabel(values[i] == null || values[i].isBlank() ? "--" : values[i]);
             lbl.setFont(new Font("Segoe UI", i == 0 ? Font.BOLD : Font.PLAIN, 13));
             lbl.setForeground(i == 0 ? new Color(22, 163, 74) : new Color(31, 41, 55));
             lbl.setHorizontalAlignment(i <= 1 ? SwingConstants.LEFT : SwingConstants.CENTER);
-            Dimension d = new Dimension(DETAIL_WIDTHS[i], DETAIL_ROW_HEIGHT);
+            
             JPanel cell = new JPanel(new BorderLayout());
             cell.setOpaque(false);
             cell.add(lbl, BorderLayout.CENTER);
-            cell.setPreferredSize(d);
-            cell.setMinimumSize(d);
-            cell.setMaximumSize(d);
-            row.add(cell);
-            if (i < values.length - 1) row.add(Box.createHorizontalStrut(4));
+            
+            gbc.weightx = weights[i];
+            row.add(cell, gbc);
         }
 
-        row.add(Box.createHorizontalStrut(4));
+        gbc.weightx = weights[weights.length - 1];
+        gbc.insets = new Insets(0, 0, 0, 0);
         JButton delBtn = createMiniDeleteButton();
         delBtn.addActionListener(e -> {
             view.rows.remove(values);
@@ -401,17 +420,12 @@ final class ImportUpdateDialog {
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setOpaque(false);
         actionCell.add(delBtn);
-        Dimension actionSize = new Dimension(DETAIL_WIDTHS[DETAIL_WIDTHS.length - 1], DETAIL_ROW_HEIGHT);
-        actionCell.setPreferredSize(actionSize);
-        actionCell.setMinimumSize(actionSize);
-        actionCell.setMaximumSize(actionSize);
-        row.add(actionCell);
+        row.add(actionCell, gbc);
         return row;
     }
 
     private static JPanel createEditableDetailRow(DetailTableView view, int idx, String[] values) {
-        JPanel row = new JPanel();
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        JPanel row = new JPanel(new GridBagLayout());
         Color bg = idx % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
         row.setBackground(bg);
         row.setBorder(BorderFactory.createCompoundBorder(
@@ -419,10 +433,16 @@ final class ImportUpdateDialog {
                 new EmptyBorder(0, 8, 0, 8)
         ));
         row.setPreferredSize(new Dimension(0, DETAIL_ROW_HEIGHT));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAIL_ROW_HEIGHT));
+        row.setMinimumSize(new Dimension(0, DETAIL_ROW_HEIGHT));
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.22, 0.09, 0.09, 0.14, 0.09, 0.16, 0.11};
         JTextField[] rowFields = new JTextField[values.length];
-        for (int i = 0; i < values.length && i < DETAIL_WIDTHS.length - 1; i++) {
+        for (int i = 0; i < values.length && i < weights.length - 1; i++) {
             JTextField field;
             if (i == 1) {
                 java.util.Map<String, String> source = view.equipmentTable ? MOCK_EQUIPMENTS : MOCK_PRODUCTS;
@@ -464,14 +484,13 @@ final class ImportUpdateDialog {
             JPanel cell = new JPanel(new BorderLayout());
             cell.setOpaque(false);
             cell.add(field, BorderLayout.CENTER);
-            Dimension d = new Dimension(DETAIL_WIDTHS[i], 32);
-            cell.setPreferredSize(d);
-            cell.setMinimumSize(d);
-            cell.setMaximumSize(d);
-            row.add(cell);
-            row.add(Box.createHorizontalStrut(4));
+            
+            gbc.weightx = weights[i];
+            row.add(cell, gbc);
         }
 
+        gbc.weightx = weights[weights.length - 1];
+        gbc.insets = new Insets(0, 0, 0, 0);
         JButton delBtn = createMiniDeleteButton();
         delBtn.addActionListener(e -> {
             view.rows.remove(values);
@@ -480,11 +499,7 @@ final class ImportUpdateDialog {
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setOpaque(false);
         actionCell.add(delBtn);
-        Dimension actionSize = new Dimension(DETAIL_WIDTHS[DETAIL_WIDTHS.length - 1], DETAIL_ROW_HEIGHT);
-        actionCell.setPreferredSize(actionSize);
-        actionCell.setMinimumSize(actionSize);
-        actionCell.setMaximumSize(actionSize);
-        row.add(actionCell);
+        row.add(actionCell, gbc);
         return row;
     }
 
