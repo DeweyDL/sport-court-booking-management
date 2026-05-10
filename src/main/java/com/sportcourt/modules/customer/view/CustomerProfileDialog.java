@@ -105,12 +105,20 @@ final class CustomerProfileDialog {
         });
 
         dialog.pack();
-        dialog.setSize(560, 560);
-        dialog.setMinimumSize(new Dimension(560, 560));
+        applyResponsiveWindowSize(dialog, 0.4, 0.7, 560, 560);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
     }
+
+    private static void applyResponsiveWindowSize(JDialog dialog, double widthRatio, double heightRatio, int minWidth, int minHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = Math.max(minWidth, (int) (screenSize.width * widthRatio));
+        int height = Math.max(minHeight, (int) (screenSize.height * heightRatio));
+        dialog.setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
+        dialog.setMinimumSize(new Dimension(minWidth, minHeight));
+    }
+
 
     private static JPanel createField(String labelText, String value) {
         JPanel panel = new JPanel();

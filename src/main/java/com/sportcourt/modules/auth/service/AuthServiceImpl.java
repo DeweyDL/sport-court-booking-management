@@ -75,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             String userId = generateId("USR");
             String accountId = generateId("ACC");
-            String customerId = generateId("KH");
+            String customerId = generateCustomerId();
             String accountRoleGroupId = generateId("ARG");
             String password = normalize(request.password());
             String passwordHash = Sha256Password.hash(password);
@@ -209,6 +209,10 @@ public class AuthServiceImpl implements AuthService {
 
     private String generateId(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+    }
+
+    private String generateCustomerId() throws SQLException {
+        return "KH-" + (authDao.countCustomers() + 1);
     }
 
     private String generateOtpCode() {

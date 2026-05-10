@@ -13,6 +13,8 @@ public interface AuthDao {
 
     boolean existsEmail(String email) throws SQLException;
 
+    int countCustomers() throws SQLException;
+
     void createUserAndAccount(String userId,
                               String accountId,
                               String customerId,
