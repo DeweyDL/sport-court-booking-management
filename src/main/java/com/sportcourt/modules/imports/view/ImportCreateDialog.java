@@ -62,6 +62,18 @@ final class ImportCreateDialog {
     private ImportCreateDialog() {
     }
 
+    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        double widthRatio = screenSize.getWidth() / 1920.0;
+        double heightRatio = screenSize.getHeight() / 1080.0;
+        double ratio = Math.min(widthRatio, heightRatio);
+        if (ratio < 0.8) ratio = 0.8;
+
+        int width = (int) (baseWidth * ratio);
+        int height = (int) (baseHeight * ratio);
+        dialog.setSize(width, height);
+    }
+
     // --------- Inner row models ---------
     private static class ProductRow {
         JTextField txtMaSp = new JTextField();
@@ -308,7 +320,7 @@ final class ImportCreateDialog {
         actions.add(saveBtn);
         root.add(actions, BorderLayout.SOUTH);
 
-        dialog.setSize(850, 700);
+        applyResponsiveWindowSize(dialog, 900, 750);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
     }
@@ -324,31 +336,34 @@ final class ImportCreateDialog {
     }
 
     private static JPanel createDetailHeader(String[] columns) {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(HEADER_BG);
         header.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 8, 0, 8)
         ));
         header.setPreferredSize(new Dimension(0, 36));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        header.setMinimumSize(new Dimension(0, 36));
 
-        int[] widths = {80, 160, 70, 70, 100, 70, 76};
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.25, 0.11, 0.11, 0.16, 0.11, 0.15};
         for (int i = 0; i < columns.length; i++) {
             JLabel lbl = new JLabel(columns[i]);
             lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lbl.setForeground(new Color(107, 114, 128));
             lbl.setHorizontalAlignment(SwingConstants.CENTER);
-            Dimension d = new Dimension(widths[i], 36);
+            
             JPanel cell = new JPanel(new BorderLayout());
             cell.setOpaque(false);
             cell.add(lbl, BorderLayout.CENTER);
-            cell.setPreferredSize(d);
-            cell.setMinimumSize(d);
-            cell.setMaximumSize(d);
-            header.add(cell);
-            if (i < columns.length - 1) header.add(Box.createHorizontalStrut(4));
+            
+            gbc.weightx = weights[i];
+            if (i == columns.length - 1) gbc.insets = new Insets(0, 0, 0, 0);
+            header.add(cell, gbc);
         }
         return header;
     }
@@ -365,8 +380,7 @@ final class ImportCreateDialog {
         }
         row.txtMaDc.setEditable(false);
 
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        JPanel panel = new JPanel(new GridBagLayout());
         Color bg = idx % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
         panel.setBackground(bg);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -374,14 +388,19 @@ final class ImportCreateDialog {
                 new EmptyBorder(0, 8, 0, 8)
         ));
         panel.setPreferredSize(new Dimension(0, DETAIL_ROW_HEIGHT));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAIL_ROW_HEIGHT));
+        panel.setMinimumSize(new Dimension(0, DETAIL_ROW_HEIGHT));
 
-        int[] widths = {80, 160, 70, 70, 100, 70, 76};
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.25, 0.11, 0.11, 0.16, 0.11, 0.15};
         JTextField[] fields = {row.txtMaDc, row.txtTenDc, row.txtSlChungTu, row.txtSlThucNhap, row.txtDonGia, row.txtCktm};
         for (int i = 0; i < fields.length; i++) {
-            styleSmallField(fields[i], widths[i]);
-            panel.add(wrapFieldCell(fields[i], widths[i]));
-            panel.add(Box.createHorizontalStrut(4));
+            styleSmallField(fields[i], 0);
+            gbc.weightx = weights[i];
+            panel.add(wrapFieldCell(fields[i], 0), gbc);
         }
 
         // Delete button
@@ -395,13 +414,11 @@ final class ImportCreateDialog {
         JPanel delCell = new JPanel(new GridBagLayout());
         delCell.setBackground(bg);
         delCell.setOpaque(true);
-        delCell.setBorder(new EmptyBorder(0, 0, 0, 0));
         delCell.add(delBtn);
-        Dimension dd = new Dimension(76, DETAIL_ROW_HEIGHT);
-        delCell.setPreferredSize(dd);
-        delCell.setMinimumSize(dd);
-        delCell.setMaximumSize(dd);
-        panel.add(delCell);
+        
+        gbc.weightx = weights[weights.length - 1];
+        gbc.insets = new Insets(0, 0, 0, 0);
+        panel.add(delCell, gbc);
 
         return panel;
     }
@@ -416,8 +433,7 @@ final class ImportCreateDialog {
         }
         row.txtMaSp.setEditable(false);
 
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        JPanel panel = new JPanel(new GridBagLayout());
         Color bg = idx % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
         panel.setBackground(bg);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -425,14 +441,19 @@ final class ImportCreateDialog {
                 new EmptyBorder(0, 8, 0, 8)
         ));
         panel.setPreferredSize(new Dimension(0, DETAIL_ROW_HEIGHT));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAIL_ROW_HEIGHT));
+        panel.setMinimumSize(new Dimension(0, DETAIL_ROW_HEIGHT));
 
-        int[] widths = {80, 160, 70, 70, 100, 70, 76};
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 4);
+
+        double[] weights = {0.10, 0.25, 0.11, 0.11, 0.16, 0.11, 0.15};
         JTextField[] fields = {row.txtMaSp, row.txtTenSp, row.txtSlChungTu, row.txtSlThucNhap, row.txtDonGia, row.txtVat};
         for (int i = 0; i < fields.length; i++) {
-            styleSmallField(fields[i], widths[i]);
-            panel.add(wrapFieldCell(fields[i], widths[i]));
-            panel.add(Box.createHorizontalStrut(4));
+            styleSmallField(fields[i], 0);
+            gbc.weightx = weights[i];
+            panel.add(wrapFieldCell(fields[i], 0), gbc);
         }
 
         JButton delBtn = createMiniDeleteButton();
@@ -445,13 +466,11 @@ final class ImportCreateDialog {
         JPanel delCell = new JPanel(new GridBagLayout());
         delCell.setBackground(bg);
         delCell.setOpaque(true);
-        delCell.setBorder(new EmptyBorder(0, 0, 0, 0));
         delCell.add(delBtn);
-        Dimension dd = new Dimension(76, DETAIL_ROW_HEIGHT);
-        delCell.setPreferredSize(dd);
-        delCell.setMinimumSize(dd);
-        delCell.setMaximumSize(dd);
-        panel.add(delCell);
+        
+        gbc.weightx = weights[weights.length - 1];
+        gbc.insets = new Insets(0, 0, 0, 0);
+        panel.add(delCell, gbc);
 
         return panel;
     }
@@ -653,7 +672,6 @@ final class ImportCreateDialog {
         Dimension d = new Dimension(width, 32);
         cell.setPreferredSize(d);
         cell.setMinimumSize(d);
-        cell.setMaximumSize(d);
         return cell;
     }
 

@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class ImportManagement extends JPanel {
+    private static final int HEADER_HEIGHT = 45;
+    private static final int ROW_HEIGHT = 64;
+    private static final int COLUMN_GAP = 12;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
 
@@ -97,23 +100,23 @@ public class ImportManagement extends JPanel {
         container.setBackground(Color.WHITE);
         container.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        // Top section: toolbar + fixed header
+        // Top section: toolbar
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
         topSection.setBackground(Color.WHITE);
         topSection.add(createToolbar());
-        topSection.add(createTableHeader());
         container.add(topSection, BorderLayout.NORTH);
 
-        // Scrollable rows only
+        // Scrollable rows
         tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
         tablePanel.setBackground(Color.WHITE);
 
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
@@ -145,7 +148,7 @@ public class ImportManagement extends JPanel {
 
         JPanel btnWrapper = new JPanel(new BorderLayout());
         btnWrapper.setOpaque(false);
-        btnWrapper.setBorder(new EmptyBorder(6, 0, 0, 0));
+        btnWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
         btnWrapper.add(addBtn, BorderLayout.CENTER);
 
         leftToolbar.add(tableTitle);
@@ -208,29 +211,28 @@ public class ImportManagement extends JPanel {
     // --------- TABLE ---------
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
         header.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 45));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        header.setPreferredSize(new Dimension(1000, HEADER_HEIGHT));
+        header.setMinimumSize(new Dimension(800, HEADER_HEIGHT));
 
-        header.add(createFixedCell(createHeaderLabel("Mã NH"), 80, 45, SwingConstants.LEFT, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("NHÀ CUNG CẤP"), 190, 45, SwingConstants.LEFT, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("NHÂN VIÊN"), 140, 45, SwingConstants.LEFT, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("MÃ CHỨNG TỪ"), 120, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("TRỊ GIÁ"), 150, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("NGÀY NHẬP"), 120, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 4));
-        header.add(Box.createHorizontalStrut(8));
-        header.add(createFixedCell(createHeaderLabel("THAO TÁC"), 210, 45, SwingConstants.CENTER, new Color(248, 249, 250), 0, 0));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
+
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("Mã NH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("NHÀ CUNG CẤP"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NHÂN VIÊN"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ CHỨNG TỪ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRỊ GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("NGÀY NHẬP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 4), gbc);
+        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        
         return header;
     }
 
@@ -244,48 +246,41 @@ public class ImportManagement extends JPanel {
     private JPanel createDataRow(ImportItem item, int rowIndex) {
         Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
 
-        JPanel row = new JPanel();
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        JPanel row = new JPanel(new GridBagLayout());
         row.setBackground(rowBg);
         row.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 64));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setPreferredSize(new Dimension(1000, ROW_HEIGHT));
+        row.setMinimumSize(new Dimension(800, ROW_HEIGHT));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         // Mã NH - highlight xanh lá
         JLabel idLabel = new JLabel(item.manh());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        row.add(createFixedCell(idLabel, 80, 64, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(8));
+        gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
         // Nhà cung cấp
-        row.add(createFixedCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), 190, 64, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(8));
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
         // Nhân viên
-        row.add(createFixedCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), 140, 64, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(8));
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
-        // Mã chứng từ - căn giữa
-        JLabel ctLabel = createCellLabel(item.maChungTu(), new Color(75, 85, 99));
-        ctLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        row.add(createFixedCell(ctLabel, 120, 64, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(8));
+        // Mã chứng từ
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.maChungTu(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        // Trị giá - căn giữa
-        JLabel giaLabel = createCellLabel(formatCurrency(item.triGia()), new Color(17, 24, 39));
-        giaLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        row.add(createFixedCell(giaLabel, 150, 64, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(8));
+        // Trị giá
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.triGia()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        // Ngày nhập - căn giữa
-        JLabel dateLabel = createCellLabel(item.createdAt().format(DATE_FORMATTER), new Color(75, 85, 99));
-        dateLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        row.add(createFixedCell(dateLabel, 120, 64, SwingConstants.CENTER, rowBg, 0, 4));
-        row.add(Box.createHorizontalStrut(8));
+        // Ngày nhập
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.createdAt().format(DATE_FORMATTER), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 4), gbc);
 
         // Thao tác
         JPanel actionGroup = new JPanel();
@@ -293,7 +288,7 @@ public class ImportManagement extends JPanel {
         actionGroup.setOpaque(false);
 
         JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension deleteBtnSize = new Dimension(64, 26);
+        Dimension deleteBtnSize = new Dimension(64, 28);
         deleteBtn.setPreferredSize(deleteBtnSize);
         deleteBtn.setMinimumSize(deleteBtnSize);
         deleteBtn.setMaximumSize(deleteBtnSize);
@@ -304,7 +299,7 @@ public class ImportManagement extends JPanel {
         actionGroup.add(Box.createHorizontalStrut(8));
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension editBtnSize = new Dimension(86, 26);
+        Dimension editBtnSize = new Dimension(86, 28);
         editBtn.setPreferredSize(editBtnSize);
         editBtn.setMinimumSize(editBtnSize);
         editBtn.setMaximumSize(editBtnSize);
@@ -314,9 +309,9 @@ public class ImportManagement extends JPanel {
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
         actionCell.setOpaque(true);
-        actionCell.setBorder(new EmptyBorder(0, 0, 0, 0));
         actionCell.add(actionGroup);
-        row.add(createFixedCell(actionCell, 210, 64, SwingConstants.CENTER, rowBg, 0, 0));
+        
+        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Hover effect
         row.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -363,6 +358,21 @@ public class ImportManagement extends JPanel {
         panel.setPreferredSize(size);
         panel.setMinimumSize(size);
         panel.setMaximumSize(size);
+        return panel;
+    }
+
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(bg);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
+        panel.add(component, BorderLayout.CENTER);
+
+        panel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        panel.setMinimumSize(new Dimension(0, ROW_HEIGHT));
         return panel;
     }
 
