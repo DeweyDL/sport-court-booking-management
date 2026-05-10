@@ -26,6 +26,18 @@ final class EquipmentEditDialog {
     private EquipmentEditDialog() {
     }
 
+    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        double widthRatio = screenSize.getWidth() / 1920.0;
+        double heightRatio = screenSize.getHeight() / 1080.0;
+        double ratio = Math.min(widthRatio, heightRatio);
+        if (ratio < 0.8) ratio = 0.8;
+
+        int width = (int) (baseWidth * ratio);
+        int height = (int) (baseHeight * ratio);
+        dialog.setSize(width, height);
+    }
+
     static void show(Component parent, EquipmentItem item) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Chỉnh sửa dụng cụ", Dialog.ModalityType.APPLICATION_MODAL);
@@ -123,7 +135,7 @@ final class EquipmentEditDialog {
         root.add(actions, BorderLayout.SOUTH);
 
         dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth(), 480), dialog.getHeight());
+        applyResponsiveWindowSize(dialog, 520, dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
     }
