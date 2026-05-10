@@ -27,16 +27,19 @@ import java.util.Locale;
 
 public class ManageCustomerScreen extends JPanel {
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
-    private static final int HEADER_HEIGHT = 42;
-    private static final int ROW_HEIGHT = 58;
-    private static final int COL_ID = 90;
-    private static final int COL_NAME = 150;
-    private static final int COL_PHONE = 110;
-    private static final int COL_ADDRESS = 145;
-    private static final int COL_TIER = 100;
-    private static final int COL_STATUS = 110;
-    private static final int COL_REVENUE = 100;
-    private static final int COL_ACTIONS = 215;
+    private static final int HEADER_HEIGHT = 45;
+    private static final int ROW_HEIGHT = 64;
+    private static final int COLUMN_GAP = 16;
+    private static final int COL_ID = 115;
+    private static final int COL_NAME = 220;
+    private static final int COL_PHONE = 150;
+    private static final int COL_ADDRESS = 260;
+    private static final int COL_TIER = 150;
+    private static final int COL_STATUS = 145;
+    private static final int COL_REVENUE = 150;
+    private static final int COL_ACTIONS = 255;
+    private static final int TABLE_WIDTH = COL_ID + COL_NAME + COL_PHONE + COL_ADDRESS + COL_TIER
+            + COL_STATUS + COL_REVENUE + COL_ACTIONS + COLUMN_GAP * 7 + 48;
 
     private final ManageCustomerController controller = new ManageCustomerController();
     private final List<CustomerVm> customers = new ArrayList<>();
@@ -130,7 +133,7 @@ public class ManageCustomerScreen extends JPanel {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -157,8 +160,8 @@ public class ManageCustomerScreen extends JPanel {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm khách hàng", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 14));
-        addBtn.setBorder(new EmptyBorder(4, 10, 4, 10));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
+        addBtn.setBorder(new EmptyBorder(5, 12, 5, 12));
         addBtn.addActionListener(event -> openCreateDialog());
         JPanel addBtnWrapper = new JPanel(new BorderLayout());
         addBtnWrapper.setOpaque(false);
@@ -230,30 +233,30 @@ public class ManageCustomerScreen extends JPanel {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, HEADER_HEIGHT));
+        header.setPreferredSize(new Dimension(TABLE_WIDTH, HEADER_HEIGHT));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, HEADER_HEIGHT));
 
         header.add(createFixedCell(createHeaderLabel("MÃ KH"), COL_ID, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("HỌ TÊN"), COL_NAME, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("SĐT"), COL_PHONE, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("ĐỊA CHỈ"), COL_ADDRESS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("HẠNG"), COL_TIER, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("TRẠNG THÁI"), COL_STATUS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("DOANH THU"), COL_REVENUE, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
-        header.add(Box.createHorizontalStrut(10));
+        header.add(Box.createHorizontalStrut(COLUMN_GAP));
         header.add(createFixedCell(createHeaderLabel("THAO TÁC"), COL_ACTIONS, HEADER_HEIGHT, SwingConstants.CENTER, new Color(248, 249, 250), 0, 8));
         return header;
     }
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -268,32 +271,32 @@ public class ManageCustomerScreen extends JPanel {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        row.setPreferredSize(new Dimension(TABLE_WIDTH, ROW_HEIGHT));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
 
         JLabel idLabel = new JLabel(valueOrDash(customer.getMaKhachHang()));
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
         row.add(createFixedCell(idLabel, COL_ID, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), COL_NAME, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), COL_PHONE, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), COL_ADDRESS, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createTierCell(customer.getMaHang()), COL_TIER, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createStatusPill(customer.getTrangThai()), COL_STATUS, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         row.add(createFixedCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), COL_REVENUE, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 8));
-        row.add(Box.createHorizontalStrut(10));
+        row.add(Box.createHorizontalStrut(COLUMN_GAP));
 
         JPanel actionGroup = new JPanel();
         actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
@@ -303,7 +306,7 @@ public class ManageCustomerScreen extends JPanel {
         JButton statusBtn = inactive
                 ? createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0))
                 : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension statusBtnSize = new Dimension(inactive ? 68 : 65, 25);
+        Dimension statusBtnSize = new Dimension(inactive ? 88 : 80, 30);
         statusBtn.setPreferredSize(statusBtnSize);
         statusBtn.setMinimumSize(statusBtnSize);
         statusBtn.setMaximumSize(statusBtnSize);
@@ -319,7 +322,7 @@ public class ManageCustomerScreen extends JPanel {
         actionGroup.add(Box.createHorizontalStrut(10));
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension editBtnSize = new Dimension(76, 25);
+        Dimension editBtnSize = new Dimension(89, 30);
         editBtn.setPreferredSize(editBtnSize);
         editBtn.setMinimumSize(editBtnSize);
         editBtn.setMaximumSize(editBtnSize);
@@ -329,12 +332,12 @@ public class ManageCustomerScreen extends JPanel {
         });
         actionGroup.add(editBtn);
 
-        JPanel actionCell = new JPanel(new BorderLayout());
+        JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
         actionCell.setOpaque(true);
-        actionCell.setBorder(new EmptyBorder(0, 10, 0, 4));
-        actionCell.add(actionGroup, BorderLayout.CENTER);
-        row.add(createFixedCell(actionCell, COL_ACTIONS, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 0));
+
+        actionCell.add(actionGroup);
+        row.add(createFixedCell(actionCell, COL_ACTIONS, ROW_HEIGHT, SwingConstants.CENTER, rowBg, 0, 0));
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -356,7 +359,7 @@ public class ManageCustomerScreen extends JPanel {
         boolean hasTier = tierName != null && !tierName.isBlank();
         Color background = hasTier ? new Color(239, 246, 255) : new Color(243, 244, 246);
         Color foreground = hasTier ? new Color(29, 78, 216) : new Color(75, 85, 99);
-        Dimension fixedTierSize = new Dimension(86, 26);
+        Dimension fixedTierSize = new Dimension(130, 26);
 
         JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         pill.setOpaque(false);
@@ -378,7 +381,7 @@ public class ManageCustomerScreen extends JPanel {
         wrapper.setMaximumSize(fixedTierSize);
 
         JLabel textLabel = new JLabel(displayText);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         textLabel.setForeground(foreground);
 
         wrapper.add(textLabel);
@@ -406,7 +409,7 @@ public class ManageCustomerScreen extends JPanel {
             }
         };
         wrapper.setOpaque(false);
-        Dimension size = new Dimension(83, 22);
+        Dimension size = new Dimension(92, 24);
         wrapper.setPreferredSize(size);
         wrapper.setMinimumSize(size);
         wrapper.setMaximumSize(size);
@@ -416,7 +419,7 @@ public class ManageCustomerScreen extends JPanel {
 
         JPanel dot = createStatusDot(foreground);
         JLabel textLabel = new JLabel(isActive ? "Active" : "Inactive");
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         textLabel.setForeground(foreground);
 
         GridBagConstraints dotConstraints = new GridBagConstraints();
@@ -486,7 +489,7 @@ public class ManageCustomerScreen extends JPanel {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(valueOrDash(text));
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         label.setForeground(fg);
         return label;
     }
@@ -495,14 +498,14 @@ public class ManageCustomerScreen extends JPanel {
         boolean hasAddress = text != null && !text.isBlank();
         String value = hasAddress ? escapeHtml(text.trim()) : "--";
         String html = hasAddress
-                ? "<html><div style='width:125px; text-align:left;'>" + value + "</div></html>"
+                ? "<html><div style='width:235px; text-align:left;'>" + value + "</div></html>"
                 : value;
 
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
 
         JLabel label = new JLabel(html);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(new Color(43, 47, 55));
         label.setHorizontalAlignment(hasAddress ? SwingConstants.LEFT : SwingConstants.CENTER);
 
@@ -875,8 +878,8 @@ public class ManageCustomerScreen extends JPanel {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        button.setBorder(new EmptyBorder(5, 8, 5, 8));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBorder(new EmptyBorder(6, 10, 6, 10));
         return button;
     }
 
