@@ -5,6 +5,13 @@
 -- PASSWORD_HASH = SHA-256('123456') = 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92
 -- Encoding: UTF-8
 -- ============================================================
+
+-- Reset package state to avoid ORA-04061 when PKG_COURT_CTX was recompiled
+-- in the same session before running this seed.
+BEGIN
+    DBMS_SESSION.RESET_PACKAGE;
+END;
+/
 -- SET DEFINE OFF;
 -- DELETE FROM ACCOUNT_TOKEN;
 -- DELETE FROM ACCOUNT_ROLE;
