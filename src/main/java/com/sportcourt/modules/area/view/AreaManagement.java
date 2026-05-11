@@ -138,10 +138,11 @@ public class AreaManagement extends JPanel {
         tablePanel.setBackground(Color.WHITE);
         
         JScrollPane scrollPane = new JScrollPane(tablePanel);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove border from scroll pane
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Adjust scroll speed
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setColumnHeaderView(createTableHeader());
 
         container.add(scrollPane, BorderLayout.CENTER); // Add scroll pane instead of tablePanel directly
 
@@ -239,7 +240,6 @@ public class AreaManagement extends JPanel {
 
     private void renderTableData(List<Area> areas) {
         tablePanel.removeAll();
-        tablePanel.add(createTableHeader());
 
         if (areas.isEmpty()) {
             tablePanel.add(createMessageRow("Không tìm thấy khu vực phù hợp."));
@@ -257,7 +257,6 @@ public class AreaManagement extends JPanel {
 
     private void renderErrorState(Exception exception) {
         tablePanel.removeAll();
-        tablePanel.add(createTableHeader());
         tablePanel.add(createMessageRow("Không thể tải dữ liệu từ database."));
         infoLabel.setText("Lỗi tải dữ liệu");
         tablePanel.revalidate();
@@ -272,24 +271,29 @@ public class AreaManagement extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
-        header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
-        header.setPreferredSize(new Dimension(0, 45));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(1000, 45));
+        header.setMinimumSize(new Dimension(800, 45));
 
-        header.add(createHeaderCell("MÃ KHU VỰC"));
-        header.add(createHeaderCell("MÃ CHI NHÁNH"));
-        header.add(createHeaderCell("LOẠI THỂ THAO"));
-        header.add(createHeaderCell("SỐ LƯỢNG SÂN"));
-        header.add(createHeaderCell("NGÀY TẠO"));
-        header.add(createHeaderCell("TRẠNG THÁI")); // New Status column
-        header.add(createHeaderCell("THAO TÁC"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 12);
+
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ KHU VỰC"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.16; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("SỐ LƯỢNG SÂN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+
         return header;
-    }
-
-    private JPanel createHeaderCell(String text) {
-        return createAlignedCellPanel(createHeaderLabel(text), 20, new Color(248, 249, 250));
     }
 
     private JLabel createHeaderLabel(String text) {
@@ -300,39 +304,64 @@ public class AreaManagement extends JPanel {
     }
 
     private JPanel createDataRow(Area area, int rowIndex) {
-        Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0)); // Changed from 6 to 7 columns
-        row.setBackground(rowBackground);
-        row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
-        row.setPreferredSize(new Dimension(0, 64));
+        Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setBackground(rowBg);
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        row.setPreferredSize(new Dimension(1000, 64));
+        row.setMinimumSize(new Dimension(800, 64));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 12);
 
         JLabel maKvLabel = new JLabel(area.maKv());
         maKvLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maKvLabel.setForeground(new Color(22, 163, 74));
-        row.add(createAlignedCellPanel(maKvLabel, 25, rowBackground));
+        gbc.weightx = 0.12; row.add(createFlexibleCell(maKvLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
-        row.add(createAlignedCellPanel(createCellLabel(area.maCn(), new Color(37, 99, 235)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), 25, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), 15, rowBackground));
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(area.maCn(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        // New Status cell
-        Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0); // Red for inactive, Green for active
-        row.add(createAlignedCellPanel(createCellLabel(area.getStatus(), statusColor), 15, rowBackground));
+        // Status cell
+        Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(area.getStatus(), statusColor), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 12));
+        JPanel actionContainer = new JPanel();
+        actionContainer.setLayout(new BoxLayout(actionContainer, BoxLayout.X_AXIS));
         actionContainer.setOpaque(false);
 
         JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
+        Dimension deleteBtnSize = new Dimension(64, 28);
+        deleteButton.setPreferredSize(deleteBtnSize);
+        deleteButton.setMinimumSize(deleteBtnSize);
+        deleteButton.setMaximumSize(deleteBtnSize);
         deleteButton.addActionListener(event -> confirmDelete(area));
 
         JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        Dimension editBtnSize = new Dimension(86, 28);
+        editButton.setPreferredSize(editBtnSize);
+        editButton.setMinimumSize(editBtnSize);
+        editButton.setMaximumSize(editBtnSize);
         editButton.addActionListener(event -> showEditView(area.maKv()));
 
         actionContainer.add(deleteButton);
+        actionContainer.add(Box.createHorizontalStrut(8));
         actionContainer.add(editButton);
-        row.add(createAlignedCellPanel(actionContainer, 5, rowBackground));
+
+        JPanel actionCell = new JPanel(new GridBagLayout());
+        actionCell.setBackground(rowBg);
+        actionCell.setOpaque(true);
+        actionCell.add(actionContainer);
+
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -342,7 +371,7 @@ public class AreaManagement extends JPanel {
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                row.setBackground(rowBackground);
+                row.setBackground(rowBg);
             }
         });
         return row;
@@ -351,14 +380,12 @@ public class AreaManagement extends JPanel {
     private JPanel createMessageRow(String message) {
         JPanel row = new JPanel(new BorderLayout());
         row.setBackground(Color.WHITE);
-        row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
-        row.setPreferredSize(new Dimension(0, 60));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        row.setBorder(new EmptyBorder(24, 26, 24, 26));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
 
         JLabel label = new JLabel(message);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         label.setForeground(new Color(107, 114, 128));
-        label.setBorder(new EmptyBorder(0, 20, 0, 0));
         row.add(label, BorderLayout.CENTER);
         return row;
     }
@@ -370,12 +397,18 @@ public class AreaManagement extends JPanel {
         return label;
     }
 
-    private JPanel createAlignedCellPanel(Component component, int leftPadding, Color background) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(background);
+        panel.setBackground(bg);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(0, leftPadding, 0, 0));
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
+
+        panel.setPreferredSize(new Dimension(0, 64));
+        panel.setMinimumSize(new Dimension(0, 64));
         return panel;
     }
 
