@@ -192,7 +192,7 @@ public class ImportManagement extends JPanel {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
                 g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
                 g2.dispose();
             }
         };
@@ -488,6 +488,14 @@ public class ImportManagement extends JPanel {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.dispose();
+            }
+
+            @Override
+            public void paint(Graphics g) {
+                super.paint(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(new Color(229, 231, 235));
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
                 g2.dispose();
