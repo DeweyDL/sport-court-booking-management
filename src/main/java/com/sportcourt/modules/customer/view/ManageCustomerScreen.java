@@ -241,19 +241,19 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         gbc.weightx = 0.07; header.add(createFlexibleCell(createHeaderLabel("MÃ KH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.11; header.add(createFlexibleCell(createHeaderLabel("SĐT"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HẠNG"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("DOANH THU"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.17; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         return header;
     }
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -281,9 +281,9 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         idLabel.setForeground(new Color(22, 163, 74));
         
         gbc.weightx = 0.07; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.17; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
         gbc.weightx = 0.11; row.add(createFlexibleCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.LEFT, rowBg, 0, 8), gbc);
         gbc.weightx = 0.18; row.add(createFlexibleCell(createTierCell(customer.getMaHang()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.08; row.add(createFlexibleCell(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.08; row.add(createFlexibleCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
@@ -296,7 +296,7 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         JButton statusBtn = inactive
                 ? createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0))
                 : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension statusBtnSize = new Dimension(inactive ? 88 : 80, 30);
+        Dimension statusBtnSize = new Dimension(inactive ? 88 : 48, 30);
         statusBtn.setPreferredSize(statusBtnSize);
         statusBtn.setMinimumSize(statusBtnSize);
         statusBtn.setMaximumSize(statusBtnSize);
@@ -327,7 +327,7 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionGroup);
         
-        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.17; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -523,18 +523,36 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         return label;
     }
 
-    private JLabel createWrappedAddressLabel(String text, Color bg) {
+    private JComponent createWrappedAddressLabel(String text, Color bg) {
         boolean hasAddress = text != null && !text.isBlank();
         String value = hasAddress ? text.trim() : "--";
 
-        JLabel label = new JLabel(value);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(43, 47, 55));
-        label.setHorizontalAlignment(SwingConstants.LEFT);
+        JTextArea area = new JTextArea(value);
+        area.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        area.setForeground(new Color(43, 47, 55));
+        area.setBackground(bg);
+        area.setOpaque(true);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setRows(2);
+        area.setPreferredSize(new Dimension(0, area.getFontMetrics(area.getFont()).getHeight() * 2 + 2));
+        area.setBorder(BorderFactory.createEmptyBorder());
         if (hasAddress) {
-            label.setToolTipText(text.trim());
+            area.setToolTipText(text.trim());
         }
-        return label;
+
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setBackground(bg);
+        wrapper.setOpaque(true);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        wrapper.add(area, gbc);
+        return wrapper;
     }
 
     private void loadCustomers(String keyword) {
