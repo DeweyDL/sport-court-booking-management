@@ -28,6 +28,7 @@ public class BranchAdd extends JPanel {
     private final JTextField tenChiNhanhField = createEditableField();
     private final JTextField diaChiField = createEditableField();
     private final JTextField hotlineField = createEditableField();
+    
 
     private JDialog dialog;
     private String generatedMaCn;
