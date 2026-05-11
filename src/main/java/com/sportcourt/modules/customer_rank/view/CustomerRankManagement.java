@@ -14,7 +14,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
-public class CustomerRankManagement extends JPanel {
+public class CustomerRankManagement extends JPanel implements Scrollable {
 
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
@@ -220,22 +220,30 @@ public class CustomerRankManagement extends JPanel {
 
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 5, 10, 0));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
-        header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
         header.setPreferredSize(new Dimension(0, 45));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
 
-        header.add(createHeaderCell("MÃ HẠNG"));
-        header.add(createHeaderCell("TÊN HẠNG"));
-        header.add(createHeaderCell("CHIẾT KHẤU"));
-        header.add(createHeaderCell("MỨC TIỀN"));
-        header.add(createHeaderCell("THAO TÁC"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 16);
+
+        gbc.weightx = 0.15; header.add(createHeaderCell("MÃ HẠNG"), gbc);
+        gbc.weightx = 0.25; header.add(createHeaderCell("TÊN HẠNG"), gbc);
+        gbc.weightx = 0.20; header.add(createHeaderCell("CHIẾT KHẤU"), gbc);
+        gbc.weightx = 0.20; header.add(createHeaderCell("MỨC TIỀN"), gbc);
+        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); header.add(createHeaderCell("THAO TÁC"), gbc);
         return header;
     }
 
     private JPanel createHeaderCell(String text) {
-        return createAlignedCellPanel(createHeaderLabel(text), 20, new Color(248, 249, 250));
+        return createFlexibleCell(createHeaderLabel(text), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0);
     }
 
     private JLabel createHeaderLabel(String text) {
@@ -247,40 +255,50 @@ public class CustomerRankManagement extends JPanel {
 
     private JPanel createDataRow(CustomerRankItem item, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 5, 10, 0));
+        JPanel row = new JPanel(new GridBagLayout());
         row.setBackground(rowBackground);
-        row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
         row.setPreferredSize(new Dimension(0, 64));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 16);
 
         JLabel idLabel = new JLabel(item.maHang());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        row.add(createAlignedCellPanel(idLabel, 20, rowBackground));
+        gbc.weightx = 0.15; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBackground, 0, 0), gbc);
 
-        row.add(createAlignedCellPanel(createCellLabel(item.tenHang(), new Color(17, 24, 39)), 20, rowBackground));
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenHang(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBackground, 0, 0), gbc);
 
         JPanel discountBadge = createDiscountBadge(item.chietKhau());
-        JPanel discountWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 13));
-        discountWrapper.setBackground(rowBackground);
-        discountWrapper.setOpaque(true);
-        discountWrapper.add(discountBadge);
-        row.add(createAlignedCellPanel(discountWrapper, 20, rowBackground));
+        gbc.weightx = 0.20; row.add(createFlexibleCell(discountBadge, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
-        row.add(createAlignedCellPanel(createCellLabel(formatMoney(item.mucTien()), new Color(37, 99, 235)), 20, rowBackground));
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(formatMoney(item.mucTien()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
-        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 17));
+        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
 
-        JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
+        JButton deleteButton = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
         deleteButton.addActionListener(event -> confirmDelete(item));
 
-        JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        JButton editButton = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
         editButton.addActionListener(event -> CustomerRankEditDialog.show(this, item));
 
         actionContainer.add(deleteButton);
         actionContainer.add(editButton);
-        row.add(createAlignedCellPanel(actionContainer, 20, rowBackground));
+
+        JPanel actionCell = new JPanel(new GridBagLayout());
+        actionCell.setBackground(rowBackground);
+        actionCell.setOpaque(true);
+        actionCell.add(actionContainer);
+
+        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -310,6 +328,31 @@ public class CustomerRankManagement extends JPanel {
         return row;
     }
 
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 64;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
+    }
+
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
@@ -317,12 +360,18 @@ public class CustomerRankManagement extends JPanel {
         return label;
     }
 
-    private JPanel createAlignedCellPanel(Component component, int leftPadding, Color background) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(background);
+        panel.setBackground(bg);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(0, leftPadding, 0, 0));
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
+
+        panel.setPreferredSize(new Dimension(0, 64));
+        panel.setMinimumSize(new Dimension(0, 64));
         return panel;
     }
 
@@ -364,7 +413,7 @@ public class CustomerRankManagement extends JPanel {
         label.setOpaque(false);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         label.setBorder(new EmptyBorder(4, 14, 4, 14));
-        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        JPanel wrapper = new JPanel(new GridBagLayout());
         wrapper.setOpaque(false);
         wrapper.add(label);
         return wrapper;
@@ -409,6 +458,13 @@ public class CustomerRankManagement extends JPanel {
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(5, 12, 5, 12));
+        return btn;
+    }
+
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton btn = createPillButton(text, bg, fg, true);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBorder(new EmptyBorder(4, 12, 4, 12));
         return btn;
     }
 }

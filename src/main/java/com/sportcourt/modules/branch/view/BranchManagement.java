@@ -13,8 +13,9 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.Scrollable;
 
-public class BranchManagement extends JPanel {
+public class BranchManagement extends JPanel implements Scrollable {
     private static final int HEADER_HEIGHT = 45;
     private static final int ROW_HEIGHT = 64;
     private static final int COLUMN_GAP = 12;
@@ -482,5 +483,30 @@ public class BranchManagement extends JPanel {
         button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setBorder(new EmptyBorder(6, 10, 6, 10));
         return button;
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }

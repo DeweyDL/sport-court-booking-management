@@ -13,8 +13,9 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.Scrollable;
 
-public class AreaManagement extends JPanel {
+public class AreaManagement extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
@@ -334,26 +335,16 @@ public class AreaManagement extends JPanel {
         Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
         gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(area.getStatus(), statusColor), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        JPanel actionContainer = new JPanel();
-        actionContainer.setLayout(new BoxLayout(actionContainer, BoxLayout.X_AXIS));
+        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
 
-        JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
-        Dimension deleteBtnSize = new Dimension(64, 28);
-        deleteButton.setPreferredSize(deleteBtnSize);
-        deleteButton.setMinimumSize(deleteBtnSize);
-        deleteButton.setMaximumSize(deleteBtnSize);
+        JButton deleteButton = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
         deleteButton.addActionListener(event -> confirmDelete(area));
 
-        JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
-        Dimension editBtnSize = new Dimension(86, 28);
-        editButton.setPreferredSize(editBtnSize);
-        editButton.setMinimumSize(editBtnSize);
-        editButton.setMaximumSize(editBtnSize);
+        JButton editButton = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
         editButton.addActionListener(event -> showEditView(area.maKv()));
 
         actionContainer.add(deleteButton);
-        actionContainer.add(Box.createHorizontalStrut(8));
         actionContainer.add(editButton);
 
         JPanel actionCell = new JPanel(new GridBagLayout());
@@ -471,5 +462,37 @@ public class AreaManagement extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(5, 12, 5, 12));
         return btn;
+    }
+
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton button = createPillButton(text, bg, fg, true);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        return button;
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }
