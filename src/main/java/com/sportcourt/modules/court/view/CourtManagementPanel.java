@@ -24,7 +24,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class CourtManagementPanel extends JPanel {
+import javax.swing.Scrollable;
+
+public class CourtManagementPanel extends JPanel implements Scrollable {
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
     private static final int HEADER_HEIGHT = 45;
     private static final int ROW_HEIGHT = 64;
@@ -735,5 +737,30 @@ public class CourtManagementPanel extends JPanel {
         button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setBorder(new EmptyBorder(6, 10, 6, 10));
         return button;
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }
