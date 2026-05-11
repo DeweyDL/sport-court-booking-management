@@ -304,7 +304,7 @@ BEGIN
         FROM CHI_TIET_HOA_DON_THUE_SAN CT
         WHERE CT.MAHD = :OLD.MAHD
           AND CT.IS_DELETED = 0
-          AND CT.TRANGTHAI IN ('ĐÃ XÁC NHẬN', 'ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH');
+          AND CT.TRANGTHAI IN ('ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH');
 
         IF V_COUNT = 0 THEN
             RAISE_APPLICATION_ERROR(-20062, 'Hoa don khong co chi tiet thue san hop le de thanh toan.');
