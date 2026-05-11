@@ -22,10 +22,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class ManageSportTypeScreen extends JPanel {
+public class ManageSportTypeScreen extends JPanel implements Scrollable {
 
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
-    private static final int HEADER_HEIGHT = 42;
+    private static final int HEADER_HEIGHT = 45;
     private static final int ROW_HEIGHT = 52;
     private static final int COL_ID = 100;
     private static final int COL_NAME = 160;
@@ -49,18 +49,7 @@ public class ManageSportTypeScreen extends JPanel {
         AppFonts.register();
         setLayout(new BorderLayout());
         setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(60, 60, 40, 60));
-
-        addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int w = getWidth();
-                int h = getHeight();
-                int hPad = Math.max(20, Math.min(70, w / 18));
-                int vPad = Math.max(20, Math.min(60, h / 18));
-                setBorder(new EmptyBorder(vPad, hPad, vPad / 2, hPad));
-            }
-        });
+        setBorder(new EmptyBorder(100, 70, 50, 70));
 
         add(createPage(), BorderLayout.CENTER);
         loadData();
@@ -122,7 +111,6 @@ public class ManageSportTypeScreen extends JPanel {
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
         topSection.setBackground(Color.WHITE);
         topSection.add(createToolbar());
-        topSection.add(createTableHeader());
         container.add(topSection, BorderLayout.NORTH);
 
         tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
@@ -131,8 +119,10 @@ public class ManageSportTypeScreen extends JPanel {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
@@ -224,8 +214,7 @@ public class ManageSportTypeScreen extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.X_AXIS));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
         header.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
@@ -234,20 +223,21 @@ public class ManageSportTypeScreen extends JPanel {
         header.setPreferredSize(new Dimension(0, HEADER_HEIGHT));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, HEADER_HEIGHT));
 
-        Color hBg = new Color(248, 249, 250);
-        header.add(createFixedCell(createHeaderLabel("MÃ LOẠI"), COL_ID, HEADER_HEIGHT, SwingConstants.CENTER, hBg, 0, 8));
-        header.add(Box.createHorizontalStrut(10));
-        header.add(createFixedCell(createHeaderLabel("TÊN LOẠI THỂ THAO"), COL_NAME, HEADER_HEIGHT, SwingConstants.LEFT, hBg, 0, 8));
-        header.add(Box.createHorizontalStrut(10));
-        header.add(createFlexCell(createHeaderLabel("MÔ TẢ"), HEADER_HEIGHT, hBg, SwingConstants.LEFT));
-        header.add(Box.createHorizontalStrut(10));
-        header.add(createFixedCell(createHeaderLabel("THAO TÁC"), COL_ACTIONS, HEADER_HEIGHT, SwingConstants.CENTER, hBg, 0, 8));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 10);
+
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ LOẠI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.22; header.add(createFlexibleCell(createHeaderLabel("TÊN LOẠI THỂ THAO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.36; header.add(createFlexibleCell(createHeaderLabel("MÔ TẢ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.30; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         return header;
     }
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -255,89 +245,65 @@ public class ManageSportTypeScreen extends JPanel {
     private JPanel createDataRow(SportTypeTableRow row, int rowIndex) {
         Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
 
-        JPanel rowPanel = new JPanel();
-        rowPanel.setLayout(new BoxLayout(rowPanel, BoxLayout.X_AXIS));
+        JPanel rowPanel = new JPanel(new GridBagLayout());
         rowPanel.setBackground(rowBg);
         rowPanel.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
+        rowPanel.setPreferredSize(new Dimension(0, 64));
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 10);
 
         JLabel idLabel = new JLabel(valueOrDash(row.sportId()));
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        rowPanel.add(createFixedCell(idLabel, COL_ID, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
-        rowPanel.add(Box.createHorizontalStrut(10));
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
-        rowPanel.add(createFixedCell(createCellLabel(row.name(), new Color(17, 24, 39)), COL_NAME, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 8));
-        rowPanel.add(Box.createHorizontalStrut(10));
+        gbc.weightx = 0.22; rowPanel.add(createFlexibleCell(createCellLabel(row.name(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
-        rowPanel.add(createFlexCell(createDescriptionLabel(row.description()), ROW_HEIGHT, rowBg, SwingConstants.LEFT));
-        rowPanel.add(Box.createHorizontalStrut(10));
+        gbc.weightx = 0.36; rowPanel.add(createFlexibleCell(createDescriptionLabel(row.description()), SwingConstants.LEFT, rowBg, 0, 8), gbc);
 
-        JPanel actionGroup = new JPanel();
-        actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
+        JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionGroup.setOpaque(false);
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension editSize = new Dimension(76, 25);
-        editBtn.setPreferredSize(editSize);
-        editBtn.setMinimumSize(editSize);
-        editBtn.setMaximumSize(editSize);
         editBtn.addActionListener(e -> {
             selectedRow = row;
             openEditDialog();
         });
+        actionGroup.add(editBtn);
 
         JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension deleteSize = new Dimension(52, 25);
-        deleteBtn.setPreferredSize(deleteSize);
-        deleteBtn.setMinimumSize(deleteSize);
-        deleteBtn.setMaximumSize(deleteSize);
         deleteBtn.addActionListener(e -> {
             selectedRow = row;
             deleteSelected();
         });
-
-        actionGroup.add(editBtn);
-        actionGroup.add(Box.createHorizontalStrut(8));
         actionGroup.add(deleteBtn);
 
-        JPanel actionCell = new JPanel(new BorderLayout());
+        JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
         actionCell.setOpaque(true);
-        actionCell.setBorder(new EmptyBorder(0, 4, 0, 4));
-        actionCell.add(actionGroup, BorderLayout.CENTER);
-        rowPanel.add(createFixedCell(actionCell, COL_ACTIONS, ROW_HEIGHT, SwingConstants.LEFT, rowBg, 0, 0));
+        actionCell.add(actionGroup);
+
+        gbc.weightx = 0.30; gbc.insets = new Insets(0, 0, 0, 0); rowPanel.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         rowPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                rowPanel.setBackground(new Color(249, 250, 251));
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                rowPanel.setBackground(rowBg);
-            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { rowPanel.setBackground(new Color(249, 250, 251)); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e)  { rowPanel.setBackground(rowBg); }
         });
 
         return rowPanel;
     }
 
     private JLabel createDescriptionLabel(String text) {
-        if (text == null || text.isBlank()) {
-            JLabel label = new JLabel("--");
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            label.setForeground(new Color(156, 163, 175));
-            return label;
-        }
-        String escaped = escapeHtml(text.trim());
-        JLabel label = new JLabel("<html><div style='text-align:left;'>" + escaped + "</div></html>");
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(75, 85, 99));
+        JLabel label = new JLabel(valueOrDash(text));
+        label.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        label.setForeground(new Color(107, 114, 128));
         return label;
     }
 
@@ -354,7 +320,7 @@ public class ManageSportTypeScreen extends JPanel {
         return row;
     }
 
-    private JPanel createFixedCell(Component component, int width, int height, int alignment, Color bg, int leftPad, int rightPad) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
         if (component instanceof JLabel label) {
             label.setHorizontalAlignment(alignment);
         }
@@ -364,29 +330,14 @@ public class ManageSportTypeScreen extends JPanel {
         panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
 
-        Dimension size = new Dimension(width, height);
-        panel.setPreferredSize(size);
-        panel.setMinimumSize(size);
-        panel.setMaximumSize(size);
-        return panel;
-    }
-
-    private JPanel createFlexCell(JLabel label, int height, Color bg, int alignment) {
-        label.setHorizontalAlignment(alignment);
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(bg);
-        panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(0, 8, 0, 8));
-        panel.add(label, BorderLayout.CENTER);
-        panel.setMinimumSize(new Dimension(80, height));
-        panel.setPreferredSize(new Dimension(200, height));
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+        panel.setPreferredSize(new Dimension(0, 64));
+        panel.setMinimumSize(new Dimension(0, 64));
         return panel;
     }
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(valueOrDash(text));
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -466,11 +417,10 @@ public class ManageSportTypeScreen extends JPanel {
     private JPanel createSortWrapper() {
         cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cbSort.setFocusable(false);
-        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
         cbSort.setOpaque(false);
-        cbSort.setBackground(Color.WHITE);
+        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+        cbSort.setBackground(new Color(0, 0, 0, 0));
         cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComponent.arc", 999);
         cbSort.putClientProperty("JComboBox.buttonStyle", "button");
         cbSort.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -522,13 +472,13 @@ public class ManageSportTypeScreen extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
                 g2.dispose();
             }
         };
         wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(190, 41));
-        wrapper.setMaximumSize(new Dimension(190, 41));
+        wrapper.setPreferredSize(new Dimension(214, 41));
+        wrapper.setMaximumSize(new Dimension(214, 41));
         wrapper.add(cbSort, BorderLayout.CENTER);
         wrapper.add(btnSortDir, BorderLayout.EAST);
         return wrapper;
@@ -686,8 +636,8 @@ public class ManageSportTypeScreen extends JPanel {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        button.setBorder(new EmptyBorder(5, 8, 5, 8));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        button.setBorder(new EmptyBorder(8, 16, 8, 16));
         return button;
     }
 
@@ -707,5 +657,30 @@ public class ManageSportTypeScreen extends JPanel {
         } catch (Exception ignored) {
         }
         SwingUtilities.invokeLater(() -> createPreviewFrame().setVisible(true));
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 64;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }

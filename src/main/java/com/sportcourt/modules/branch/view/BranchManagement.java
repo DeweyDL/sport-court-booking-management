@@ -13,10 +13,14 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.Scrollable;
 
-public class BranchManagement extends JPanel {
+public class BranchManagement extends JPanel implements Scrollable {
+    private static final int HEADER_HEIGHT = 45;
+    private static final int ROW_HEIGHT = 64;
+    private static final int COLUMN_GAP = 12;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
+    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(248, 250, 252);
 
     private final BranchController branchController = new BranchController();
     private final JPanel tablePanel = new JPanel();
@@ -103,6 +107,10 @@ public class BranchManagement extends JPanel {
         container.setBackground(Color.WHITE);
         container.setBorder(new EmptyBorder(20, 0, 20, 0));
 
+        JPanel topSection = new JPanel();
+        topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+        topSection.setBackground(Color.WHITE);
+
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
         toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
@@ -126,7 +134,8 @@ public class BranchManagement extends JPanel {
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
-        container.add(toolbar, BorderLayout.NORTH);
+        topSection.add(toolbar);
+        container.add(topSection, BorderLayout.NORTH);
 
         tablePanel.setLayout(new BoxLayout(tablePanel, BoxLayout.Y_AXIS));
         tablePanel.setBackground(Color.WHITE);
@@ -134,8 +143,9 @@ public class BranchManagement extends JPanel {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
@@ -235,7 +245,6 @@ public class BranchManagement extends JPanel {
 
     private void renderLoadingState() {
         tablePanel.removeAll();
-        tablePanel.add(createTableHeader());
         tablePanel.add(createMessageRow("Đang tải dữ liệu..."));
         tablePanel.revalidate();
         tablePanel.repaint();
@@ -243,7 +252,6 @@ public class BranchManagement extends JPanel {
 
     private void renderTableData(List<Branch> branches) {
         tablePanel.removeAll();
-        tablePanel.add(createTableHeader());
 
         if (branches == null || branches.isEmpty()) {
             tablePanel.add(createMessageRow("Không tìm thấy chi nhánh phù hợp."));
@@ -262,7 +270,6 @@ public class BranchManagement extends JPanel {
 
     private void renderErrorState(Exception exception) {
         tablePanel.removeAll();
-        tablePanel.add(createTableHeader());
         tablePanel.add(createMessageRow("Không thể tải dữ liệu từ database."));
         infoLabel.setText("Lỗi tải dữ liệu");
         tablePanel.revalidate();
@@ -277,24 +284,29 @@ public class BranchManagement extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
-        header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
-        header.setPreferredSize(new Dimension(0, 45));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(1100, HEADER_HEIGHT));
+        header.setMinimumSize(new Dimension(900, HEADER_HEIGHT));
 
-        header.add(createHeaderCell("MÃ CHI NHÁNH"));
-        header.add(createHeaderCell("TÊN CHI NHÁNH"));
-        header.add(createHeaderCell("ĐỊA CHỈ"));
-        header.add(createHeaderCell("HOTLINE"));
-        header.add(createHeaderCell("NGÀY TẠO"));
-        header.add(createHeaderCell("TRẠNG THÁI"));
-        header.add(createHeaderCell("THAO TÁC"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
+
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("TÊN CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("HOTLINE"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.16; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+
         return header;
-    }
-
-    private JPanel createHeaderCell(String text) {
-        return createAlignedCellPanel(createHeaderLabel(text), 20, new Color(248, 249, 250));
     }
 
     private JLabel createHeaderLabel(String text) {
@@ -306,37 +318,53 @@ public class BranchManagement extends JPanel {
 
     private JPanel createDataRow(Branch branch, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0));
+        JPanel row = new JPanel(new GridBagLayout());
         row.setBackground(rowBackground);
         row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
-        row.setPreferredSize(new Dimension(0, 64));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setPreferredSize(new Dimension(1100, ROW_HEIGHT));
+        row.setMinimumSize(new Dimension(900, ROW_HEIGHT));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         JLabel maCnLabel = new JLabel(branch.maCn());
         maCnLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maCnLabel.setForeground(new Color(22, 163, 74));
-        row.add(createAlignedCellPanel(maCnLabel, 25, rowBackground));
+        gbc.weightx = 0.12; row.add(createFlexibleCell(maCnLabel, SwingConstants.LEFT, rowBackground, 0, 8), gbc);
 
-        row.add(createAlignedCellPanel(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(branch.hotline(), new Color(17, 24, 39)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), 15, rowBackground));
+        gbc.weightx = 0.18; row.add(createFlexibleCell(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(branch.hotline(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
         Color statusColor = branch.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
-        row.add(createAlignedCellPanel(createCellLabel(branch.getStatus(), statusColor), 15, rowBackground));
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(branch.getStatus(), statusColor), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
-        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 12));
+        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
 
-        JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
+        JButton deleteButton = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
         deleteButton.addActionListener(event -> confirmDelete(branch));
 
-        JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        JButton editButton = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
         editButton.addActionListener(event -> showEditView(branch.maCn()));
 
         actionContainer.add(deleteButton);
         actionContainer.add(editButton);
-        row.add(createAlignedCellPanel(actionContainer, 5, rowBackground));
+
+        JPanel actionCell = new JPanel(new GridBagLayout());
+        actionCell.setBackground(rowBackground);
+        actionCell.setOpaque(true);
+        actionCell.add(actionContainer);
+
+        gbc.weightx = 0.16; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -374,12 +402,18 @@ public class BranchManagement extends JPanel {
         return label;
     }
 
-    private JPanel createAlignedCellPanel(Component component, int leftPadding, Color background) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(background);
+        panel.setBackground(bg);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(0, leftPadding, 0, 0));
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
+
+        panel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        panel.setMinimumSize(new Dimension(0, ROW_HEIGHT));
         return panel;
     }
 
@@ -443,5 +477,36 @@ public class BranchManagement extends JPanel {
         btn.setBorder(new EmptyBorder(5, 12, 5, 12));
         return btn;
     }
-}
+    
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton button = createPillButton(text, bg, fg, true);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        return button;
+    }
 
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
+    }
+}
