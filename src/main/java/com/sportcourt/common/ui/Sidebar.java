@@ -384,5 +384,6 @@ public class Sidebar extends JFrame {
     public static void main(String[] args) {
         FlatLightLaf.setup();
         SwingUtilities.invokeLater(() -> new Sidebar().setVisible(true));
+
     }
 }
