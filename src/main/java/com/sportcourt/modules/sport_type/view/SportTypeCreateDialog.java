@@ -1,28 +1,28 @@
-package com.sportcourt.modules.customer.view;
+package com.sportcourt.modules.sport_type.view;
 
-import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
+import com.sportcourt.modules.sport_type.dto.SportTypeForm;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-final class CustomerCreateDialog {
+final class SportTypeCreateDialog {
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(22, 101, 52);
+    private static final Color BRAND_GREEN = new Color(16, 110, 0);
     private static final Color BRAND_GREEN_BG = new Color(220, 252, 231);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
 
-    private CustomerCreateDialog() {
+    private SportTypeCreateDialog() {
     }
 
-    static CreateCustomerRequest show(Component parent) {
+    static SportTypeForm show(Component parent) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, "Thêm khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(owner, "Thêm loại thể thao", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
@@ -31,12 +31,11 @@ final class CustomerCreateDialog {
         root.setBorder(new EmptyBorder(22, 22, 22, 22));
         dialog.setContentPane(root);
 
-        JLabel title = new JLabel("Thêm khách hàng mới");
+        JLabel title = new JLabel("Thêm loại thể thao mới");
         title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
-        title.setHorizontalAlignment(SwingConstants.LEFT);
 
-        JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho khách hàng mới.");
+        JLabel subtitle = new JLabel("Nhập tên và mô tả cho loại thể thao mới.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -50,8 +49,20 @@ final class CustomerCreateDialog {
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtHoTen = new JTextField();
-        JTextField txtSdt = new JTextField();
+        JTextField txtName = new JTextField();
+        JTextArea txtDescription = new JTextArea(3, 20);
+        txtDescription.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        txtDescription.setForeground(new Color(31, 41, 55));
+        txtDescription.setLineWrap(true);
+        txtDescription.setWrapStyleWord(true);
+        txtDescription.setBackground(new Color(249, 250, 251));
+
+        JScrollPane descScroll = new JScrollPane(txtDescription);
+        descScroll.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 12),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+        descScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
 
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
@@ -59,57 +70,43 @@ final class CustomerCreateDialog {
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        form.add(createField("Họ tên", txtHoTen));
+        form.add(createTextField("Tên loại thể thao", txtName));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Số điện thoại", txtSdt));
+        form.add(createAreaField("Mô tả", descScroll));
         root.add(form, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
         JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn = createPillButton("Thêm khách hàng", BRAND_GREEN_BG, BRAND_GREEN);
+        JButton saveBtn = createPillButton("Thêm loại thể thao", BRAND_GREEN_BG, BRAND_GREEN);
         actions.add(cancelBtn);
         actions.add(saveBtn);
         root.add(actions, BorderLayout.SOUTH);
 
-        final CreateCustomerRequest[] result = new CreateCustomerRequest[1];
+        final SportTypeForm[] result = new SportTypeForm[1];
 
-        cancelBtn.addActionListener(event -> dialog.dispose());
-        saveBtn.addActionListener(event -> {
-            String hoTen = txtHoTen.getText().trim();
-            String sdt = txtSdt.getText().trim();
-            if (hoTen.isEmpty() || sdt.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Họ tên và số điện thoại không được để trống.",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        saveBtn.addActionListener(e -> {
+            String name = txtName.getText().trim();
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Tên loại thể thao không được để trống.",
+                        "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
-            result[0] = new CreateCustomerRequest(hoTen, sdt);
+            String description = txtDescription.getText().trim();
+            result[0] = new SportTypeForm(null, name, description.isEmpty() ? null : description);
             dialog.dispose();
         });
 
         dialog.pack();
-        applyResponsiveWindowSize(dialog, 0.4, 0.6, 480, 400);
+        dialog.setSize(Math.max(dialog.getWidth(), 480), dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
     }
 
-    private static void applyResponsiveWindowSize(JDialog dialog, double widthRatio, double heightRatio, int minWidth, int minHeight) {
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int width = Math.max(minWidth, (int) (screenSize.width * widthRatio));
-        int height = Math.max(minHeight, (int) (screenSize.height * heightRatio));
-        dialog.setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
-        dialog.setMinimumSize(new Dimension(minWidth, minHeight));
-    }
-
-
-    private static JPanel createField(String labelText, JTextField field) {
+    private static JPanel createTextField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -130,6 +127,26 @@ final class CustomerCreateDialog {
         field.setBackground(new Color(249, 250, 251));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
+    }
+
+    private static JPanel createAreaField(String labelText, JComponent field) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         panel.add(label);
         panel.add(Box.createVerticalStrut(6));

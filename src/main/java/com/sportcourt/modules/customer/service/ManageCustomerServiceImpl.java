@@ -65,11 +65,11 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
 
         String userId = generateId("USR");
         String accountId = generateId("ACC");
-        String maKhachHang = generateId("KH");
         String username = request.sdt().trim();
         String passwordHash = Sha256Password.hash(DEFAULT_PASSWORD);
 
         try {
+            String maKhachHang = generateCustomerId();
             CreateCustomerRequest normalized = new CreateCustomerRequest(
                     request.hoTen().trim(),
                     username
@@ -157,6 +157,10 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
 
     private String generateId(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+    }
+
+    private String generateCustomerId() throws SQLException {
+        return "KH-" + (manageCustomerDao.countCustomers() + 1);
     }
 
     private String mapOracleError(SQLException e) {

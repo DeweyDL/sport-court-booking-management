@@ -14,6 +14,8 @@ public interface ManageCustomerDao {
 
     Optional<CustomerProfile> findProfileById(String maKhachHang) throws SQLException;
 
+    int countCustomers() throws SQLException;
+
     void createCustomer(String userId, String accountId, String maKhachHang, CreateCustomerRequest request,
                         String generatedEmail, String passwordHash, String username) throws SQLException;
 
