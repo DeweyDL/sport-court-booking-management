@@ -18,7 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public class ImportManagement extends JPanel {
+public class ImportManagement extends JPanel implements Scrollable {
     private static final int HEADER_HEIGHT = 45;
     private static final int ROW_HEIGHT = 64;
     private static final int COLUMN_GAP = 12;
@@ -114,7 +114,8 @@ public class ImportManagement extends JPanel {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
@@ -192,7 +193,7 @@ public class ImportManagement extends JPanel {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
                 g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
                 g2.dispose();
             }
         };
@@ -444,14 +445,14 @@ public class ImportManagement extends JPanel {
     // --------- SORT ---------
 
     private JPanel createSortWrapper() {
-        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cbSort.setFocusable(false);
-        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
         cbSort.setOpaque(false);
-        cbSort.setBackground(Color.WHITE);
+        cbSort.setBorder(null);
+        cbSort.setBackground(new Color(0, 0, 0, 0));
         cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComponent.arc", 999);
         cbSort.putClientProperty("JComboBox.buttonStyle", "button");
+        cbSort.putClientProperty("JComboBox.isSquare", false);
         cbSort.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -489,14 +490,15 @@ public class ImportManagement extends JPanel {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
                 g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
                 g2.dispose();
             }
         };
         wrapper.setOpaque(false);
-        wrapper.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
-        wrapper.setPreferredSize(new Dimension(184, 36));
-        wrapper.setMaximumSize(new Dimension(184, 36));
+        wrapper.setPreferredSize(new Dimension(220, 45));
+        wrapper.setMaximumSize(new Dimension(220, 45));
+        wrapper.setBorder(new EmptyBorder(0, 12, 0, 0));
         wrapper.add(cbSort, BorderLayout.CENTER);
         wrapper.add(btnSortDir, BorderLayout.EAST);
         return wrapper;
@@ -600,5 +602,29 @@ public class ImportManagement extends JPanel {
         public Insets getBorderInsets(Component c) {
             return new Insets(2, 2, 2, 2);
         }
+    }
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 64;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }

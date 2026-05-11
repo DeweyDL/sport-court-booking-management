@@ -8,6 +8,7 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-public class CostManagement extends JPanel {
+public class CostManagement extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
 
@@ -93,7 +94,7 @@ public class CostManagement extends JPanel {
             protected void paintChildren(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Shape shape = new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20);
+                Shape shape = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setClip(shape);
                 super.paintChildren(g2);
                 g2.dispose();
@@ -142,7 +143,8 @@ public class CostManagement extends JPanel {
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setBackground(Color.WHITE);
-        footer.setBorder(new EmptyBorder(20, 20, 0, 20));
+        footer.setBorder(new EmptyBorder(20, 30, 20, 30));
+        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         infoLabel.setForeground(new Color(107, 114, 128));
         footer.add(infoLabel, BorderLayout.WEST);
         container.add(footer, BorderLayout.SOUTH);
@@ -220,13 +222,13 @@ public class CostManagement extends JPanel {
         List<CostItem> costs = store.list(keyword);
         if (costs.isEmpty()) {
                 tablePanel.add(createMessageRow("Không có dữ liệu phù hợp."));
-                infoLabel.setText("0 dong");
+                infoLabel.setText("Tổng cộng: 0 dòng");
         } else {
                 int idx = 0;
                 for (CostItem cost : costs) {
                     tablePanel.add(createDataRow(cost, idx++));
                 }
-                infoLabel.setText(costs.size() + " dong");
+                infoLabel.setText("Tổng cộng: " + costs.size() + " dòng");
             }
         tablePanel.revalidate();
         tablePanel.repaint();
@@ -238,24 +240,32 @@ public class CostManagement extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel header = new JPanel(new GridLayout(1, 7, 10, 0));
+        JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
-        header.setBorder(new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)));
-        header.setPreferredSize(new Dimension(0, 45));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(0, 50));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        header.add(createHeaderCell("MÃ KHU VỰC"));
-        header.add(createHeaderCell("MÃ BẢNG GIÁ"));
-        header.add(createHeaderCell("GIỜ BẮT ĐẦU"));
-        header.add(createHeaderCell("GIỜ KẾT THÚC"));
-        header.add(createHeaderCell("GIÁ"));
-        header.add(createHeaderCell("TRẠNG THÁI"));
-        header.add(createHeaderCell("THAO TÁC"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+
+        gbc.weightx = 0.12; header.add(createHeaderCell("MÃ KHU VỰC", SwingConstants.LEFT), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("MÃ BẢNG GIÁ", SwingConstants.LEFT), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ BẮT ĐẦU", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ KẾT THÚC", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("GIÁ", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("TRẠNG THÁI", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.18; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
+
         return header;
     }
 
-    private JPanel createHeaderCell(String text) {
-        return createAlignedCellPanel(createHeaderLabel(text), 20, new Color(248, 249, 250));
+    private JPanel createHeaderCell(String text, int alignment) {
+        return createFlexibleCell(createHeaderLabel(text), alignment, new Color(248, 249, 250), 0, 0);
     }
 
     private JLabel createHeaderLabel(String text) {
@@ -266,39 +276,52 @@ public class CostManagement extends JPanel {
     }
 
     private JPanel createDataRow(CostItem cost, int rowIndex) {
-        Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
-        JPanel row = new JPanel(new GridLayout(1, 7, 10, 0));
-        row.setBackground(rowBackground);
-        row.setBorder(new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)));
+        Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setBackground(rowBg);
+        row.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
         row.setPreferredSize(new Dimension(0, 64));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-        row.add(createAlignedCellPanel(createCellLabel(cost.maKv(), new Color(37, 99, 235)), 20, rowBackground));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(cost.maKv(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBg, 0, 0), gbc);
 
         JLabel maBgLabel = new JLabel(cost.maBg());
         maBgLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maBgLabel.setForeground(new Color(22, 163, 74));
-        row.add(createAlignedCellPanel(maBgLabel, 25, rowBackground));
+        gbc.weightx = 0.14; row.add(createFlexibleCell(maBgLabel, SwingConstants.LEFT, rowBg, 5, 0), gbc);
 
-        row.add(createAlignedCellPanel(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), 20, rowBackground));
-        row.add(createAlignedCellPanel(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), 20, rowBackground));
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         Color statusColor = cost.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
-        row.add(createAlignedCellPanel(createCellLabel(cost.getStatus(), statusColor), 15, rowBackground));
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(cost.getStatus(), statusColor), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
-        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 12));
+        JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
 
-        JButton deleteButton = createPillButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28), true);
-        deleteButton.addActionListener(event -> confirmDelete(cost));
+        JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+        deleteBtn.addActionListener(event -> confirmDelete(cost));
 
-        JButton editButton = createPillButton("Chỉnh sửa", new Color(243, 244, 246), new Color(31, 41, 55), false);
-        editButton.addActionListener(event -> showEditView(cost.maBg()));
+        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+        editBtn.addActionListener(event -> showEditView(cost.maBg()));
 
-        actionContainer.add(deleteButton);
-        actionContainer.add(editButton);
-        row.add(createAlignedCellPanel(actionContainer, 5, rowBackground));
+        actionContainer.add(deleteBtn);
+        actionContainer.add(editBtn);
+
+        JPanel actionCell = new JPanel(new GridBagLayout());
+        actionCell.setBackground(rowBg);
+        actionCell.setOpaque(true);
+        actionCell.add(actionContainer);
+
+        gbc.weightx = 0.18; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -308,7 +331,7 @@ public class CostManagement extends JPanel {
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                row.setBackground(rowBackground);
+                row.setBackground(rowBg);
             }
         });
         return row;
@@ -336,12 +359,18 @@ public class CostManagement extends JPanel {
         return label;
     }
 
-    private JPanel createAlignedCellPanel(Component component, int leftPadding, Color background) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(background);
+        panel.setBackground(bg);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(0, leftPadding, 0, 0));
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
+
+        panel.setPreferredSize(new Dimension(0, 64));
+        panel.setMinimumSize(new Dimension(0, 64));
         return panel;
     }
 
@@ -417,5 +446,37 @@ public class CostManagement extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(5, 12, 5, 12));
         return btn;
+    }
+
+    private JButton createMiniActionButton(String text, Color bg, Color fg) {
+        JButton button = createPillButton(text, bg, fg, true);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        return button;
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 100;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 }
