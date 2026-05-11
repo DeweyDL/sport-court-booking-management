@@ -240,14 +240,14 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
-        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("MÃ KH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SĐT"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("HẠNG"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("DOANH THU"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.21; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.07; header.add(createFlexibleCell(createHeaderLabel("MÃ KH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.11; header.add(createFlexibleCell(createHeaderLabel("SĐT"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HẠNG"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("DOANH THU"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         return header;
     }
 
@@ -280,13 +280,13 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
         
-        gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.18; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.17; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createTierCell(customer.getMaHang()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.07; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.11; row.add(createFlexibleCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.18; row.add(createFlexibleCell(createTierCell(customer.getMaHang()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; row.add(createFlexibleCell(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; row.add(createFlexibleCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         JPanel actionGroup = new JPanel();
         actionGroup.setLayout(new BoxLayout(actionGroup, BoxLayout.X_AXIS));
@@ -327,7 +327,7 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionGroup);
         
-        gbc.weightx = 0.21; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
