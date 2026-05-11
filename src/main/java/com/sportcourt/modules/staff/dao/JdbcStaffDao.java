@@ -19,7 +19,7 @@ public class JdbcStaffDao {
     public List<StaffResponse> search(String keyword) {
         List<StaffResponse> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT nv.MANV, u.HOTEN, nv.CCCD, nv.IS_QL, nv.TRANG_THAI " +
+                "SELECT nv.MANV, u.HOTEN, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL " +
                         "FROM NHAN_VIEN nv " +
                         "JOIN USERS u ON nv.USER_ID = u.USER_ID " +
                         "WHERE nv.IS_DELETED = 0 "
@@ -50,6 +50,9 @@ public class JdbcStaffDao {
                     dto.setIsQl(rs.getInt("IS_QL"));
                     dto.setChucVu(rs.getInt("IS_QL") == 1 ? "Quản lý" : "Nhân viên");
                     dto.setTrangThai(rs.getString("TRANG_THAI"));
+                    if (rs.getDate("NVL") != null) {
+                        dto.setNgayVaoLam(rs.getDate("NVL").toLocalDate());
+                    }
                     list.add(dto);
                 }
             }
