@@ -24,24 +24,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AccountManagementPanel extends JPanel {
+public class AccountManagementPanel extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final int[] TABLE_COLUMN_WIDTHS = {110, 130, 170, 120, 110, 140, 170, 170};
+    private static final int ROW_HEIGHT = 64;
+    private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
 
-    private static final Color PAGE_BACKGROUND = new Color(247, 247, 251);
-    private static final Color CARD_BORDER = new Color(236, 236, 239);
-    private static final Color HEADER_BACKGROUND = new Color(241, 242, 246);
-    private static final Color FOOTER_BACKGROUND = new Color(246, 246, 248);
-    private static final Color ROW_BORDER = new Color(236, 236, 239);
-    private static final Color TITLE_TEXT = new Color(30, 31, 36);
-    private static final Color SUBTITLE_TEXT = new Color(103, 112, 133);
-    private static final Color HEADER_LABEL_TEXT = new Color(94, 103, 82);
+    private static final Color PAGE_BACKGROUND = new Color(245, 247, 250);
+    private static final Color FOOTER_BACKGROUND = Color.WHITE;
     private static final Color BODY_TEXT = new Color(43, 47, 55);
-    private static final Color BLUE_TEXT = new Color(29, 78, 216);
-    private static final Color CREATE_BG = new Color(220, 252, 231);
-    private static final Color CREATE_TEXT = new Color(22, 101, 52);
     private static final Color EDIT_BG = new Color(239, 246, 255);
     private static final Color EDIT_TEXT = new Color(29, 78, 216);
+    private static final Color CREATE_BG = new Color(220, 252, 231);
+    private static final Color CREATE_TEXT = new Color(22, 101, 52);
     private static final Color SOFT_RED_BG = new Color(254, 226, 226);
     private static final Color SOFT_RED_TEXT = new Color(185, 28, 28);
     private static final Color INPUT_BORDER = new Color(229, 231, 235);
@@ -64,9 +58,9 @@ public class AccountManagementPanel extends JPanel {
     public AccountManagementPanel() {
         AppFonts.register();
 
-        setLayout(new BorderLayout(0, 18));
+        setLayout(new BorderLayout());
         setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(40, 70, 40, 70));
+        setBorder(new EmptyBorder(100, 70, 50, 70));
 
         searchDebounceTimer = new Timer(300, event -> loadAccounts(txtSearch.getText()));
         searchDebounceTimer.setRepeats(false);
@@ -82,93 +76,41 @@ public class AccountManagementPanel extends JPanel {
     }
 
     private JPanel createListPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 18));
+        JPanel page = new JPanel(new BorderLayout(0, 20));
         page.setOpaque(false);
-        page.add(createHeader(), BorderLayout.NORTH);
-        page.add(createMainContent(), BorderLayout.CENTER);
+        page.add(createHeaderSection(), BorderLayout.NORTH);
+        page.add(createMainSection(), BorderLayout.CENTER);
         return page;
     }
 
-    private JPanel createHeader() {
-        JPanel headerWrapper = new JPanel();
-        headerWrapper.setLayout(new BoxLayout(headerWrapper, BoxLayout.Y_AXIS));
-        headerWrapper.setOpaque(false);
+    private JPanel createHeaderSection() {
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setOpaque(false);
 
-        JPanel titleRow = new JPanel(new BorderLayout());
-        titleRow.setOpaque(false);
-        titleRow.setBorder(new EmptyBorder(0, 20, 0, 0));
+        JLabel title = new JLabel("QUẢN LÝ TÀI KHOẢN");
+        title.setFont(new Font("Lexend", Font.BOLD, 30));
+        title.setForeground(new Color(30, 31, 36));
+        title.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        JLabel titleLabel = new JLabel("QUẢN LÝ TÀI KHOẢN");
-        titleLabel.setFont(AppFonts.lexendBold(30f));
-        titleLabel.setForeground(TITLE_TEXT);
-        titleRow.add(titleLabel, BorderLayout.WEST);
+        JLabel subtitle = new JLabel("Quản lý thông tin tài khoản người dùng và phân quyền hệ thống.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(new Color(103, 112, 133));
+        subtitle.setBorder(new EmptyBorder(5, 20, 20, 0));
 
-        JPanel subtitleRow = new JPanel(new BorderLayout());
-        subtitleRow.setOpaque(false);
-        subtitleRow.setBorder(new EmptyBorder(5, 20, 20, 0));
-        JLabel subtitle = new JLabel("Danh sách account và phân quyền ROLE GROUP.");
-        subtitle.setFont(AppFonts.lexendRegular(14f));
-        subtitle.setForeground(SUBTITLE_TEXT);
-        subtitleRow.add(subtitle, BorderLayout.WEST);
-
-        headerWrapper.add(titleRow);
-        headerWrapper.add(subtitleRow);
-        return headerWrapper;
+        header.add(title);
+        header.add(subtitle);
+        return header;
     }
 
-    private JPanel createMainContent() {
-        JPanel sectionPanel = new JPanel(new BorderLayout(0, 14));
-        sectionPanel.setOpaque(false);
-
-        JPanel titlePanel = new JPanel(new BorderLayout(10, 0));
-        titlePanel.setOpaque(true);
-        titlePanel.setBackground(Color.WHITE);
-        titlePanel.setBorder(new EmptyBorder(12, 20, 18, 20));
-
-        JLabel title = new JLabel("Danh sách account");
-        title.setFont(AppFonts.lexendBold(18f));
-        title.setForeground(new Color(35, 37, 43));
-
-        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        titleRow.setOpaque(false);
-        titleRow.add(title);
-
-        JButton addButton = createPillButton("+ Thêm tài khoản", CREATE_BG, CREATE_TEXT, true);
-        addButton.setPreferredSize(new Dimension(165, 36));
-        addButton.setBorder(new EmptyBorder(7, 14, 7, 14));
-        addButton.setFont(AppFonts.lexendBold(12f));
-        addButton.addActionListener(event -> showCreateView());
-        addButton.setVisible(canAdd());
-        titleRow.add(addButton);
-
-        JPanel searchWrapper = createSearchFieldWithIcon();
-
-        titlePanel.add(titleRow, BorderLayout.WEST);
-        titlePanel.add(searchWrapper, BorderLayout.EAST);
-
-        JPanel tableCard = new JPanel(new BorderLayout());
-        tableCard.setBackground(Color.WHITE);
-        tableCard.add(createTableHeader(), BorderLayout.NORTH);
-
-        tableBodyPanel.setLayout(new BoxLayout(tableBodyPanel, BoxLayout.Y_AXIS));
-        tableBodyPanel.setBackground(Color.WHITE);
-        JScrollPane tableScrollPane = new JScrollPane(tableBodyPanel);
-        tableScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        tableScrollPane.getViewport().setBackground(Color.WHITE);
-        tableScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        tableScrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        tableCard.add(tableScrollPane, BorderLayout.CENTER);
-        tableCard.add(createFooter(), BorderLayout.SOUTH);
-
-        JPanel contentFrame = new JPanel(new BorderLayout(0, 0)) {
+    private JPanel createMainSection() {
+        JPanel container = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(CARD_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 50, 50);
                 g2.dispose();
             }
 
@@ -176,29 +118,77 @@ public class AccountManagementPanel extends JPanel {
             protected void paintChildren(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Shape shape = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setClip(shape);
+                g2.setClip(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 20, 20));
                 super.paintChildren(g2);
                 g2.dispose();
             }
         };
-        contentFrame.setOpaque(false);
-        contentFrame.setBackground(Color.WHITE);
-        contentFrame.add(titlePanel, BorderLayout.NORTH);
-        contentFrame.add(tableCard, BorderLayout.CENTER);
+        container.setOpaque(false);
+        container.setBackground(Color.WHITE);
+        container.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        sectionPanel.add(contentFrame, BorderLayout.CENTER);
-        return sectionPanel;
+        JPanel topSection = new JPanel();
+        topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
+        topSection.setBackground(Color.WHITE);
+        topSection.add(createToolbar());
+        container.add(topSection, BorderLayout.NORTH);
+
+        tableBodyPanel.setLayout(new BoxLayout(tableBodyPanel, BoxLayout.Y_AXIS));
+        tableBodyPanel.setBackground(Color.WHITE);
+
+        JScrollPane scrollPane = new JScrollPane(tableBodyPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setColumnHeaderView(createTableHeader());
+        container.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel footer = createFooter();
+        container.add(footer, BorderLayout.SOUTH);
+
+        return container;
+    }
+
+    private JPanel createToolbar() {
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setBackground(Color.WHITE);
+        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+
+        JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftToolbar.setBackground(Color.WHITE);
+
+        JLabel tableTitle = new JLabel("DANH SÁCH TÀI KHOẢN");
+        tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
+
+        JButton addBtn = createPillButton("+ Thêm tài khoản", new Color(228, 250, 226), new Color(16, 110, 0), true);
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
+        addBtn.setBorder(new EmptyBorder(4, 12, 6, 12));
+        addBtn.addActionListener(event -> showCreateView());
+        JPanel addBtnWrapper = new JPanel(new BorderLayout());
+        addBtnWrapper.setOpaque(false);
+        addBtnWrapper.add(addBtn, BorderLayout.CENTER);
+
+        leftToolbar.add(tableTitle);
+        if (canAdd()) {
+            leftToolbar.add(addBtnWrapper);
+        }
+        toolbar.add(leftToolbar, BorderLayout.WEST);
+
+        JPanel rightToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightToolbar.setBackground(Color.WHITE);
+        rightToolbar.add(createSearchFieldWithIcon());
+        toolbar.add(rightToolbar, BorderLayout.EAST);
+
+        return toolbar;
     }
 
     private JPanel createSearchFieldWithIcon() {
         txtSearch.setPreferredSize(new Dimension(310, 38));
-        txtSearch.setFont(AppFonts.lexendRegular(13f));
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo account, username, họ tên...");
         txtSearch.setBorder(new EmptyBorder(0, 8, 0, 14));
         txtSearch.setOpaque(false);
-        txtSearch.putClientProperty("JComponent.roundRect", true);
-        txtSearch.putClientProperty("JTextField.arc", 999);
 
         JLabel searchIconLabel = new JLabel(loadSearchIcon());
         searchIconLabel.setBorder(new EmptyBorder(0, 12, 0, 0));
@@ -223,25 +213,36 @@ public class AccountManagementPanel extends JPanel {
     }
 
     private JPanel createTableHeader() {
-        JPanel headerPanel = new JPanel(new GridBagLayout());
-        headerPanel.setBackground(HEADER_BACKGROUND);
-        headerPanel.setBorder(new EmptyBorder(14, 24, 14, 24));
-        addColumnCell(headerPanel, createHeaderLabel("ACCOUNT ID", SwingConstants.LEFT), 0, SwingConstants.LEFT);
-        addColumnCell(headerPanel, createHeaderLabel("USERNAME", SwingConstants.CENTER), 1, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), 2, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("SĐT", SwingConstants.CENTER), 3, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("STATUS", SwingConstants.CENTER), 4, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("ROLE GROUP", SwingConstants.CENTER), 5, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("THAO TÁC", SwingConstants.CENTER), 6, SwingConstants.CENTER);
-        addColumnCell(headerPanel, createHeaderLabel("NGÀY TẠO", SwingConstants.CENTER), 7, SwingConstants.CENTER);
-        return headerPanel;
+        JPanel header = new JPanel(new GridBagLayout());
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new EmptyBorder(0, 24, 0, 24)
+        ));
+        header.setPreferredSize(new Dimension(0, 45));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 8);
+
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("MÃ TK", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("USERNAME", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SĐT", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("STATUS", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("QUYỀN", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.15; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+
+        return header;
     }
 
     private JPanel createFooter() {
         JPanel footerPanel = new JPanel(new BorderLayout());
         footerPanel.setBackground(FOOTER_BACKGROUND);
-        footerPanel.setBorder(new EmptyBorder(18, 22, 18, 22));
-        footerLabel.setFont(AppFonts.lexendRegular(14f));
+        footerPanel.setBorder(new EmptyBorder(20, 20, 0, 20));
+        footerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         footerLabel.setForeground(new Color(107, 114, 128));
         footerPanel.add(footerLabel, BorderLayout.WEST);
         return footerPanel;
@@ -249,8 +250,8 @@ public class AccountManagementPanel extends JPanel {
 
     private JLabel createHeaderLabel(String text, int alignment) {
         JLabel label = new JLabel(text, alignment);
-        label.setFont(AppFonts.lexendBold(13f));
-        label.setForeground(HEADER_LABEL_TEXT);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setForeground(new Color(107, 114, 128));
         return label;
     }
 
@@ -321,8 +322,9 @@ public class AccountManagementPanel extends JPanel {
         if (rows.isEmpty()) {
             tableBodyPanel.add(createEmptyRow("Không tìm thấy account phù hợp."));
         } else {
+            int index = 0;
             for (AccountRow row : rows) {
-                tableBodyPanel.add(createDataRow(row));
+                tableBodyPanel.add(createDataRow(row, index++));
             }
         }
         footerLabel.setText("Đang hiển thị " + rows.size() + " / " + rows.size() + " tài khoản");
@@ -344,17 +346,25 @@ public class AccountManagementPanel extends JPanel {
         );
     }
 
-    private JPanel createDataRow(AccountRow row) {
+    private JPanel createDataRow(AccountRow row, int rowIndex) {
+        Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
+
         JPanel rowPanel = new JPanel(new GridBagLayout());
-        rowPanel.setBackground(Color.WHITE);
+        rowPanel.setBackground(rowBg);
         rowPanel.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, ROW_BORDER),
-                new EmptyBorder(12, 24, 12, 24)
+                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new EmptyBorder(0, 24, 0, 24)
         ));
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 8);
 
         JLabel accountIdLabel = createBodyLabel(row.getAccountId(), true);
-        accountIdLabel.setForeground(BLUE_TEXT);
+        accountIdLabel.setForeground(new Color(22, 163, 74));
         accountIdLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         accountIdLabel.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -363,30 +373,34 @@ public class AccountManagementPanel extends JPanel {
             }
         });
 
-        addColumnCell(rowPanel, createTableCellWrapper(accountIdLabel, SwingConstants.LEFT), 0, SwingConstants.LEFT);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(row.getUsername(), false), SwingConstants.CENTER), 1, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(row.getDisplayName(), false), SwingConstants.CENTER), 2, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(row.getPhone(), false), SwingConstants.CENTER), 3, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(displayStatus(row), false), SwingConstants.CENTER), 4, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(displayRole(row), true), SwingConstants.CENTER), 5, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createActionButtons(row), SwingConstants.CENTER), 6, SwingConstants.CENTER);
-        addColumnCell(rowPanel, createTableCellWrapper(createCenteredBodyLabel(formatDate(row.getCreatedAt()), false), SwingConstants.CENTER), 7, SwingConstants.CENTER);
+        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(accountIdLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getUsername(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.18; rowPanel.add(createFlexibleCell(createBodyLabel(row.getDisplayName(), false), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getPhone(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(createBodyLabel(displayStatus(row), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(displayRole(row), true), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.15; rowPanel.add(createFlexibleCell(createBodyLabel(formatDate(row.getCreatedAt()), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+
+        JPanel actionGroup = createActionButtons(row);
+        gbc.weightx = 0.15; gbc.insets = new Insets(0, 0, 0, 0); 
+        rowPanel.add(createFlexibleCell(actionGroup, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+
+        rowPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { rowPanel.setBackground(new Color(249, 250, 251)); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { rowPanel.setBackground(rowBg); }
+        });
+
         return rowPanel;
     }
 
     private JPanel createActionButtons(AccountRow row) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         panel.setOpaque(false);
 
         boolean isDeleted = row.isDeleted();
         JButton toggleButton = isDeleted
                 ? createMiniActionButton("Khôi phục", CREATE_BG, CREATE_TEXT)
                 : createMiniActionButton("Xóa", SOFT_RED_BG, SOFT_RED_TEXT);
-        Dimension toggleSize = new Dimension(isDeleted ? 90 : 76, 28);
-        toggleButton.setPreferredSize(toggleSize);
-        toggleButton.setMinimumSize(toggleSize);
-        toggleButton.setMaximumSize(toggleSize);
         toggleButton.addActionListener(event -> {
             if (row.isDeleted()) {
                 handleRestore(row);
@@ -397,13 +411,8 @@ public class AccountManagementPanel extends JPanel {
         toggleButton.setEnabled(isDeleted ? canRestore() : canDelete());
 
         panel.add(toggleButton);
-        panel.add(Box.createHorizontalStrut(6));
 
         JButton editButton = createMiniActionButton("Chỉnh sửa", EDIT_BG, EDIT_TEXT);
-        Dimension editSize = new Dimension(86, 28);
-        editButton.setPreferredSize(editSize);
-        editButton.setMinimumSize(editSize);
-        editButton.setMaximumSize(editSize);
         editButton.addActionListener(event -> showEditView(row));
         editButton.setEnabled(canEdit());
 
@@ -528,7 +537,7 @@ public class AccountManagementPanel extends JPanel {
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
 
         JLabel messageLabel = new JLabel(message);
-        messageLabel.setFont(AppFonts.lexendRegular(14f));
+        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         messageLabel.setForeground(new Color(107, 114, 128));
         rowPanel.add(messageLabel, BorderLayout.CENTER);
         return rowPanel;
@@ -536,46 +545,34 @@ public class AccountManagementPanel extends JPanel {
 
     private JLabel createBodyLabel(String text, boolean bold) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(bold ? AppFonts.lexendBold(13f) : AppFonts.lexendRegular(13f));
+        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
         label.setForeground(BODY_TEXT);
         return label;
     }
 
-    private JLabel createCenteredBodyLabel(String text, boolean bold) {
-        JLabel label = createBodyLabel(text, bold);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        return label;
-    }
-
-    private void addColumnCell(JPanel panel, Component component, int columnIndex, int alignment) {
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = columnIndex;
-        g.gridy = 0;
-        g.weightx = 0;
-        g.fill = GridBagConstraints.NONE;
-        g.insets = new Insets(0, 4, 0, 4);
-        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
-        JPanel bounded = new JPanel(new BorderLayout());
-        bounded.setOpaque(false);
-        bounded.setPreferredSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getPreferredSize().height));
-        bounded.setMinimumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], component.getMinimumSize().height));
-        bounded.setMaximumSize(new Dimension(TABLE_COLUMN_WIDTHS[columnIndex], Integer.MAX_VALUE));
-        bounded.add(component, BorderLayout.CENTER);
-        panel.add(bounded, g);
-    }
-
-    private JPanel createTableCellWrapper(Component component, int alignment) {
+    private JPanel createFlexibleCell(Component component, int alignment, Color bg, int leftPad, int rightPad) {
+        if (component instanceof JLabel label) {
+            label.setHorizontalAlignment(alignment);
+        }
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setOpaque(false);
-        panel.setMinimumSize(new Dimension(0, 0));
+        panel.setBackground(bg);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
 
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.gridy = 0;
-        g.weightx = 1.0;
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : GridBagConstraints.CENTER;
-        panel.add(component, g);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.NONE; // Don't stretch, just center
+        gbc.anchor = alignment == SwingConstants.LEFT ? GridBagConstraints.WEST : 
+                     alignment == SwingConstants.RIGHT ? GridBagConstraints.EAST : 
+                     GridBagConstraints.CENTER;
+        
+        panel.add(component, gbc);
+
+        panel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        panel.setMinimumSize(new Dimension(0, ROW_HEIGHT));
         return panel;
     }
 
@@ -616,20 +613,45 @@ public class AccountManagementPanel extends JPanel {
             }
         };
         button.setForeground(foreground);
-        button.setFont(isBold ? AppFonts.lexendBold(13f) : AppFonts.lexendRegular(13f));
+        button.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 13));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 22, 10, 22));
+        button.setBorder(new EmptyBorder(5, 12, 5, 12));
         return button;
     }
 
     private JButton createMiniActionButton(String text, Color background, Color foreground) {
         JButton button = createPillButton(text, background, foreground, true);
-        button.setFont(AppFonts.lexendBold(11f));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
         button.setBorder(new EmptyBorder(6, 10, 6, 10));
         return button;
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 16;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return 64;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return true;
     }
 
     private boolean canAdd() {
