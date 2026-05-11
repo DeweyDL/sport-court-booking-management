@@ -92,6 +92,22 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     }
 
     @Override
+    public int countCustomers() throws SQLException {
+        String sql = """
+                SELECT COUNT(*) AS CUSTOMER_COUNT
+                FROM KHACH_HANG
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("CUSTOMER_COUNT");
+            }
+        }
+        throw new SQLException("Khong the dem so luong khach hang.");
+    }
+
+    @Override
     public void createCustomer(String userId, String accountId, String maKhachHang, CreateCustomerRequest request,
                                String generatedEmail, String passwordHash, String username) throws SQLException {
         String insertUser = """
