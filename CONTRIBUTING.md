@@ -88,7 +88,8 @@ chore/logger-config
 - Có ý tưởng tốt, hỗ trợ xuất sắc cho kết quả của nhóm, giúp nhóm hoàn thiện tốt sẽ được 2  điểm cộng khi đánh giá kết quả.
 
 #### 3.4.2. Các quy tắc phạt:
-- Trễ họp quá 10 phút thì sẽ cảnh cáo lần 1, 3 lần sẽ trừ 1 điểm vào kết quả đánh giá. − Vi phạm nguyên tắc làm việc nhóm đã đề ra sẽ trừ 1 điểm vào kết quả đánh giá. 
+- Trễ họp quá 10 phút thì sẽ cảnh cáo lần 1, 3 lần sẽ trừ 1 điểm vào kết quả đánh giá.
+- Vi phạm nguyên tắc làm việc nhóm đã đề ra sẽ trừ 1 điểm vào kết quả đánh giá. 
 
 #### 3.4.5. Đánh giá thành viên:
 - **90 - 100%**: Hoàn thành rất tốt công việc, có sự chủ động và sáng tạo trong quá trình làm  việc, có tinh thần trách nhiệm cao, biết giúp đỡ những thành viên khác, xây dựng môi trường  làm việc tốt.
