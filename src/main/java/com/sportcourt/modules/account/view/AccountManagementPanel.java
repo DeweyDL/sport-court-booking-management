@@ -193,33 +193,8 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        txtSearch.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo account, username, họ tên...");
-        txtSearch.setBorder(new EmptyBorder(0, 8, 0, 14));
-        txtSearch.setOpaque(false);
-
-        JLabel searchIconLabel = new JLabel(loadSearchIcon());
-        searchIconLabel.setBorder(new EmptyBorder(0, 12, 0, 0));
-
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.setColor(INPUT_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        wrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        wrapper.add(searchIconLabel, BorderLayout.WEST);
-        wrapper.add(txtSearch, BorderLayout.CENTER);
-        return wrapper;
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, txtSearch, loadSearchIcon());
     }
 
     private JPanel createSortWrapper() {

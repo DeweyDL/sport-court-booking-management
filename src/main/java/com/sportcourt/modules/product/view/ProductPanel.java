@@ -25,6 +25,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+import static com.sportcourt.common.style.CrudViewStyle.updateSortDirectionButton;
+
 public class ProductPanel extends JPanel implements Scrollable {
     private static final Color PAGE_BG = new Color(245, 247, 250);
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
@@ -262,12 +264,8 @@ public class ProductPanel extends JPanel implements Scrollable {
         JLabel tableTitle = new JLabel("DANH SÁCH SẢN PHẨM");
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
-        JPanel addBtnWrapper = new JPanel(new BorderLayout());
-        addBtnWrapper.setOpaque(false);
-        addBtnWrapper.add(addButton, BorderLayout.CENTER);
-
         leftToolbar.add(tableTitle);
-        leftToolbar.add(addBtnWrapper);
+        leftToolbar.add(addButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -283,100 +281,13 @@ public class ProductPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        searchWrapper.removeAll();
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        searchWrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã hoặc tên sản phẩm...");
-        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
-        searchField.putClientProperty("JComponent.roundRect", true);
-        searchField.setBorder(null);
-        searchField.setOpaque(false);
-
-        JLabel iconLabel = new JLabel(loadSearchIcon());
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
-
-        JPanel innerPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        innerPanel.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-        innerPanel.add(iconLabel, BorderLayout.WEST);
-        innerPanel.add(searchField, BorderLayout.CENTER);
-
-        searchWrapper.add(innerPanel, BorderLayout.CENTER);
-        return searchWrapper;
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, searchField, loadSearchIcon());
     }
 
     private JPanel createSortWrapper() {
-        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        cbSort.setFocusable(false);
-        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-        cbSort.setOpaque(false);
-        cbSort.setBackground(Color.WHITE);
-        cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComponent.arc", 999);
-        cbSort.putClientProperty("JComboBox.buttonStyle", "button");
-        cbSort.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                Object display = index < 0 ? "Sắp xếp: " + value : value;
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
-                label.setBorder(new EmptyBorder(6, 10, 6, 10));
-                return label;
-            }
-        });
-
-        btnSortDir.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
-        btnSortDir.setForeground(new Color(75, 85, 99));
-        btnSortDir.setBorder(new EmptyBorder(0, 0, 0, 12));
-        btnSortDir.setContentAreaFilled(false);
-        btnSortDir.setBorderPainted(false);
-        btnSortDir.setFocusPainted(false);
-        btnSortDir.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        updateSortDirectionButton();
-
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.dispose();
-            }
-
-            @Override
-            public void paint(Graphics g) {
-                super.paint(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(BORDER);
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(214, 41));
-        wrapper.setMaximumSize(new Dimension(214, 41));
-        wrapper.add(cbSort, BorderLayout.CENTER);
-        wrapper.add(btnSortDir, BorderLayout.EAST);
-        return wrapper;
+        updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private JPanel createTableHeader() {
@@ -622,7 +533,7 @@ public class ProductPanel extends JPanel implements Scrollable {
 
         btnSortDir.addActionListener(event -> {
             sortAscending = !sortAscending;
-            updateSortDirectionButton();
+            updateSortDirectionButton(btnSortDir, sortAscending);
             String selectedCode = getSelectedProductId();
             sortProducts();
             renderTable();
@@ -667,10 +578,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         products.sort(comparator);
     }
 
-    private void updateSortDirectionButton() {
-        btnSortDir.setText(sortAscending ? "\u25B2" : "\u25BC");
-        btnSortDir.setToolTipText(sortAscending ? "Đang sắp xếp tăng dần" : "Đang sắp xếp giảm dần");
-    }
 
     private void restoreSelection(String maSp) {
         selectedProduct = null;

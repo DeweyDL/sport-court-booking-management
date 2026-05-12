@@ -14,7 +14,7 @@ final class CourtCreatePanel {
     private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(34, 197, 94);
+    private static final Color BRAND_GREEN = new Color(16, 110, 0);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
@@ -196,7 +196,7 @@ final class CourtCreatePanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
-            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
             g2.dispose();
         }
     }
