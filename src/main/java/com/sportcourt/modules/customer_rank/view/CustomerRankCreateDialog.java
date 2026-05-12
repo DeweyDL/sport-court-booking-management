@@ -1,24 +1,29 @@
 package com.sportcourt.modules.customer_rank.view;
 
+import com.sportcourt.modules.customer_rank.controller.CustomerRankController;
+import com.sportcourt.modules.customer_rank.dto.CustomerRankCreateRequest;
+
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.function.Consumer;
 
 final class CustomerRankCreateDialog {
 
-    private static final Color DIALOG_BG   = new Color(248, 249, 252);
-    private static final Color CARD_BG     = Color.WHITE;
-    private static final Color BRAND_COLOR = new Color(22, 101, 52);
-    private static final Color BRAND_BG    = new Color(220, 252, 231);
-    private static final Color TEXT_DARK   = new Color(30, 41, 59);
-    private static final Color TEXT_MUTED  = new Color(100, 116, 139);
+    private static final Color DIALOG_BG    = new Color(248, 249, 252);
+    private static final Color CARD_BG      = Color.WHITE;
+    private static final Color BRAND_COLOR  = new Color(22, 101, 52);
+    private static final Color BRAND_BG     = new Color(220, 252, 231);
+    private static final Color TEXT_DARK    = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
 
-    private CustomerRankCreateDialog() {
-    }
+    private CustomerRankCreateDialog() {}
 
-    static void show(Component parent) {
+    static void show(Component parent, CustomerRankController controller, Consumer<String> onSuccess) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm hạng khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -67,7 +72,7 @@ final class CustomerRankCreateDialog {
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Chiết khấu (%)", txtChietKhau));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Mức tiền (VNĐ)", txtMucTien)); // Cập nhật tên nhãn
+        form.add(createField("Mức tiền (VNĐ)", txtMucTien));
         root.add(form, BorderLayout.CENTER);
 
         // Actions
@@ -76,7 +81,9 @@ final class CustomerRankCreateDialog {
 
         JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
         JButton saveBtn   = createPillButton("Thêm hạng", BRAND_BG, BRAND_COLOR);
+
         cancelBtn.addActionListener(event -> dialog.dispose());
+
         saveBtn.addActionListener(event -> {
             String maHang       = txtMaHang.getText().trim();
             String tenHang      = txtTenHang.getText().trim();
@@ -87,29 +94,42 @@ final class CustomerRankCreateDialog {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ tất cả các trường.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
+            double chietKhau;
+            double mucTien;
             try {
-                double chietKhau = Double.parseDouble(chietKhauStr);
-                double mucTien   = Double.parseDouble(mucTienStr);
-
-                if (chietKhau < 0 || chietKhau > 100) {
-                    JOptionPane.showMessageDialog(dialog, "Chiết khấu phải từ 0 đến 100.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-                if (mucTien < 0) {
-                    JOptionPane.showMessageDialog(dialog, "Mức tiền không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                System.out.println("[CustomerRank Create] Mã: " + maHang
-                        + ", Tên: " + tenHang
-                        + ", Chiết khấu: " + chietKhau + "%"
-                        + ", Mức tiền: " + mucTien);
-                JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                dialog.dispose();
+                chietKhau = Double.parseDouble(chietKhauStr);
+                mucTien   = Double.parseDouble(mucTienStr);
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(dialog, "Chiết khấu và mức tiền phải là số hợp lệ.", "Lỗi định dạng", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (chietKhau < 0 || chietKhau > 100) {
+                JOptionPane.showMessageDialog(dialog, "Chiết khấu phải từ 0 đến 100.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (mucTien < 0) {
+                JOptionPane.showMessageDialog(dialog, "Mức tiền không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            CustomerRankCreateRequest request = new CustomerRankCreateRequest();
+            request.setMaHang(maHang);
+            request.setTenHang(tenHang);
+            request.setChietKhau(BigDecimal.valueOf(chietKhau));
+            request.setMucTien(BigDecimal.valueOf(mucTien));
+
+            try {
+                controller.createRank(request);
+                JOptionPane.showMessageDialog(dialog, "Thêm hạng thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+                if (onSuccess != null) onSuccess.accept(null);
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm hạng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
+
         actions.add(cancelBtn);
         actions.add(saveBtn);
         root.add(actions, BorderLayout.SOUTH);
