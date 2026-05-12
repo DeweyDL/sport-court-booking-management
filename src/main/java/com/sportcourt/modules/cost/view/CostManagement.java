@@ -1,5 +1,7 @@
 package com.sportcourt.modules.cost.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.modules.cost.view.CostMockData.CostItem;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -19,9 +21,9 @@ import java.util.Locale;
 
 public class CostManagement extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
+    private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
-    private final com.sportcourt.modules.cost.controller.CostController controller = new com.sportcourt.modules.cost.controller.CostController();
+    private final CostMockData.Store store = CostMockData.store();
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
@@ -36,18 +38,18 @@ public class CostManagement extends JPanel implements Scrollable {
     private final Timer searchDebounceTimer;
     private boolean sortAscending = true;
 
-    private final CostChange suaBangGia = new CostChange(controller, id -> loadBangGiaData(searchField.getText()));
-    private final CostAdd themBangGia = new CostAdd(controller, id -> loadBangGiaData(searchField.getText()));
+    private final CostChange suaBangGia = new CostChange(store, id -> loadBangGiaData(searchField.getText()));
+    private final CostAdd themBangGia = new CostAdd(store, id -> loadBangGiaData(searchField.getText()));
 
     public CostManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         searchDebounceTimer = new Timer(300, event -> loadBangGiaData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadBangGiaData(null);
     }
 
@@ -218,28 +220,25 @@ public class CostManagement extends JPanel implements Scrollable {
         tablePanel.add(createTableHeader());
 
 
-        try {
-            List<com.sportcourt.modules.cost.entity.Cost> costs = controller.searchCosts(keyword);
-            if (costs.isEmpty()) {
         List<CostItem> costs = new ArrayList<>(store.list(keyword));
         sortCosts(costs);
         if (costs.isEmpty()) {
                 tablePanel.add(createMessageRow("Không có dữ liệu phù hợp."));
                 infoLabel.setText("Tổng cộng: 0 dòng");
-            } else {
+        } else {
                 int idx = 0;
-                for (com.sportcourt.modules.cost.entity.Cost cost : costs) {
+                for (CostItem cost : costs) {
                     tablePanel.add(createDataRow(cost, idx++));
                 }
                 infoLabel.setText("Tổng cộng: " + costs.size() + " dòng");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            tablePanel.add(createMessageRow("Lỗi tải dữ liệu: " + e.getMessage()));
-            infoLabel.setText("Lỗi kết nối");
-        }
         tablePanel.revalidate();
         tablePanel.repaint();
+
+                    /* this,
+                    exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
+                    "Lỗi dữ liệu bảng giá",
+                    JOptionPane.ERROR_MESSAGE */
     }
 
     private void sortCosts(List<CostItem> costs) {
@@ -300,7 +299,7 @@ public class CostManagement extends JPanel implements Scrollable {
         return label;
     }
 
-    private JPanel createDataRow(com.sportcourt.modules.cost.entity.Cost cost, int rowIndex) {
+    private JPanel createDataRow(CostItem cost, int rowIndex) {
         Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
         JPanel row = new JPanel(new GridBagLayout());
         row.setBackground(rowBg);
@@ -315,12 +314,12 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
 
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(cost.getMaKv(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(cost.maKv(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         JLabel maBgLabel = new JLabel(cost.maBg());
         maBgLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         maBgLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.14; row.add(createFlexibleCell(maBgLabel, SwingConstants.LEFT, rowBg, 5, 0), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(maBgLabel, SwingConstants.CENTER, rowBg, 5, 0), gbc);
 
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
@@ -333,7 +332,7 @@ public class CostManagement extends JPanel implements Scrollable {
         deleteBtn.addActionListener(event -> confirmDelete(cost));
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editBtn.addActionListener(event -> showEditView(cost.getMaBg()));
+        editBtn.addActionListener(event -> showEditView(cost.maBg()));
 
         actionContainer.add(deleteBtn);
         actionContainer.add(editBtn);
@@ -343,7 +342,7 @@ public class CostManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.30; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.24; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -396,7 +395,7 @@ public class CostManagement extends JPanel implements Scrollable {
         return panel;
     }
 
-    private void confirmDelete(com.sportcourt.modules.cost.entity.Cost cost) {
+    private void confirmDelete(CostItem cost) {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "Bạn chắc chắn muốn xóa bảng giá này không?",
@@ -410,10 +409,10 @@ public class CostManagement extends JPanel implements Scrollable {
         }
 
         try {
-            controller.deleteCost(cost.getMaBg());
+            store.delete(cost.maBg());
             loadBangGiaData(searchField.getText());
-            JOptionPane.showMessageDialog(this, "Đã xóa bảng giá " + cost.getMaBg() + ".", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception exception) {
+            JOptionPane.showMessageDialog(this, "Đã xóa bảng giá " + cost.maBg() + ".", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IllegalStateException exception) {
             JOptionPane.showMessageDialog(
                     this,
                     exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
