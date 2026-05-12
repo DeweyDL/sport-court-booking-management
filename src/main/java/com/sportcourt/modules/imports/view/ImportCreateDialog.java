@@ -17,8 +17,8 @@ final class ImportCreateDialog {
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(22, 101, 52);
-    private static final Color BRAND_GREEN_BG = new Color(220, 252, 231);
+    private static final Color BRAND_GREEN = new Color(16, 110, 0);
+    private static final Color BRAND_GREEN_BG = new Color(228, 250, 226);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
