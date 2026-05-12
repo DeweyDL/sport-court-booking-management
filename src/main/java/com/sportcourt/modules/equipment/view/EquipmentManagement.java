@@ -1,5 +1,6 @@
 package com.sportcourt.modules.equipment.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.equipment.view.EquipmentMockData.EquipmentItem;
 
 import javax.swing.*;
@@ -42,10 +43,10 @@ public class EquipmentManagement extends JPanel implements Scrollable {
 
     public EquipmentManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadData(null);
     }
 
@@ -231,8 +232,8 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
-        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("Mã DC"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("TÊN DỤNG CỤ"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("Mã DC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("TÊN DỤNG CỤ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("ĐƠN VỊ TÍNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SỐ LƯỢNG"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 4), gbc);
@@ -270,10 +271,10 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         JLabel idLabel = new JLabel(item.maDc());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Tên dụng cụ
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenDc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenDc(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Đơn vị tính
         gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(item.dvt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);

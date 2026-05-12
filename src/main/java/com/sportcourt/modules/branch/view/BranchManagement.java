@@ -1,5 +1,6 @@
 package com.sportcourt.modules.branch.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.branch.controller.BranchController;
 import com.sportcourt.modules.branch.entity.Branch;
 
@@ -34,13 +35,13 @@ public class BranchManagement extends JPanel implements Scrollable {
 
     public BranchManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         searchDebounceTimer = new Timer(300, event -> loadChiNhanhData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadChiNhanhData(null);
     }
 
@@ -298,13 +299,12 @@ public class BranchManagement extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("TÊN CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("HOTLINE"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.16; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.19; header.add(createFlexibleCell(createHeaderLabel("TÊN CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.22; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("HOTLINE"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
 
         return header;
     }
@@ -337,15 +337,12 @@ public class BranchManagement extends JPanel implements Scrollable {
         JLabel maCnLabel = new JLabel(branch.maCn());
         maCnLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maCnLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.12; row.add(createFlexibleCell(maCnLabel, SwingConstants.LEFT, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.13; row.add(createFlexibleCell(maCnLabel, SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
-        gbc.weightx = 0.18; row.add(createFlexibleCell(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBackground, 0, 8), gbc);
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(branch.hotline(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
-
-        Color statusColor = branch.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(branch.getStatus(), statusColor), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.19; row.add(createFlexibleCell(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.22; row.add(createFlexibleCell(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(branch.hotline(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
@@ -364,7 +361,7 @@ public class BranchManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.16; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
+        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override

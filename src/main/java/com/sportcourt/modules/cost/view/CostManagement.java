@@ -258,7 +258,7 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ BẮT ĐẦU", SwingConstants.CENTER), gbc);
         gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ KẾT THÚC", SwingConstants.CENTER), gbc);
         gbc.weightx = 0.16; header.add(createHeaderCell("GIÁ", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.32; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.30; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
 
         return header;
     }
@@ -317,7 +317,7 @@ public class CostManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.32; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.30; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
