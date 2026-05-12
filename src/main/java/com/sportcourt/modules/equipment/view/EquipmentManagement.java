@@ -35,6 +35,12 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     private List<EquipmentItem> equipmentList = new ArrayList<>();
     private boolean sortAscending = true;
 
+    private final com.sportcourt.modules.equipment.controller.EquipmentController controller = new com.sportcourt.modules.equipment.controller.EquipmentController();
+
+    public void refresh() {
+        loadData(searchField.getText());
+    }
+
     public EquipmentManagement() {
         setLayout(new BorderLayout());
         CrudViewStyle.applyPageDefaults(this);
@@ -289,9 +295,18 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         deleteBtn.setPreferredSize(deleteBtnSize);
         deleteBtn.setMinimumSize(deleteBtnSize);
         deleteBtn.setMaximumSize(deleteBtnSize);
-        deleteBtn.addActionListener(event ->
-                JOptionPane.showMessageDialog(this, "Chức năng xóa sẽ hoạt động khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE)
-        );
+        deleteBtn.addActionListener(event -> {
+            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa dụng cụ này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    controller.deleteEquipment(item.maDc());
+                    JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                    refresh();
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
         actionGroup.add(deleteBtn);
         actionGroup.add(Box.createHorizontalStrut(8));
 
@@ -366,17 +381,26 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     // --------- DATA OPERATIONS ---------
 
     private void loadData(String keyword) {
-        List<EquipmentItem> all = EquipmentMockData.createSampleData();
-
-        if (keyword != null && !keyword.isBlank()) {
-            String lower = keyword.toLowerCase().trim();
-            all = all.stream()
-                    .filter(item -> item.maDc().toLowerCase().contains(lower)
-                            || item.tenDc().toLowerCase().contains(lower))
-                    .toList();
+        List<EquipmentItem> all = new ArrayList<>();
+        try {
+            List<com.sportcourt.modules.equipment.entity.Equipment> dbEquipments = controller.searchEquipments(keyword);
+            for (com.sportcourt.modules.equipment.entity.Equipment eq : dbEquipments) {
+                all.add(new EquipmentItem(
+                        eq.getMaDc(),
+                        eq.getTenDc(),
+                        eq.getDvt() != null && !eq.getDvt().isEmpty() ? eq.getDvt() : "--",
+                        eq.getGia(),
+                        eq.getSlTon(),
+                        eq.getCreatedAt() != null ? eq.getCreatedAt() : java.time.LocalDateTime.now()
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            footerLabel.setText("Lỗi kết nối CSDL: " + e.getMessage());
+            return;
         }
 
-        equipmentList = new ArrayList<>(all);
+        equipmentList = all;
         sortList();
         renderTable();
     }
