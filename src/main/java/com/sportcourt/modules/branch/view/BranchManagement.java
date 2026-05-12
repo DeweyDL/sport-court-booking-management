@@ -1,6 +1,8 @@
 package com.sportcourt.modules.branch.view;
 
 import com.sportcourt.modules.branch.controller.BranchController;
+import com.sportcourt.modules.branch.dto.BranchCreateRequest;
+import com.sportcourt.modules.branch.dto.BranchUpdateRequest;
 import com.sportcourt.modules.branch.entity.Branch;
 
 import javax.swing.*;
@@ -29,8 +31,6 @@ public class BranchManagement extends JPanel implements Scrollable {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final BranchChange suaChiNhanh = new BranchChange(branchController, id -> loadChiNhanhData(searchField.getText()));
-    private final BranchAdd themChiNhanh = new BranchAdd(branchController, id -> loadChiNhanhData(searchField.getText()));
 
     public BranchManagement() {
         setLayout(new BorderLayout());
@@ -445,11 +445,33 @@ public class BranchManagement extends JPanel implements Scrollable {
     }
 
     private void showEditView(String maCn) {
-        suaChiNhanh.showEditor(this, maCn);
+        Branch branch = branchController.getBranchDetail(maCn);
+        BranchUpdateRequest req = BranchChange.show(this, branch);
+        if (req != null) {
+            try {
+                branchController.saveBranchChanges(req);
+                loadChiNhanhData(searchField.getText());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this,
+                        ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage(),
+                        "Lỗi cập nhật chi nhánh", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void showCreateView() {
-        themChiNhanh.showCreator(this);
+        String maCn = branchController.generateNextMaCn();
+        BranchCreateRequest req = BranchAdd.show(this, maCn);
+        if (req != null) {
+            try {
+                branchController.createBranch(req);
+                loadChiNhanhData(searchField.getText());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this,
+                        ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage(),
+                        "Lỗi thêm chi nhánh", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private String formatDate(LocalDateTime dateTime) {

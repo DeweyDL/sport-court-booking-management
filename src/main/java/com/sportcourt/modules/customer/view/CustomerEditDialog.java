@@ -1,5 +1,6 @@
 package com.sportcourt.modules.customer.view;
 
+import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
@@ -22,12 +23,13 @@ final class CustomerEditDialog {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(DATE_PATTERN);
     private static final DateTimeFormatter DATE_PARSE_FORMAT = DateTimeFormatter.ofPattern("d/M/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
+    private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_BLUE = new Color(29, 78, 216);
-    private static final Color BRAND_BLUE_BG = new Color(239, 246, 255);
+    private static final Color BRAND_BLUE = new Color(37, 99, 235);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color BUTTON_MUTED = new Color(226, 232, 240);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
     private static final Color READONLY_BG = new Color(241, 245, 249);
 
@@ -40,34 +42,28 @@ final class CustomerEditDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
-        JLabel title = new JLabel("Cập nhật khách hàng");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
-        title.setForeground(TEXT_DARK);
-
-        JLabel subtitle = new JLabel("Chỉnh sửa thông tin cho khách hàng " + profile.maKhachHang() + ".");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitle.setForeground(TEXT_MUTED);
-        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
-
-        JPanel header = new JPanel();
+        JPanel header = new JPanel(new BorderLayout(0, 6));
         header.setOpaque(false);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.add(title);
-        header.add(subtitle);
+        JLabel title = new JLabel("Cập nhật khách hàng");
+        title.setFont(AppFonts.lexendBold(24f));
+        title.setForeground(TEXT_DARK);
+        JLabel subtitle = new JLabel("Chỉnh sửa thông tin cho khách hàng " + profile.maKhachHang() + ".");
+        subtitle.setFont(AppFonts.lexendRegular(13f));
+        subtitle.setForeground(TEXT_MUTED);
+        header.add(title, BorderLayout.NORTH);
+        header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtMaKh = createReadOnlyField(profile.maKhachHang());
-        JTextField txtHoTen = createEditableField(profile.hoTen());
-        JTextField txtSdt = createEditableField(profile.sdt());
-        JTextField txtEmail = createEditableField(profile.emailHeThong());
-        JTextField txtDiaChi = createEditableField(profile.diaChi());
+        JTextField txtMaKh = readonly(profile.maKhachHang());
+        JTextField txtHoTen = new JTextField(profile.hoTen());
+        JTextField txtSdt = new JTextField(profile.sdt());
+        JTextField txtEmail = new JTextField(profile.emailHeThong());
+        JTextField txtDiaChi = new JTextField(profile.diaChi());
 
         LocalDate[] ngaySinhValue = new LocalDate[]{profile.ngaySinh()};
         JFormattedTextField txtNgaySinh = createDateField(profile.ngaySinh());
@@ -83,95 +79,71 @@ final class CustomerEditDialog {
 
         JPanel ngaySinhPanel = new JPanel(new BorderLayout(8, 0));
         ngaySinhPanel.setOpaque(false);
-        ngaySinhPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         ngaySinhPanel.add(txtNgaySinh, BorderLayout.CENTER);
         ngaySinhPanel.add(btnPickDate, BorderLayout.EAST);
 
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         cbTrangThai.setSelectedItem(profile.trangThai());
-        cbTrangThai.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         cbTrangThai.setEnabled(false);
         cbTrangThai.setFocusable(false);
-        cbTrangThai.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
         cbTrangThai.setBackground(READONLY_BG);
-        cbTrangThai.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.weightx = 1;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.insets = new Insets(6, 0, 6, 0);
 
-        form.add(createField("Mã khách hàng", txtMaKh));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Họ tên", txtHoTen));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Số điện thoại", txtSdt));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Email hệ thống", txtEmail));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Địa chỉ", txtDiaChi));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Ngày sinh", ngaySinhPanel));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Trạng thái", cbTrangThai));
+        addField(form, g, 0, "Mã khách hàng", txtMaKh);
+        addField(form, g, 1, "Họ tên", txtHoTen);
+        addField(form, g, 2, "Số điện thoại", txtSdt);
+        addField(form, g, 3, "Email hệ thống", txtEmail);
+        addField(form, g, 4, "Địa chỉ", txtDiaChi);
 
-        JScrollPane formScroll = new JScrollPane(form);
-        formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
-        formScroll.getViewport().setBackground(DIALOG_BG);
-        root.add(formScroll, BorderLayout.CENTER);
+        // Date field row — add manually since it's a composite panel
+        g.gridy = 10;
+        JLabel dateLabel = new JLabel("Ngày sinh");
+        dateLabel.setFont(AppFonts.lexendBold(12f));
+        dateLabel.setForeground(TEXT_DARK);
+        form.add(dateLabel, g);
+        g.gridy = 11;
+        form.add(ngaySinhPanel, g);
 
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        addField(form, g, 6, "Trạng thái", cbTrangThai);
+        root.add(form, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
-
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn = createPillButton("Lưu thay đổi", BRAND_BLUE_BG, BRAND_BLUE);
-        actions.add(cancelBtn);
-        actions.add(saveBtn);
+        JButton btnCancel = button("Hủy", BUTTON_MUTED, TEXT_DARK);
+        JButton btnSave = button("Lưu thay đổi", BRAND_BLUE, Color.WHITE);
+        actions.add(btnCancel);
+        actions.add(btnSave);
         root.add(actions, BorderLayout.SOUTH);
 
         final UpdateCustomerRequest[] result = new UpdateCustomerRequest[1];
-
-        cancelBtn.addActionListener(event -> dialog.dispose());
-        saveBtn.addActionListener(event -> {
+        btnCancel.addActionListener(e -> dialog.dispose());
+        btnSave.addActionListener(e -> {
             String hoTen = txtHoTen.getText().trim();
             String sdt = txtSdt.getText().trim();
             String email = txtEmail.getText().trim();
             String diaChi = txtDiaChi.getText().trim();
-            String trangThai = profile.trangThai();
-
             if (hoTen.isEmpty() || sdt.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Họ tên và số điện thoại là bắt buộc.",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                JOptionPane.showMessageDialog(dialog, "Họ tên và số điện thoại là bắt buộc.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
             LocalDate ngaySinh;
             try {
                 ngaySinh = parseOptionalDate(txtNgaySinh.getText());
                 txtNgaySinh.setText(formatDate(ngaySinh));
             } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Ngày sinh phải đúng định dạng dd/MM/yyyy.",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                JOptionPane.showMessageDialog(dialog, "Ngày sinh phải đúng định dạng dd/MM/yyyy.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
             result[0] = new UpdateCustomerRequest(
-                    hoTen,
-                    sdt,
-                    trangThai,
+                    hoTen, sdt, profile.trangThai(),
                     normalizeOptional(email),
                     normalizeOptional(sdt),
                     normalizeOptional(diaChi),
@@ -181,48 +153,70 @@ final class CustomerEditDialog {
         });
 
         dialog.pack();
-        applyResponsiveWindowSize(dialog, 0.45, 0.7, 560, 520);
-        dialog.setLocationRelativeTo(parent);
+        dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
+        dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
         return result[0];
     }
 
-    private static void applyResponsiveWindowSize(JDialog dialog, double widthRatio, double heightRatio, int minWidth, int minHeight) {
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int width = Math.max(minWidth, (int) (screenSize.width * widthRatio));
-        int height = Math.max(minHeight, (int) (screenSize.height * heightRatio));
-        dialog.setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
-        dialog.setMinimumSize(new Dimension(minWidth, minHeight));
-    }
-
-
-    private static JTextField createReadOnlyField(String value) {
-        JTextField field = createBaseField(value);
+    private static JTextField readonly(String value) {
+        JTextField field = new JTextField(value == null ? "" : value);
         field.setEditable(false);
         field.setFocusable(false);
-        field.setRequestFocusEnabled(false);
-        field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
         field.setBackground(READONLY_BG);
+        styleTextField(field);
         return field;
     }
 
-    private static JTextField createEditableField(String value) {
-        JTextField field = createBaseField(value);
-        field.setBackground(new Color(249, 250, 251));
-        return field;
+    private static void addField(JPanel panel, GridBagConstraints g, int row, String label, JComponent field) {
+        g.gridy = row * 2;
+        JLabel lb = new JLabel(label);
+        lb.setFont(AppFonts.lexendBold(12f));
+        lb.setForeground(TEXT_DARK);
+        panel.add(lb, g);
+
+        g.gridy = row * 2 + 1;
+        if (field instanceof JTextField textField) {
+            styleTextField(textField);
+        } else {
+            field.setBorder(BorderFactory.createCompoundBorder(
+                    new RoundedLineBorder(BORDER_COLOR, INPUT_CORNER_RADIUS),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
+            ));
+            field.setBackground(Color.WHITE);
+            field.setFont(AppFonts.lexendRegular(14f));
+        }
+        panel.add(field, g);
     }
 
-    private static JTextField createBaseField(String value) {
-        JTextField field = new JTextField(value);
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        field.setForeground(new Color(31, 41, 55));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+    private static void styleTextField(JTextField textField) {
+        textField.setFont(AppFonts.lexendRegular(14f));
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        return field;
+    }
+
+    private static JButton button(String text, Color background, Color foreground) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
+        btn.setFont(AppFonts.lexendBold(13f));
+        btn.setForeground(foreground);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 
     private static JFormattedTextField createDateField(LocalDate value) {
@@ -230,39 +224,13 @@ final class CustomerEditDialog {
             MaskFormatter formatter = new MaskFormatter("##/##/####");
             formatter.setPlaceholderCharacter('_');
             JFormattedTextField field = new JFormattedTextField(formatter);
-            field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            field.setForeground(new Color(31, 41, 55));
-            field.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(BORDER_COLOR, 18),
-                    BorderFactory.createEmptyBorder(9, 14, 9, 14)
-            ));
+            styleTextField(field);
             field.setBackground(new Color(249, 250, 251));
             field.setText(value == null ? "" : formatDate(value));
-            field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
             return field;
         } catch (ParseException e) {
             return new JFormattedTextField();
         }
-    }
-
-    private static JPanel createField(String labelText, JComponent field) {
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
-
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(75, 85, 99));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(label);
-        panel.add(Box.createVerticalStrut(6));
-        panel.add(field);
-        return panel;
     }
 
     private static void styleDateButton(JButton button) {
@@ -272,7 +240,7 @@ final class CustomerEditDialog {
         button.setMaximumSize(size);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
+                new RoundedLineBorder(BORDER_COLOR, INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)
         ));
         button.setBackground(Color.WHITE);
@@ -281,9 +249,7 @@ final class CustomerEditDialog {
     }
 
     private static String normalizeOptional(String value) {
-        if (value == null) {
-            return null;
-        }
+        if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
@@ -293,45 +259,17 @@ final class CustomerEditDialog {
     }
 
     private static LocalDate parseOptionalDate(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
+        if (value == null || value.trim().isEmpty()) return null;
         String normalized = value.trim().replace("_", "").replace(" ", "");
-        if (normalized.isEmpty() || normalized.equals("//")) {
-            return null;
-        }
+        if (normalized.isEmpty() || normalized.equals("//")) return null;
         return LocalDate.parse(normalized, DATE_PARSE_FORMAT);
     }
 
     private static Icon loadIcon(String path, int width, int height) {
         URL resource = CustomerEditDialog.class.getResource(path);
-        if (resource == null) {
-            return new ImageIcon();
-        }
+        if (resource == null) return new ImageIcon();
         Image image = new ImageIcon(resource).getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
         return new ImageIcon(image);
-    }
-
-    private static JButton createPillButton(String text, Color bg, Color fg) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                super.paintComponent(g);
-                g2.dispose();
-            }
-        };
-        btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
-        return btn;
     }
 
     private static final class CalendarPickerPopup {
@@ -408,14 +346,12 @@ final class CustomerEditDialog {
                     dayName.setForeground(TEXT_MUTED);
                     daysPanel.add(dayName);
                 }
-
                 YearMonth ym = viewingMonth[0];
                 LocalDate firstDay = ym.atDay(1);
                 int startOffset = firstDay.getDayOfWeek().getValue() - 1;
                 for (int i = 0; i < startOffset; i++) {
                     daysPanel.add(new JLabel(""));
                 }
-
                 for (int day = 1; day <= ym.lengthOfMonth(); day++) {
                     LocalDate date = ym.atDay(day);
                     JButton dayButton = new JButton(String.valueOf(day));
@@ -424,7 +360,7 @@ final class CustomerEditDialog {
                     dayButton.setBackground(Color.WHITE);
                     dayButton.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
                     if (currentValue != null && currentValue.equals(date)) {
-                        dayButton.setBackground(BRAND_BLUE_BG);
+                        dayButton.setBackground(new Color(239, 246, 255));
                         dayButton.setBorder(BorderFactory.createLineBorder(BRAND_BLUE));
                     }
                     dayButton.addActionListener(event -> {
@@ -433,7 +369,6 @@ final class CustomerEditDialog {
                     });
                     daysPanel.add(dayButton);
                 }
-
                 int totalCells = 7 + startOffset + ym.lengthOfMonth();
                 int trailing = (7 - (totalCells % 7)) % 7;
                 for (int i = 0; i < trailing; i++) {
@@ -443,35 +378,19 @@ final class CustomerEditDialog {
                 daysPanel.repaint();
             };
 
-            prev.addActionListener(event -> {
-                viewingMonth[0] = viewingMonth[0].minusMonths(1);
-                renderCalendar.run();
-            });
-            next.addActionListener(event -> {
-                viewingMonth[0] = viewingMonth[0].plusMonths(1);
-                renderCalendar.run();
-            });
+            prev.addActionListener(event -> { viewingMonth[0] = viewingMonth[0].minusMonths(1); renderCalendar.run(); });
+            next.addActionListener(event -> { viewingMonth[0] = viewingMonth[0].plusMonths(1); renderCalendar.run(); });
             monthCombo.addActionListener(event -> {
-                if (syncing[0]) {
-                    return;
-                }
+                if (syncing[0]) return;
                 Integer month = (Integer) monthCombo.getSelectedItem();
                 Integer year = (Integer) yearCombo.getSelectedItem();
-                if (month != null && year != null) {
-                    viewingMonth[0] = YearMonth.of(year, month);
-                    renderCalendar.run();
-                }
+                if (month != null && year != null) { viewingMonth[0] = YearMonth.of(year, month); renderCalendar.run(); }
             });
             yearCombo.addActionListener(event -> {
-                if (syncing[0]) {
-                    return;
-                }
+                if (syncing[0]) return;
                 Integer month = (Integer) monthCombo.getSelectedItem();
                 Integer year = (Integer) yearCombo.getSelectedItem();
-                if (month != null && year != null) {
-                    viewingMonth[0] = YearMonth.of(year, month);
-                    renderCalendar.run();
-                }
+                if (month != null && year != null) { viewingMonth[0] = YearMonth.of(year, month); renderCalendar.run(); }
             });
 
             root.add(topBar, BorderLayout.NORTH);
@@ -482,9 +401,7 @@ final class CustomerEditDialog {
             Point anchorLocation = anchor.getLocationOnScreen();
             int x = anchorLocation.x;
             int y = anchorLocation.y - popup.getHeight() - 4;
-            if (y < 0) {
-                y = anchorLocation.y + anchor.getHeight() + 4;
-            }
+            if (y < 0) y = anchorLocation.y + anchor.getHeight() + 4;
             popup.setLocation(x, y);
             popup.setVisible(true);
             SwingUtilities.invokeLater(popup::requestFocus);
@@ -507,11 +424,6 @@ final class CustomerEditDialog {
             g2.setColor(color);
             g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
             g2.dispose();
-        }
-
-        @Override
-        public Insets getBorderInsets(Component c) {
-            return new Insets(1, 1, 1, 1);
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.sportcourt.modules.area.view;
 
 import com.sportcourt.modules.area.controller.AreaController;
+import com.sportcourt.modules.area.dto.AreaCreateRequest;
+import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.modules.area.enitity.Area;
 
 import javax.swing.*;
@@ -26,13 +28,6 @@ public class AreaManagement extends JPanel implements Scrollable {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final AreaChange suaKhuVuc = new AreaChange(areaController, id -> {
-        loadKhuVucData(searchField.getText());
-    });
-
-    private final AreaAdd themKhuVuc = new AreaAdd(areaController, id -> {
-        loadKhuVucData(searchField.getText());
-    });
 
     public AreaManagement() {
         setLayout(new BorderLayout());
@@ -431,11 +426,36 @@ public class AreaManagement extends JPanel implements Scrollable {
     }
 
     private void showEditView(String maKv) {
-        suaKhuVuc.showEditor(this, maKv);
+        Area area = areaController.getKhuVucDetail(maKv);
+        java.util.List<Area.SportTypeOption> sportTypes = areaController.getLoaiTheThaoList();
+        AreaUpdateRequest req = AreaChange.show(this, area, sportTypes);
+        if (req != null) {
+            try {
+                areaController.saveKhuVucChanges(req);
+                loadKhuVucData(searchField.getText());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this,
+                        ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage(),
+                        "Lỗi cập nhật khu vực", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private void showCreateView() {
-        themKhuVuc.showCreator(this);
+        String maKv = areaController.generateNextMaKv();
+        String maCn = areaController.getDefaultChiNhanhId();
+        java.util.List<Area.SportTypeOption> sportTypes = areaController.getLoaiTheThaoList();
+        AreaCreateRequest req = AreaAdd.show(this, maKv, maCn, sportTypes);
+        if (req != null) {
+            try {
+                areaController.createKhuVuc(req);
+                loadKhuVucData(searchField.getText());
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this,
+                        ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage(),
+                        "Lỗi thêm khu vực", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private String formatDate(LocalDateTime dateTime) {

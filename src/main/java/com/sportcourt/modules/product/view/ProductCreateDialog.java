@@ -1,5 +1,6 @@
 package com.sportcourt.modules.product.view;
 
+import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.modules.product.dto.ProductCreateRequest;
 
 import javax.swing.*;
@@ -16,93 +17,76 @@ import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
 final class ProductCreateDialog {
-
+    private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(22, 101, 52);
-    private static final Color BRAND_GREEN_BG = new Color(220, 252, 231);
+    private static final Color BRAND_GREEN = new Color(34, 197, 94);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
-    private static final Color BORDER_COLOR = new Color(203, 213, 225);
-    private static final Color READONLY_BG = new Color(241, 245, 249);
+    private static final Color BUTTON_MUTED = new Color(226, 232, 240);
 
     private ProductCreateDialog() {
     }
 
     static ProductCreateRequest show(Component parent, String generatedProductId) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
+        symbols.setGroupingSeparator('.');
+        DecimalFormat moneyFormat = new DecimalFormat("#,###", symbols);
+
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm sản phẩm", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
-        symbols.setGroupingSeparator('.');
-        DecimalFormat moneyFormat = new DecimalFormat("#,###", symbols);
-
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
-        JLabel title = new JLabel("Thêm sản phẩm mới");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
-        title.setForeground(TEXT_DARK);
-        title.setHorizontalAlignment(SwingConstants.LEFT);
-
-        JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho sản phẩm mới.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitle.setForeground(TEXT_MUTED);
-        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
-
-        JPanel header = new JPanel();
+        JPanel header = new JPanel(new BorderLayout(0, 6));
         header.setOpaque(false);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.add(title);
-        header.add(subtitle);
+        JLabel title = new JLabel("Thêm sản phẩm mới");
+        title.setFont(AppFonts.lexendBold(24f));
+        title.setForeground(TEXT_DARK);
+        JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho sản phẩm mới.");
+        subtitle.setFont(AppFonts.lexendRegular(13f));
+        subtitle.setForeground(TEXT_MUTED);
+        header.add(title, BorderLayout.NORTH);
+        header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtMaSp = createReadOnlyField(generatedProductId);
+        JTextField txtMaSp = readonly(generatedProductId == null || generatedProductId.isBlank() ? "SP-1" : generatedProductId.trim());
         JTextField txtTenSp = new JTextField();
         JTextField txtDvt = new JTextField();
         JTextField txtGia = new JTextField();
         installMoneyFormatter(txtGia, moneyFormat);
 
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
-        form.setAlignmentX(Component.LEFT_ALIGNMENT);
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.weightx = 1;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.insets = new Insets(6, 0, 6, 0);
 
-        form.add(createField("Mã sản phẩm", txtMaSp));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Tên sản phẩm", txtTenSp));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Đơn vị tính", txtDvt));
-        form.add(Box.createVerticalStrut(14));
-        form.add(createField("Đơn giá", txtGia));
-        JScrollPane formScroll = new JScrollPane(form);
-        formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
-        formScroll.getViewport().setBackground(DIALOG_BG);
-        root.add(formScroll, BorderLayout.CENTER);
+        addField(form, g, 0, "Mã sản phẩm", txtMaSp);
+        addField(form, g, 1, "Tên sản phẩm", txtTenSp);
+        addField(form, g, 2, "Đơn vị tính", txtDvt);
+        addField(form, g, 3, "Đơn giá", txtGia);
+        root.add(form, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
-
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn = createPillButton("Thêm sản phẩm", BRAND_GREEN_BG, BRAND_GREEN);
-        actions.add(cancelBtn);
-        actions.add(saveBtn);
+        JButton btnCancel = button("Hủy", BUTTON_MUTED, TEXT_DARK);
+        JButton btnSave = button("Thêm sản phẩm", BRAND_GREEN, Color.WHITE);
+        actions.add(btnCancel);
+        actions.add(btnSave);
         root.add(actions, BorderLayout.SOUTH);
 
         final ProductCreateRequest[] result = new ProductCreateRequest[1];
-
-        cancelBtn.addActionListener(event -> dialog.dispose());
-        saveBtn.addActionListener(event -> {
-            String maSp = txtMaSp.getText().trim();
+        btnCancel.addActionListener(e -> dialog.dispose());
+        btnSave.addActionListener(e -> {
             String tenSp = txtTenSp.getText().trim();
             String dvt = txtDvt.getText().trim();
             String rawGia = txtGia.getText().trim();
@@ -123,112 +107,84 @@ final class ProductCreateDialog {
                 JOptionPane.showMessageDialog(dialog, "Đơn vị tính tối đa 20 ký tự.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
             BigDecimal gia = parsePrice(rawGia);
             if (gia == null || gia.compareTo(BigDecimal.ZERO) <= 0) {
                 JOptionPane.showMessageDialog(dialog, "Đơn giá phải là số lớn hơn 0.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
-            ProductCreateRequest request = new ProductCreateRequest();
-            request.setMaSp(maSp);
-            request.setTenSp(tenSp);
-            request.setDvt(dvt);
-            request.setGia(gia);
-
-            result[0] = request;
+            ProductCreateRequest req = new ProductCreateRequest();
+            req.setMaSp(txtMaSp.getText().trim());
+            req.setTenSp(tenSp);
+            req.setDvt(dvt);
+            req.setGia(gia);
+            result[0] = req;
             dialog.dispose();
         });
 
         dialog.pack();
-        applyResponsiveWindowSize(dialog, 0.4, 0.6, 480, 500);
-        dialog.setLocationRelativeTo(parent);
+        dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
+        dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
         return result[0];
     }
 
-    private static void applyResponsiveWindowSize(JDialog dialog, double widthRatio, double heightRatio, int minWidth, int minHeight) {
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int width = Math.max(minWidth, (int) (screenSize.width * widthRatio));
-        int height = Math.max(minHeight, (int) (screenSize.height * heightRatio));
-        dialog.setSize(Math.min(width, screenSize.width), Math.min(height, screenSize.height));
-        dialog.setMinimumSize(new Dimension(minWidth, minHeight));
-    }
-
-    private static JTextField createReadOnlyField(String value) {
-        JTextField field = createBaseField(value == null || value.isBlank() ? "SP-1" : value.trim());
+    private static JTextField readonly(String value) {
+        JTextField field = new JTextField(value == null ? "" : value);
         field.setEditable(false);
         field.setFocusable(false);
-        field.setRequestFocusEnabled(false);
-        field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        field.setBackground(READONLY_BG);
+        field.setBackground(new Color(241, 245, 249));
+        styleTextField(field);
         return field;
     }
 
-    private static JPanel createField(String labelText, JTextField field) {
-        JPanel panel = new JPanel();
-        panel.setOpaque(false);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
+    private static void addField(JPanel panel, GridBagConstraints g, int row, String label, JComponent field) {
+        g.gridy = row * 2;
+        JLabel lb = new JLabel(label);
+        lb.setFont(AppFonts.lexendBold(12f));
+        lb.setForeground(new Color(30, 41, 59));
+        panel.add(lb, g);
 
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(75, 85, 99));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        styleEditableField(field);
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(label);
-        panel.add(Box.createVerticalStrut(6));
-        panel.add(field);
-        return panel;
+        g.gridy = row * 2 + 1;
+        if (field instanceof JTextField textField) {
+            styleTextField(textField);
+        } else {
+            field.setBorder(BorderFactory.createCompoundBorder(
+                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
+            ));
+            field.setBackground(Color.WHITE);
+            field.setFont(AppFonts.lexendRegular(14f));
+        }
+        panel.add(field, g);
     }
 
-    private static JTextField createBaseField(String value) {
-        JTextField field = new JTextField(value);
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        field.setForeground(new Color(31, 41, 55));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+    private static void styleTextField(JTextField textField) {
+        textField.setFont(AppFonts.lexendRegular(14f));
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        return field;
     }
 
-    private static void styleEditableField(JTextField field) {
-        field.setFont(new Font("Segoe UI", field.isEditable() ? Font.PLAIN : Font.BOLD, 15));
-        field.setForeground(new Color(31, 41, 55));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
-        ));
-        field.setBackground(field.isEditable() ? new Color(249, 250, 251) : READONLY_BG);
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-    }
-
-    private static JButton createPillButton(String text, Color bg, Color fg) {
+    private static JButton button(String text, Color background, Color foreground) {
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
+                g2.setColor(background);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
                 super.paintComponent(g);
                 g2.dispose();
             }
         };
-        btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setContentAreaFilled(false);
+        btn.setFont(AppFonts.lexendBold(13f));
+        btn.setForeground(foreground);
+        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 18, 10, 18));
         return btn;
     }
 
@@ -283,11 +239,6 @@ final class ProductCreateDialog {
             g2.setColor(color);
             g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
             g2.dispose();
-        }
-
-        @Override
-        public Insets getBorderInsets(Component c) {
-            return new Insets(1, 1, 1, 1);
         }
     }
 }

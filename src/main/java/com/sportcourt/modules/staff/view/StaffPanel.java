@@ -1,7 +1,9 @@
 package com.sportcourt.modules.staff.view;
 
+import com.sportcourt.modules.staff.dto.StaffCreateRequest;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
+import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
 import com.sportcourt.modules.staff.service.StaffService;
 import com.sportcourt.modules.staff.service.StaffServiceImpl;
 
@@ -135,7 +137,17 @@ public class StaffPanel extends JPanel implements Scrollable {
 
         JButton addBtn = createPillButton("+ Thêm nhân viên", new Color(228, 250, 226), new Color(16, 110, 0), true);
         addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
-        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this).setVisible(true));
+        addBtn.addActionListener(e -> {
+            StaffCreateRequest req = AddStaffDialog.show(this);
+            if (req != null) {
+                try {
+                    staffService.createStaff(req);
+                    loadData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi thêm nhân viên", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
@@ -273,7 +285,17 @@ public class StaffPanel extends JPanel implements Scrollable {
         actionGroup.add(deleteBtn);
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
+        editBtn.addActionListener(e -> {
+            StaffUpdateRequest req = EditStaffDialog.show(this, staff);
+            if (req != null) {
+                try {
+                    staffService.updateStaff(staff.getManv(), req);
+                    loadData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi cập nhật nhân viên", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
         actionGroup.add(editBtn);
 
         JPanel actionCell = new JPanel(new GridBagLayout());

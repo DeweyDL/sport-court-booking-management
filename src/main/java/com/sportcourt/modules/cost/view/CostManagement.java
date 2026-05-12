@@ -27,8 +27,6 @@ public class CostManagement extends JPanel implements Scrollable {
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final Timer searchDebounceTimer;
 
-    private final CostChange suaBangGia = new CostChange(store, id -> loadBangGiaData(searchField.getText()));
-    private final CostAdd themBangGia = new CostAdd(store, id -> loadBangGiaData(searchField.getText()));
 
     public CostManagement() {
         setLayout(new BorderLayout());
@@ -402,11 +400,15 @@ public class CostManagement extends JPanel implements Scrollable {
     }
 
     private void showEditView(String maBg) {
-        suaBangGia.showEditor(this, maBg);
+        if (CostChange.show(this, store, maBg)) {
+            loadBangGiaData(searchField.getText());
+        }
     }
 
     private void showCreateView() {
-        themBangGia.showCreator(this);
+        if (CostAdd.show(this, store)) {
+            loadBangGiaData(searchField.getText());
+        }
     }
 
     private String formatDate(LocalDateTime dateTime) {

@@ -1,5 +1,7 @@
 package com.sportcourt.modules.imports.view;
 
+import com.sportcourt.common.style.AppFonts;
+
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
@@ -15,12 +17,13 @@ import java.util.List;
  */
 final class ImportCreateDialog {
 
+    private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(22, 101, 52);
-    private static final Color BRAND_GREEN_BG = new Color(220, 252, 231);
+    private static final Color BRAND_GREEN = new Color(34, 197, 94);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    private static final Color BUTTON_MUTED = new Color(226, 232, 240);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
     private static final Color HEADER_BG = new Color(248, 249, 250);
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
@@ -88,29 +91,22 @@ final class ImportCreateDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(true);
 
-        JPanel root = new JPanel(new BorderLayout(0, 12));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
         // Header
-        JPanel header = new JPanel();
+        JPanel header = new JPanel(new BorderLayout(0, 6));
         header.setOpaque(false);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-
         JLabel title = new JLabel(itemToEdit == null ? "Tạo phiếu nhập hàng" : "Chỉnh sửa phiếu nhập");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setFont(AppFonts.lexendBold(24f));
         title.setForeground(TEXT_DARK);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         JLabel subtitle = new JLabel("Nhập thông tin phiếu nhập và chi tiết hàng hóa.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(TEXT_MUTED);
-        subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
-        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        header.add(title);
-        header.add(subtitle);
+        header.add(title, BorderLayout.NORTH);
+        header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
         // Center: header fields + detail section
@@ -233,7 +229,7 @@ final class ImportCreateDialog {
             prodTablePanel.add(createProductDataRow(productRows.get(i), productRows, prodTablePanel, i));
         }
 
-        JButton addRowButton = createPillButton("+ Thêm dòng", BRAND_GREEN_BG, BRAND_GREEN);
+        JButton addRowButton = createPillButton("+ Thêm dòng", BRAND_GREEN, Color.WHITE);
         addRowButton.addActionListener(e -> {
             if ("PROD".equals(activeDetail[0])) {
                 ProductRow row = new ProductRow();
@@ -288,8 +284,8 @@ final class ImportCreateDialog {
         actions.setOpaque(false);
         actions.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn = createPillButton(itemToEdit == null ? "Tạo phiếu nhập" : "Lưu thay đổi", BRAND_GREEN_BG, BRAND_GREEN);
+        JButton cancelBtn = createPillButton("Hủy", BUTTON_MUTED, TEXT_DARK);
+        JButton saveBtn = createPillButton(itemToEdit == null ? "Tạo phiếu nhập" : "Lưu thay đổi", BRAND_GREEN, Color.WHITE);
 
         cancelBtn.addActionListener(event -> dialog.dispose());
         saveBtn.addActionListener(event -> {
@@ -309,7 +305,7 @@ final class ImportCreateDialog {
         root.add(actions, BorderLayout.SOUTH);
 
         dialog.setSize(850, 700);
-        dialog.setLocationRelativeTo(parent);
+        dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
     }
 
@@ -599,17 +595,17 @@ final class ImportCreateDialog {
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(75, 85, 99));
+        label.setFont(AppFonts.lexendBold(12f));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        field.setForeground(new Color(31, 41, 55));
+        field.setFont(AppFonts.lexendRegular(14f));
+        field.setForeground(TEXT_DARK);
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+                new RoundedLineBorder(BORDER_COLOR, INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(new Color(249, 250, 251));
+        field.setBackground(Color.WHITE);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
@@ -702,7 +698,7 @@ final class ImportCreateDialog {
             }
         };
         btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(AppFonts.lexendBold(13f));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
