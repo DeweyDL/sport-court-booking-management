@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.common.style.AppFonts;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -14,13 +15,13 @@ import java.util.Locale;
 public class UserProfilePanel extends JPanel implements Scrollable {
     private static final Color PAGE_BACKGROUND = new Color(249, 249, 252);
     private static final Color CARD_BACKGROUND = Color.WHITE;
-    private static final Color FIELD_BACKGROUND = new Color(239, 255, 236);
+    private static final Color FIELD_BACKGROUND = new Color(248, 250, 252);
+    private static final Color FIELD_BORDER = new Color(203, 213, 225);
     private static final Color TEXT_DARK = new Color(26, 28, 30);
     private static final Color TEXT_MUTED = new Color(60, 75, 53);
-    private static final Color BRAND_DARK = new Color(15, 23, 42);
     private static final Color LIME = new Color(163, 230, 53);
     private static final Color LIME_DARK = new Color(16, 110, 0);
-    private static final Color BUTTON_TEXT = new Color(11, 72, 0);
+    private static final Color ACTION_BUTTON_BG = new Color(197, 246, 181);
     private static final Color DARK_BUTTON = new Color(47, 49, 51);
 
     private final JLabel displayNameLabel = new JLabel();
@@ -39,10 +40,10 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         AppFonts.register();
         setLayout(new BorderLayout());
         setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(34, 50, 56, 50));
+        setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", new LineIcon(Symbol.EDIT, 18, BUTTON_TEXT));
-        changePasswordButton = createActionButton("Đổi mật khẩu", new LineIcon(Symbol.LOCK, 18, BUTTON_TEXT));
+        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", 16));
+        changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", 16));
 
         add(createPage(), BorderLayout.CENTER);
         bindProfile(UserProfileData.sample());
@@ -72,25 +73,11 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         JPanel page = new JPanel();
         page.setOpaque(false);
         page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-        page.add(createBrandHeader());
-        page.add(Box.createVerticalStrut(28));
         page.add(createHeroSection());
         page.add(Box.createVerticalStrut(30));
         page.add(createInfoCard());
         page.add(Box.createVerticalGlue());
         return page;
-    }
-
-    private JPanel createBrandHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-
-        JLabel brand = new JLabel("RENTSTA");
-        brand.setFont(AppFonts.lexendBold(42f));
-        brand.setForeground(BRAND_DARK);
-        header.add(brand, BorderLayout.WEST);
-        return header;
     }
 
     private JPanel createHeroSection() {
@@ -113,12 +100,6 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         hero.add(nameBlock, gbc);
 
-        gbc.gridx = 2;
-        gbc.weightx = 0;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 18, 0, 0);
-        hero.add(createButtonStack(), gbc);
-
         return hero;
     }
 
@@ -128,13 +109,14 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         layeredPane.setMinimumSize(new Dimension(176, 176));
         layeredPane.setMaximumSize(new Dimension(176, 176));
 
-        avatarView.setBounds(16, 16, 144, 144);
+        avatarView.setBounds(16, 6, 144, 144);
         layeredPane.add(avatarView, JLayeredPane.DEFAULT_LAYER);
 
         CircleIconButton cameraButton = new CircleIconButton(new LineIcon(Symbol.CAMERA, 15, LIME));
         cameraButton.setBounds(130, 130, 30, 30);
         cameraButton.setToolTipText("Đổi ảnh đại diện");
         layeredPane.add(cameraButton, JLayeredPane.PALETTE_LAYER);
+
         return layeredPane;
     }
 
@@ -163,34 +145,31 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         return nameBlock;
     }
 
-    private JPanel createButtonStack() {
-        JPanel buttons = new JPanel();
-        buttons.setOpaque(false);
-        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
-        editProfileButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        changePasswordButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        buttons.add(editProfileButton);
-        buttons.add(Box.createVerticalStrut(14));
-        buttons.add(changePasswordButton);
-        return buttons;
-    }
-
     private JPanel createInfoCard() {
         InfoCardPanel card = new InfoCardPanel();
-        card.setLayout(new BorderLayout(0, 28));
-        card.setBorder(new EmptyBorder(32, 32, 38, 32));
+        card.setLayout(new BorderLayout(0, 24));
+        card.setBorder(new EmptyBorder(28, 32, 38, 32));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(900, 420));
+
+        JPanel northPanel = new JPanel(new BorderLayout());
+        northPanel.setOpaque(false);
 
         JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         heading.setOpaque(false);
         heading.add(new AccentBar());
-
         JLabel title = new JLabel("Thông tin cá nhân");
         title.setFont(AppFonts.lexendBold(22f));
         title.setForeground(TEXT_DARK);
         heading.add(title);
-        card.add(heading, BorderLayout.NORTH);
+        northPanel.add(heading, BorderLayout.WEST);
+
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        buttonRow.setOpaque(false);
+        buttonRow.add(editProfileButton);
+        buttonRow.add(changePasswordButton);
+        northPanel.add(buttonRow, BorderLayout.EAST);
+
+        card.add(northPanel, BorderLayout.NORTH);
 
         JPanel fields = new JPanel(new GridBagLayout());
         fields.setOpaque(false);
@@ -241,19 +220,22 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         label.setBorder(new EmptyBorder(0, 8, 4, 8));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        RoundedPanel valueBox = new RoundedPanel(15, FIELD_BACKGROUND);
+        RoundedPanel valueBox = new RoundedPanel(25, FIELD_BACKGROUND);
         valueBox.setLayout(new BorderLayout());
-        valueBox.setBorder(new EmptyBorder(6, 10, 6, 10));
+        valueBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(FIELD_BORDER, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
         valueBox.setPreferredSize(new Dimension(10, valueHeight));
         valueBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, valueHeight));
         valueBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         if (valueComponent instanceof JLabel labelValue) {
-            labelValue.setFont(AppFonts.lexendRegular(15f));
+            labelValue.setFont(AppFonts.lexendRegular(14f));
             labelValue.setForeground(TEXT_DARK);
             valueBox.add(labelValue, BorderLayout.CENTER);
         } else if (valueComponent instanceof JTextArea textArea) {
-            textArea.setFont(AppFonts.lexendRegular(15f));
+            textArea.setFont(AppFonts.lexendRegular(14f));
             textArea.setForeground(TEXT_DARK);
             textArea.setOpaque(false);
             textArea.setEditable(false);
@@ -269,28 +251,31 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         return field;
     }
 
+    private static Icon loadIcon(String path, int size) {
+        java.net.URL url = UserProfilePanel.class.getResource(path);
+        if (url == null) return null;
+        return new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
+    }
+
     private JButton createActionButton(String text, Icon icon) {
         JButton button = new JButton(text, icon) {
             @Override
             protected void paintComponent(Graphics graphics) {
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(LIME);
+                g2.setColor(ACTION_BUTTON_BG);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
                 g2.dispose();
                 super.paintComponent(graphics);
             }
         };
-        button.setPreferredSize(new Dimension(252, 48));
-        button.setMaximumSize(new Dimension(252, 48));
-        button.setMinimumSize(new Dimension(252, 48));
-        button.setBorder(new EmptyBorder(0, 20, 0, 22));
+        button.setBorder(new EmptyBorder(10, 20, 10, 20));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setIconTextGap(14);
-        button.setForeground(BUTTON_TEXT);
+        button.setForeground(Color.BLACK);
         button.setFont(AppFonts.lexendBold(16f));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return button;
@@ -306,24 +291,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     }
 
     private static String toDisplayNameHtml(String fullName) {
-        String[] parts = fullName == null ? new String[0] : fullName.trim().split("\\s+");
-        if (parts.length <= 2) {
-            return "<html><div style='line-height:1.24'>" + escapeHtml(fullName) + "</div></html>";
-        }
-        StringBuilder builder = new StringBuilder("<html><div style='line-height:1.24'>");
-        builder.append(escapeHtml(parts[0]));
-        for (int index = 1; index < parts.length; index++) {
-            builder.append("<br>").append(escapeHtml(parts[index]));
-        }
-        builder.append("</div></html>");
-        return builder.toString();
-    }
-
-    private static String escapeHtml(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return fullName == null ? "" : fullName;
     }
 
     @Override
@@ -354,7 +322,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     public static void main(String[] args) {
         FlatLightLaf.setup();
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("RentSta - Trang cá nhân");
+            JFrame frame = new JFrame("Trang cá nhân");
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
             frame.setContentPane(new UserProfilePanel());
             frame.setSize(1024, 768);
@@ -637,6 +605,25 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         @Override
         public int getIconHeight() {
             return size;
+        }
+    }
+
+    private static final class RoundedLineBorder extends AbstractBorder {
+        private final Color color;
+        private final int arc;
+
+        private RoundedLineBorder(Color color, int arc) {
+            this.color = color;
+            this.arc = arc;
+        }
+
+        @Override
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
+            g2.dispose();
         }
     }
 }

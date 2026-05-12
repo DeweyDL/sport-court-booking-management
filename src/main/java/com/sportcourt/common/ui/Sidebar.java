@@ -41,7 +41,7 @@ public class Sidebar extends JFrame {
     private final Color SIDEBAR_BG = Color.decode("#2f3c33");
     private final Color SIDEBAR_HOVER_BG = Color.decode("#43464A");
     private final Color TEXT_NORMAL = Color.decode("#B0B3B8");
-    private final Color NEON_GREEN = Color.decode("#99E828");
+    private final Color NEON_GREEN = Color.decode("#6af514");
     private final Color TEXT_ACTIVE = Color.decode("#111111");
     private final Color LOGO_COLOR = Color.decode("#39ff14");
     private final Color LOGOUT_RED = Color.decode("#FF4D4D");
@@ -201,9 +201,12 @@ public class Sidebar extends JFrame {
     private JPanel createMenuButton(String text, String iconPath) {
         JButton button = new JButton(text);
         button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setVerticalAlignment(SwingConstants.CENTER);
+        button.setVerticalTextPosition(SwingConstants.CENTER);
+        button.setHorizontalTextPosition(SwingConstants.RIGHT);
         button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, 15));
         button.setContentAreaFilled(false);
-        button.setBorder(new EmptyBorder(12, 30, 12, 10));
+        button.setBorder(new EmptyBorder(0, 30, 0, 10));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -239,7 +242,7 @@ public class Sidebar extends JFrame {
 
                 if (isActive) {
                     g2.setColor(NEON_GREEN);
-                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 5, getHeight() - 10, getHeight() - 10);
+                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 10, getHeight() - 10, getHeight() - 10);
                 } else if (isHover) {
                     g2.setColor(SIDEBAR_HOVER_BG);
                     g2.fillRect(0, 0, getWidth(), getHeight());
