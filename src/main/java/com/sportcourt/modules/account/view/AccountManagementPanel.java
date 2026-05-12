@@ -1,6 +1,7 @@
 package com.sportcourt.modules.account.view;
 
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.account.controller.AccountManagementController;
 import com.sportcourt.modules.account.dto.AccountRow;
 import com.sportcourt.modules.account.dto.AccountUpsertRequest;
@@ -59,8 +60,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         AppFonts.register();
 
         setLayout(new BorderLayout());
-        setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         searchDebounceTimer = new Timer(300, event -> loadAccounts(txtSearch.getText()));
         searchDebounceTimer.setRepeats(false);
@@ -69,6 +69,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         contentPanel.add(createListPage(), LIST_CARD);
         contentPanel.add(detailPanel, DETAIL_CARD);
         add(contentPanel, BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
 
         bindSearchListener();
         loadRoleGroupOptions();
@@ -226,7 +227,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, 8);
 
-        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("MÃ TK", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("MÃ TK", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("USERNAME", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SĐT", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
@@ -373,11 +374,11 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
             }
         });
 
-        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(accountIdLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(accountIdLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getUsername(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.18; rowPanel.add(createFlexibleCell(createBodyLabel(row.getDisplayName(), false), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.18; rowPanel.add(createFlexibleCell(createBodyLabel(row.getDisplayName(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getPhone(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(createBodyLabel(displayStatus(row), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(createStatusPill(row), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(displayRole(row), true), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.15; rowPanel.add(createFlexibleCell(createBodyLabel(formatDate(row.getCreatedAt()), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
@@ -582,6 +583,39 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
 
     private String displayStatus(AccountRow row) {
         return row.isDeleted() ? "DELETED" : row.getStatus();
+    }
+
+    private JPanel createStatusPill(AccountRow row) {
+        String status = displayStatus(row);
+        boolean active = "ACTIVE".equalsIgnoreCase(status);
+        boolean inactive = "INACTIVE".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status);
+        Color background = active ? CREATE_BG : inactive ? SOFT_RED_BG : EDIT_BG;
+        Color foreground = active ? CREATE_TEXT : inactive ? SOFT_RED_TEXT : EDIT_TEXT;
+
+        JLabel label = new JLabel(status == null || status.isBlank() ? "--" : status, SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(background);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        label.setOpaque(false);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setForeground(foreground);
+        label.setBorder(new EmptyBorder(4, 10, 4, 10));
+        Dimension size = new Dimension(86, 26);
+        label.setPreferredSize(size);
+        label.setMinimumSize(size);
+        label.setMaximumSize(size);
+
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(label);
+        return wrapper;
     }
 
     private String displayRole(AccountRow row) {

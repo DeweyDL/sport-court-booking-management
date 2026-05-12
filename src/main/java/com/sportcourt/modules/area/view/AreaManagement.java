@@ -1,5 +1,6 @@
 package com.sportcourt.modules.area.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.area.controller.AreaController;
 import com.sportcourt.modules.area.enitity.Area;
 
@@ -17,7 +18,7 @@ import javax.swing.Scrollable;
 
 public class AreaManagement extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
+    private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final AreaController areaController = new AreaController();
     private final JPanel tablePanel = new JPanel();
@@ -36,13 +37,13 @@ public class AreaManagement extends JPanel implements Scrollable {
 
     public AreaManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         searchDebounceTimer = new Timer(300, event -> loadKhuVucData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
 
         loadKhuVucData(null);
     }
@@ -286,13 +287,12 @@ public class AreaManagement extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, 12);
 
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ KHU VỰC"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.16; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ KHU VỰC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("SỐ LƯỢNG SÂN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.16; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.22; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
 
         return header;
     }
@@ -324,16 +324,12 @@ public class AreaManagement extends JPanel implements Scrollable {
         JLabel maKvLabel = new JLabel(area.maKv());
         maKvLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maKvLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.12; row.add(createFlexibleCell(maKvLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(maKvLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(area.maCn(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(area.maCn(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-
-        // Status cell
-        Color statusColor = area.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(area.getStatus(), statusColor), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
@@ -352,7 +348,7 @@ public class AreaManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.22; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
