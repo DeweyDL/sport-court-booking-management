@@ -178,44 +178,9 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        searchWrapper.removeAll();
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(270, 41));
-        searchWrapper.setMaximumSize(new Dimension(270, 41));
-
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(270, 41));
-        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã sân hoặc khu vực...");
-        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
-        searchField.putClientProperty("JComponent.roundRect", true);
-        searchField.setBorder(null);
-        searchField.setOpaque(false);
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc mã sân...");
         bindSearchListener();
-
-        JLabel iconLabel = new JLabel(loadSearchIcon());
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
-
-        JPanel innerPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(270, 41));
-        innerPanel.setMaximumSize(new Dimension(270, 41));
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-        innerPanel.add(iconLabel, BorderLayout.WEST);
-        innerPanel.add(searchField, BorderLayout.CENTER);
-
-        searchWrapper.add(innerPanel, BorderLayout.CENTER);
-        return searchWrapper;
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, searchField, loadSearchIcon());
     }
 
     private JPanel createTableHeader() {
@@ -477,74 +442,22 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSortWrapper() {
-        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        cbSort.setFocusable(false);
-        cbSort.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-        cbSort.setOpaque(false);
-        cbSort.setBackground(Color.WHITE);
-        cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComponent.arc", 999);
-        cbSort.putClientProperty("JComboBox.buttonStyle", "button");
-        cbSort.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                Object display = index < 0 ? "Sắp xếp: " + value : value;
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
-                label.setBorder(new EmptyBorder(6, 10, 6, 10));
-                return label;
-            }
-        });
         cbSort.addActionListener(event -> {
             String selectedId = selectedCourt == null ? null : selectedCourt.getCourtId();
             sortCourts();
             renderTable();
             restoreSelection(selectedId);
         });
-
-        btnSortDir.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
-        btnSortDir.setForeground(new Color(75, 85, 99));
-        btnSortDir.setBorder(new EmptyBorder(0, 0, 0, 12));
-        btnSortDir.setContentAreaFilled(false);
-        btnSortDir.setBorderPainted(false);
-        btnSortDir.setFocusPainted(false);
-        btnSortDir.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSortDir.addActionListener(event -> {
             sortAscending = !sortAscending;
-            updateSortDirectionButton();
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
             String selectedId = selectedCourt == null ? null : selectedCourt.getCourtId();
             sortCourts();
             renderTable();
             restoreSelection(selectedId);
         });
-        updateSortDirectionButton();
-
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.dispose();
-            }
-
-            @Override
-            public void paint(Graphics g) {
-                super.paint(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(214, 41));
-        wrapper.setMaximumSize(new Dimension(214, 41));
-        wrapper.add(cbSort, BorderLayout.CENTER);
-        wrapper.add(btnSortDir, BorderLayout.EAST);
-        return wrapper;
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private void sortCourts() {
@@ -566,12 +479,6 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         courts.sort(comparator);
     }
 
-    private void updateSortDirectionButton() {
-        btnSortDir.setText(sortAscending ? "\u25B2" : "\u25BC");
-        btnSortDir.setToolTipText(sortAscending
-                ? "Đang sắp xếp tăng dần"
-                : "Đang sắp xếp giảm dần");
-    }
 
     private int statusOrder(String status) {
         if ("ĐANG HOẠT ĐỘNG".equalsIgnoreCase(status)) {

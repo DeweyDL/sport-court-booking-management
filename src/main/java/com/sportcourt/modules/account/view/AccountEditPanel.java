@@ -35,7 +35,7 @@ final class AccountEditPanel {
     private static final int INPUT_CORNER_RADIUS = 25;
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color BRAND_BLUE = new Color(37, 99, 235);
+    private static final Color BRAND_BLUE = new Color(29, 78, 216);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
@@ -144,9 +144,20 @@ final class AccountEditPanel {
     }
 
     private static JTextField readonly(String value) {
-        JTextField field = new JTextField(value == null ? "" : value);
+        JTextField field = new JTextField(value == null ? "" : value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, INPUT_CORNER_RADIUS, INPUT_CORNER_RADIUS);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         field.setEditable(false);
         field.setFocusable(false);
+        field.setOpaque(false);
         field.setBackground(new Color(241, 245, 249));
         styleTextField(field);
         return field;
@@ -217,7 +228,7 @@ final class AccountEditPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
-            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
             g2.dispose();
         }
     }

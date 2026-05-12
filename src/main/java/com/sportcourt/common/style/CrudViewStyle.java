@@ -105,7 +105,7 @@ public final class CrudViewStyle {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
                 g2.setColor(BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
                 g2.dispose();
             }
         };
