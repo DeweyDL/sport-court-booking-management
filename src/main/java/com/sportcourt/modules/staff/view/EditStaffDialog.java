@@ -32,16 +32,16 @@ public class EditStaffDialog extends JDialog {
 
         JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         setContentPane(root);
 
         // Header
         JLabel title = new JLabel("Chỉnh sửa: " + staff.getHoten());
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setFont(new Font("Lexend", Font.BOLD, 24));
         title.setForeground(TEXT_DARK);
 
         JLabel subtitle = new JLabel("Mã nhân viên: " + staff.getManv());
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -97,8 +97,8 @@ public class EditStaffDialog extends JDialog {
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn   = createPillButton("Lưu thay đổi", BRAND_BG, BRAND_COLOR);
+        JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
+        JButton saveBtn   = createPillButton("Lưu thay đổi", BRAND_COLOR, Color.WHITE);
 
         cancelBtn.addActionListener(e -> dispose());
         saveBtn.addActionListener(e -> {
@@ -123,7 +123,7 @@ public class EditStaffDialog extends JDialog {
         root.add(actions, BorderLayout.SOUTH);
 
         pack();
-        setSize(Math.max(getWidth(), 450), getHeight());
+        setSize(Math.max(getWidth(), 560), getHeight());
         setLocationRelativeTo(parent);
     }
 
@@ -135,16 +135,16 @@ public class EditStaffDialog extends JDialog {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
         label.setForeground(new Color(75, 85, 99));
 
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setFont(new Font("Lexend", Font.PLAIN, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 12),
-                BorderFactory.createEmptyBorder(7, 10, 7, 10)
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(new Color(249, 250, 251));
+        field.setBackground(Color.WHITE);
 
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -169,7 +169,7 @@ public class EditStaffDialog extends JDialog {
             }
         };
         btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Lexend", Font.BOLD, 13));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -192,7 +192,7 @@ public class EditStaffDialog extends JDialog {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
-            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
             g2.dispose();
         }
 

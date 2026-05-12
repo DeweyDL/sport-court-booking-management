@@ -13,6 +13,8 @@ import java.awt.*;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import javax.swing.Scrollable;
 
@@ -25,7 +27,16 @@ public class AreaManagement extends JPanel implements Scrollable {
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
+    private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
+            "Mã khu vực",
+            "Mã chi nhánh",
+            "Loại thể thao",
+            "Số lượng sân",
+            "Ngày tạo"
+    });
+    private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer searchDebounceTimer;
+    private boolean sortAscending = true;
 
     private final AreaChange suaKhuVuc = new AreaChange(areaController, id -> {
         loadKhuVucData(searchField.getText());
@@ -49,7 +60,7 @@ public class AreaManagement extends JPanel implements Scrollable {
     }
 
     private JPanel createListPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainContentSection(), BorderLayout.CENTER);
@@ -72,7 +83,7 @@ public class AreaManagement extends JPanel implements Scrollable {
         subtitleLabel.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(300, 45));
+        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo MAKV hoặc MACN...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -109,11 +120,11 @@ public class AreaManagement extends JPanel implements Scrollable {
 
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -122,15 +133,18 @@ public class AreaManagement extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addButton = createPillButton("+ Thêm khu vực", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addButton.setFont(new Font("Lexend", Font.BOLD, 17));
+        addButton.setFont(new Font("Lexend", Font.BOLD, 16));
+        addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event -> showCreateView());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        JPanel rightToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        rightToolbar.setBackground(Color.WHITE);
+        JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
@@ -158,33 +172,20 @@ public class AreaManagement extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        searchWrapper.removeAll();
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(360, 45));
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc mã khu vực...");
+        bindSearchListener();
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, searchField, loadSearchIcon());
+    }
 
-        JLabel iconLabel = new JLabel(loadSearchIcon());
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
-
-        JPanel innerPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(360, 45));
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-        innerPanel.add(iconLabel, BorderLayout.WEST);
-        innerPanel.add(searchField, BorderLayout.CENTER);
-
-        searchWrapper.add(innerPanel, BorderLayout.CENTER);
-        return searchWrapper;
+    private JPanel createSortWrapper() {
+        cbSort.addActionListener(event -> loadKhuVucData(searchField.getText()));
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+            loadKhuVucData(searchField.getText());
+        });
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private Icon loadSearchIcon() {
@@ -241,13 +242,15 @@ public class AreaManagement extends JPanel implements Scrollable {
     }
 
     private void renderTableData(List<Area> areas) {
+        List<Area> sortedAreas = new ArrayList<>(areas);
+        sortAreas(sortedAreas);
         tablePanel.removeAll();
 
-        if (areas.isEmpty()) {
+        if (sortedAreas.isEmpty()) {
             tablePanel.add(createMessageRow("Không tìm thấy khu vực phù hợp."));
         } else {
             int rowIndex = 0;
-            for (Area area : areas) {
+            for (Area area : sortedAreas) {
                 tablePanel.add(createDataRow(area, rowIndex++));
             }
         }
@@ -255,6 +258,31 @@ public class AreaManagement extends JPanel implements Scrollable {
         infoLabel.setText("Hiển thị " + areas.size() + " khu vực");
         tablePanel.revalidate();
         tablePanel.repaint();
+    }
+
+    private void sortAreas(List<Area> areas) {
+        String sortType = (String) cbSort.getSelectedItem();
+        Comparator<Area> comparator;
+        if ("Mã chi nhánh".equals(sortType)) {
+            comparator = Comparator.comparing(area -> sortKey(area.maCn()));
+        } else if ("Loại thể thao".equals(sortType)) {
+            comparator = Comparator.comparing(area -> sortKey(area.tenTheThao()));
+        } else if ("Số lượng sân".equals(sortType)) {
+            comparator = Comparator.comparingInt(Area::soLuongSan);
+        } else if ("Ngày tạo".equals(sortType)) {
+            comparator = Comparator.comparing(Area::createdAt, Comparator.nullsLast(Comparator.naturalOrder()));
+        } else {
+            comparator = Comparator.comparing(area -> sortKey(area.maKv()));
+        }
+        comparator = comparator.thenComparing(area -> sortKey(area.maKv()));
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        areas.sort(comparator);
+    }
+
+    private String sortKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     private void renderErrorState(Exception exception) {
@@ -279,8 +307,8 @@ public class AreaManagement extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(1000, 45));
-        header.setMinimumSize(new Dimension(800, 45));
+        header.setPreferredSize(new Dimension(1000, 52));
+        header.setMinimumSize(new Dimension(800, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -289,7 +317,7 @@ public class AreaManagement extends JPanel implements Scrollable {
 
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ KHU VỰC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("SỐ LƯỢNG SÂN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.16; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.22; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
@@ -299,7 +327,7 @@ public class AreaManagement extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -312,9 +340,9 @@ public class AreaManagement extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(1000, 64));
-        row.setMinimumSize(new Dimension(800, 64));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setPreferredSize(new Dimension(1000, 72));
+        row.setMinimumSize(new Dimension(800, 72));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -322,12 +350,12 @@ public class AreaManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 12);
 
         JLabel maKvLabel = new JLabel(area.maKv());
-        maKvLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        maKvLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         maKvLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.14; row.add(createFlexibleCell(maKvLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(area.maCn(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(area.tenTheThao(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(String.valueOf(area.soLuongSan()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatDate(area.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
@@ -379,7 +407,7 @@ public class AreaManagement extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -394,8 +422,8 @@ public class AreaManagement extends JPanel implements Scrollable {
         panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
 
-        panel.setPreferredSize(new Dimension(0, 64));
-        panel.setMinimumSize(new Dimension(0, 64));
+        panel.setPreferredSize(new Dimension(0, 72));
+        panel.setMinimumSize(new Dimension(0, 72));
         return panel;
     }
 
@@ -452,6 +480,7 @@ public class AreaManagement extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -462,8 +491,8 @@ public class AreaManagement extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 

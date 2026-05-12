@@ -39,11 +39,11 @@ final class CustomerProfileDialog {
 
         JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
         JLabel title = new JLabel("Hồ sơ khách hàng");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setFont(new Font("Lexend", Font.BOLD, 24));
         title.setForeground(TEXT_DARK);
 
         JLabel subtitle = new JLabel("Xem nhanh thông tin chi tiết của khách hàng " + profile.maKhachHang() + ".");
@@ -96,7 +96,7 @@ final class CustomerProfileDialog {
         JPanel actions = new JPanel(new GridLayout(1, 1, 0, 0));
         actions.setOpaque(false);
 
-        JButton updateBtn = createPillButton("Cập nhật thông tin", BRAND_BLUE_BG, BRAND_BLUE);
+        JButton updateBtn = createPillButton("Cập nhật thông tin", BRAND_BLUE, Color.WHITE);
         actions.add(updateBtn);
         root.add(actions, BorderLayout.SOUTH);
         updateBtn.addActionListener(event -> {
@@ -128,7 +128,7 @@ final class CustomerProfileDialog {
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
         label.setForeground(new Color(75, 85, 99));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -141,8 +141,8 @@ final class CustomerProfileDialog {
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
@@ -166,7 +166,7 @@ final class CustomerProfileDialog {
             }
         };
         btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Lexend", Font.BOLD, 13));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -212,7 +212,7 @@ final class CustomerProfileDialog {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
-            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
             g2.dispose();
         }
 
