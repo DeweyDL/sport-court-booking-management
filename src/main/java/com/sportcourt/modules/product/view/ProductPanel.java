@@ -31,8 +31,8 @@ public class ProductPanel extends JPanel implements Scrollable {
     private static final Color BORDER = new Color(229, 231, 235);
     private static final Color TEXT = new Color(17, 24, 39);
     private static final Color MUTED = new Color(107, 114, 128);
-    private static final int HEADER_HEIGHT = 45;
-    private static final int ROW_HEIGHT = 64;
+    private static final int HEADER_HEIGHT = 52;
+    private static final int ROW_HEIGHT = 72;
     private static final int COLUMN_GAP = 16;
 
     private final List<ProductVm> products = new ArrayList<>();
@@ -66,8 +66,9 @@ public class ProductPanel extends JPanel implements Scrollable {
         CrudViewStyle.applyPageDefaults(this);
 
         addButton = createPillButton("+ Thêm sản phẩm", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addButton.setFont(new Font("Lexend", Font.BOLD, 17));
-        addButton.setBorder(new EmptyBorder(4, 12, 6, 12));
+        addButton.setFont(new Font("Lexend", Font.BOLD, 16));
+        addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addButton);
 
         add(createPage(), BorderLayout.CENTER);
         CrudViewStyle.installResponsiveTypography(this);
@@ -171,7 +172,7 @@ public class ProductPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -220,7 +221,7 @@ public class ProductPanel extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
@@ -253,7 +254,7 @@ public class ProductPanel extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -284,11 +285,11 @@ public class ProductPanel extends JPanel implements Scrollable {
     private JPanel createSearchFieldWithIcon() {
         searchWrapper.removeAll();
         searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(300, 41));
-        searchWrapper.setMaximumSize(new Dimension(300, 41));
+        searchWrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        searchWrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(300, 41));
+        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã hoặc tên sản phẩm...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -311,8 +312,8 @@ public class ProductPanel extends JPanel implements Scrollable {
             }
         };
         innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(300, 41));
-        innerPanel.setMaximumSize(new Dimension(300, 41));
+        innerPanel.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        innerPanel.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
@@ -396,11 +397,11 @@ public class ProductPanel extends JPanel implements Scrollable {
         gbc.weightx = 0.12;
         header.add(createFlexibleCell(createHeaderLabel("MÃ SP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.22;
-        header.add(createFlexibleCell(createHeaderLabel("TÊN SẢN PHẨM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        header.add(createFlexibleCell(createHeaderLabel("TÊN SẢN PHẨM"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.14;
         header.add(createFlexibleCell(createHeaderLabel("ĐƠN VỊ TÍNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.16;
-        header.add(createFlexibleCell(createHeaderLabel("ĐƠN GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        header.add(createFlexibleCell(createHeaderLabel("ĐƠN GIÁ"), SwingConstants.RIGHT, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14;
         header.add(createFlexibleCell(createHeaderLabel("TỒN KHO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.22;
@@ -411,7 +412,7 @@ public class ProductPanel extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(MUTED);
         return label;
     }
@@ -435,16 +436,16 @@ public class ProductPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         JLabel idLabel = createCellLabel(product.getMaSp(), new Color(22, 163, 74));
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
         gbc.weightx = 0.12;
         row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.22;
-        row.add(createFlexibleCell(createCellLabel(product.getTenSp(), TEXT), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        row.add(createFlexibleCell(createCellLabel(product.getTenSp(), TEXT), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = 0.14;
         row.add(createFlexibleCell(createUnitPill(product.getDvt()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.16;
-        row.add(createFlexibleCell(createCellLabel(formatCurrency(product.getGia()), TEXT), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        row.add(createFlexibleCell(createCellLabel(formatCurrency(product.getGia()), TEXT), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14;
         row.add(createFlexibleCell(createStockPill(product.getSlTon()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.22;
@@ -475,10 +476,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         JButton statusBtn = deleted
                 ? createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0))
                 : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension statusBtnSize = new Dimension(deleted ? 88 : 80, 30);
-        statusBtn.setPreferredSize(statusBtnSize);
-        statusBtn.setMinimumSize(statusBtnSize);
-        statusBtn.setMaximumSize(statusBtnSize);
         statusBtn.setEnabled(!loading);
         statusBtn.addActionListener(event -> {
             selectProduct(product);
@@ -492,10 +489,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         actionGroup.add(Box.createHorizontalStrut(10));
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension editBtnSize = new Dimension(89, 30);
-        editBtn.setPreferredSize(editBtnSize);
-        editBtn.setMinimumSize(editBtnSize);
-        editBtn.setMaximumSize(editBtnSize);
         editBtn.setEnabled(!loading);
         editBtn.addActionListener(event -> {
             selectProduct(product);
@@ -589,7 +582,7 @@ public class ProductPanel extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(valueOrDash(text));
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -794,6 +787,7 @@ public class ProductPanel extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -804,8 +798,8 @@ public class ProductPanel extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 

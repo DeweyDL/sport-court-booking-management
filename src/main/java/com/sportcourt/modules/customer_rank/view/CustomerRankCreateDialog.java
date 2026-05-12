@@ -182,6 +182,7 @@ final class CustomerRankCreateDialog {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
