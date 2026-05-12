@@ -3,6 +3,7 @@ package com.sportcourt.modules.sport_type.view;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.sport_type.controller.SportTypeController;
 import com.sportcourt.modules.sport_type.dto.SportTypeForm;
 import com.sportcourt.modules.sport_type.dto.SportTypeTableRow;
@@ -48,10 +49,10 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
     public ManageSportTypeScreen() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadData();
     }
 
@@ -262,11 +263,11 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
         JLabel idLabel = new JLabel(valueOrDash(row.sportId()));
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        gbc.weightx = 0.22; rowPanel.add(createFlexibleCell(createCellLabel(row.name(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.22; rowPanel.add(createFlexibleCell(createCellLabel(row.name(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
-        gbc.weightx = 0.36; rowPanel.add(createFlexibleCell(createDescriptionLabel(row.description()), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.36; rowPanel.add(createFlexibleCell(createDescriptionLabel(row.description()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionGroup.setOpaque(false);

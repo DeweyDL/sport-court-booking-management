@@ -1,6 +1,7 @@
 package com.sportcourt.modules.product.view;
 
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.product.controller.ProductController;
 import com.sportcourt.modules.product.dto.ProductCreateRequest;
 import com.sportcourt.modules.product.dto.ProductResponse;
@@ -42,8 +43,7 @@ public class ProductPanel extends JPanel implements Scrollable {
     private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
             "Tên sản phẩm",
             "Đơn giá",
-            "Tồn kho",
-            "Trạng thái"
+            "Tồn kho"
     });
     private final JButton btnSortDir = new JButton("\u25B2");
     private final JButton addButton;
@@ -63,14 +63,14 @@ public class ProductPanel extends JPanel implements Scrollable {
     public ProductPanel() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        setBackground(PAGE_BG);
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         addButton = createPillButton("+ Thêm sản phẩm", new Color(228, 250, 226), new Color(16, 110, 0), true);
         addButton.setFont(new Font("Lexend", Font.BOLD, 17));
         addButton.setBorder(new EmptyBorder(4, 12, 6, 12));
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         bindEvents();
         new ProductController(this);
     }
@@ -188,7 +188,7 @@ public class ProductPanel extends JPanel implements Scrollable {
         title.setForeground(new Color(30, 31, 36));
         title.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        JLabel subtitle = new JLabel("Quản lý thông tin sản phẩm, đơn giá, tồn kho và trạng thái hiển thị.");
+        JLabel subtitle = new JLabel("Quản lý thông tin sản phẩm, đơn giá và tồn kho.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitle.setForeground(new Color(103, 112, 133));
         subtitle.setBorder(new EmptyBorder(5, 20, 20, 0));
@@ -393,19 +393,17 @@ public class ProductPanel extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
-        gbc.weightx = 0.10;
+        gbc.weightx = 0.12;
         header.add(createFlexibleCell(createHeaderLabel("MÃ SP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18;
+        gbc.weightx = 0.22;
         header.add(createFlexibleCell(createHeaderLabel("TÊN SẢN PHẨM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12;
-        header.add(createFlexibleCell(createHeaderLabel("ĐƠN VỊ TÍNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14;
+        header.add(createFlexibleCell(createHeaderLabel("ĐƠN VỊ TÍNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.16;
         header.add(createFlexibleCell(createHeaderLabel("ĐƠN GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12;
+        gbc.weightx = 0.14;
         header.add(createFlexibleCell(createHeaderLabel("TỒN KHO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.10;
-        header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.24;
+        gbc.weightx = 0.22;
         gbc.insets = new Insets(0, 0, 0, 0);
         header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         return header;
@@ -439,19 +437,17 @@ public class ProductPanel extends JPanel implements Scrollable {
         JLabel idLabel = createCellLabel(product.getMaSp(), new Color(22, 163, 74));
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
-        gbc.weightx = 0.10;
-        row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.18;
-        row.add(createFlexibleCell(createCellLabel(product.getTenSp(), TEXT), SwingConstants.LEFT, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12;
-        row.add(createFlexibleCell(createUnitPill(product.getDvt()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.22;
+        row.add(createFlexibleCell(createCellLabel(product.getTenSp(), TEXT), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14;
+        row.add(createFlexibleCell(createUnitPill(product.getDvt()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.16;
         row.add(createFlexibleCell(createCellLabel(formatCurrency(product.getGia()), TEXT), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.12;
+        gbc.weightx = 0.14;
         row.add(createFlexibleCell(createStockPill(product.getSlTon()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.10;
-        row.add(createFlexibleCell(createStatusPill(product), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.24;
+        gbc.weightx = 0.22;
         gbc.insets = new Insets(0, 0, 0, 0);
         row.add(createFlexibleCell(createActionCell(product, rowBg), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
@@ -536,55 +532,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         return createSimplePill(String.valueOf(value), background, foreground, new Dimension(74, 26));
     }
 
-    private JPanel createStatusPill(ProductVm product) {
-        boolean active = !product.isDeleted();
-        String text = active ? "Active" : "Inactive";
-        Color background = active ? new Color(228, 250, 226) : new Color(254, 226, 226);
-        Color foreground = active ? new Color(16, 110, 0) : new Color(185, 28, 28);
-
-        JPanel wrapper = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        Dimension size = new Dimension(92, 24);
-        wrapper.setPreferredSize(size);
-        wrapper.setMinimumSize(size);
-        wrapper.setMaximumSize(size);
-
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
-
-        JPanel dot = createStatusDot(foreground);
-        JLabel textLabel = new JLabel(text);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        textLabel.setForeground(foreground);
-
-        GridBagConstraints dotConstraints = new GridBagConstraints();
-        dotConstraints.gridx = 0;
-        dotConstraints.gridy = 0;
-        dotConstraints.insets = new Insets(2, 0, 0, 7);
-        content.add(dot, dotConstraints);
-
-        GridBagConstraints textConstraints = new GridBagConstraints();
-        textConstraints.gridx = 1;
-        textConstraints.gridy = 0;
-        content.add(textLabel, textConstraints);
-
-        wrapper.add(content);
-
-        JPanel container = new JPanel(new GridBagLayout());
-        container.setOpaque(false);
-        container.add(wrapper);
-        return container;
-    }
-
     private JPanel createSimplePill(String text, Color background, Color foreground, Dimension size) {
         JPanel wrapper = new JPanel(new GridBagLayout()) {
             @Override
@@ -610,25 +557,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         container.setOpaque(false);
         container.add(wrapper);
         return container;
-    }
-
-    private JPanel createStatusDot(Color color) {
-        JPanel dot = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(color);
-                g2.fillOval(0, 0, getWidth(), getHeight());
-                g2.dispose();
-            }
-        };
-        Dimension size = new Dimension(5, 5);
-        dot.setOpaque(false);
-        dot.setPreferredSize(size);
-        dot.setMinimumSize(size);
-        dot.setMaximumSize(size);
-        return dot;
     }
 
     private JPanel createEmptyRow() {
@@ -735,9 +663,6 @@ public class ProductPanel extends JPanel implements Scrollable {
             ).thenComparing(product -> normalizedSortKey(product.getTenSp()));
         } else if ("Tồn kho".equals(sortType)) {
             comparator = Comparator.comparingInt((ProductVm product) -> product.getSlTon() == null ? 0 : product.getSlTon())
-                    .thenComparing(product -> normalizedSortKey(product.getTenSp()));
-        } else if ("Trạng thái".equals(sortType)) {
-            comparator = Comparator.comparingInt((ProductVm product) -> product.isDeleted() ? 1 : 0)
                     .thenComparing(product -> normalizedSortKey(product.getTenSp()));
         } else {
             comparator = Comparator.comparing((ProductVm product) -> normalizedSortKey(product.getTenSp()))

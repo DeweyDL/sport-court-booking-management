@@ -1,5 +1,6 @@
 package com.sportcourt.modules.customer_rank.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.customer_rank.view.CustomerRankMockData.CustomerRankItem;
 
 import javax.swing.*;
@@ -16,7 +17,7 @@ import java.util.Locale;
 
 public class CustomerRankManagement extends JPanel implements Scrollable {
 
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
+    private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
@@ -26,12 +27,12 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
 
     public CustomerRankManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
         searchDebounceTimer = new Timer(300, event -> loadData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadData(null);
     }
 
