@@ -117,11 +117,24 @@ final class EquipmentCreateDialog {
                     return;
                 }
 
-                System.out.println("[Equipment Create] Tên: " + tenDc + ", ĐVT: " + dvt + ", Giá: " + gia + ", SL: " + slTon);
-                JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock). Dụng cụ sẽ được lưu khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                com.sportcourt.modules.equipment.dto.EquipmentCreateRequest req = new com.sportcourt.modules.equipment.dto.EquipmentCreateRequest();
+                req.setTenDc(tenDc);
+                req.setDvt(dvt);
+                req.setGia(java.math.BigDecimal.valueOf(gia));
+                req.setSlTon(slTon);
+                
+                new com.sportcourt.modules.equipment.controller.EquipmentController().createEquipment(req);
+                
+                JOptionPane.showMessageDialog(dialog, "Thêm dụng cụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                if (parent instanceof EquipmentManagement) {
+                    ((EquipmentManagement) parent).refresh();
+                }
                 dialog.dispose();
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(dialog, "Giá và số lượng tồn phải là số hợp lệ.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
 
