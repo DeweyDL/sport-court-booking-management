@@ -29,8 +29,8 @@ import javax.swing.Scrollable;
 
 public class CourtManagementPanel extends JPanel implements Scrollable {
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
-    private static final int HEADER_HEIGHT = 45;
-    private static final int ROW_HEIGHT = 64;
+    private static final int HEADER_HEIGHT = 52;
+    private static final int ROW_HEIGHT = 72;
     private static final int COLUMN_GAP = 16;
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -65,7 +65,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -114,7 +114,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
@@ -147,7 +147,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -156,16 +156,13 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm sân con", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
-        addBtn.setBorder(new EmptyBorder(4, 12, 6, 12));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
+        addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
-        JPanel addBtnWrapper = new JPanel(new BorderLayout());
-        addBtnWrapper.setOpaque(false);
-        addBtnWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
-        addBtnWrapper.add(addBtn, BorderLayout.CENTER);
 
         leftToolbar.add(tableTitle);
-        leftToolbar.add(addBtnWrapper);
+        leftToolbar.add(addBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -238,7 +235,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
 
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ SÂN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("MÃ KHU VỰC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("LOẠI THỂ THAO"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.16; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.22; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
@@ -247,7 +244,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -271,12 +268,12 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         JLabel idLabel = new JLabel(valueOrDash(court.getCourtId()));
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         idLabel.setForeground(new Color(22, 163, 74));
 
         gbc.weightx = 0.14; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(court.getAreaId(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(court.getSportTypeName(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(court.getSportTypeName(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createStatusPill(court.getStatus()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatDate(court.getCreatedAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
@@ -285,10 +282,6 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         actionGroup.setOpaque(false);
 
         JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        Dimension deleteBtnSize = new Dimension(80, 30);
-        deleteBtn.setPreferredSize(deleteBtnSize);
-        deleteBtn.setMinimumSize(deleteBtnSize);
-        deleteBtn.setMaximumSize(deleteBtnSize);
         deleteBtn.addActionListener(event -> {
             selectedCourt = court;
             deleteSelectedCourt();
@@ -297,10 +290,6 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         actionGroup.add(Box.createHorizontalStrut(10));
 
         JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        Dimension editBtnSize = new Dimension(89, 30);
-        editBtn.setPreferredSize(editBtnSize);
-        editBtn.setMinimumSize(editBtnSize);
-        editBtn.setMaximumSize(editBtnSize);
         editBtn.addActionListener(event -> {
             selectedCourt = court;
             openEditForSelectedCourt();
@@ -331,8 +320,8 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
 
     private JPanel createStatusPill(String trangThai) {
         boolean isActive = "ĐANG HOẠT ĐỘNG".equalsIgnoreCase(trangThai);
-        Color background = isActive ? new Color(228, 250, 226) : new Color(254, 226, 226);
-        Color foreground = isActive ? new Color(16, 110, 0) : new Color(185, 28, 28);
+        Color background = isActive ? CrudViewStyle.SUCCESS_BG : CrudViewStyle.DANGER_BG;
+        Color foreground = isActive ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
         String displayText = isActive ? "Hoạt động" : "Bảo trì";
 
         JPanel wrapper = new JPanel(new GridBagLayout()) {
@@ -346,7 +335,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
             }
         };
         wrapper.setOpaque(false);
-        Dimension size = new Dimension(100, 24);
+        Dimension size = new Dimension(CrudViewStyle.STATUS_PILL_WIDTH, CrudViewStyle.STATUS_PILL_HEIGHT);
         wrapper.setPreferredSize(size);
         wrapper.setMinimumSize(size);
         wrapper.setMaximumSize(size);
@@ -427,7 +416,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(valueOrDash(text));
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -725,6 +714,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 13));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -735,8 +725,8 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 

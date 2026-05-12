@@ -1,5 +1,6 @@
 package com.sportcourt.modules.account.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.account.dto.AccountRow;
 
 import javax.swing.*;
@@ -31,7 +32,7 @@ public class AccountDetailPanel extends JPanel {
     private final JLabel phoneLabel = createValueLabel("--");
     private final JLabel emailLabel = createValueLabel("--");
     private final JLabel usernameLabel = createValueLabel("--");
-    private final JLabel statusLabel = createValueLabel("--");
+    private final JPanel statusPillHolder = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     private final JLabel roleLabel = createValueLabel("--");
     private final JLabel createdAtLabel = createValueLabel("--");
     private final JButton restoreButton = createActionButton("Khôi phục", new Color(220, 252, 231), new Color(22, 101, 52));
@@ -46,6 +47,7 @@ public class AccountDetailPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setBackground(PAGE_BACKGROUND);
         setBorder(new EmptyBorder(10, 0, 0, 0));
+        statusPillHolder.setOpaque(false);
         add(createHeader(), BorderLayout.NORTH);
         add(createMainContent(), BorderLayout.CENTER);
     }
@@ -72,7 +74,7 @@ public class AccountDetailPanel extends JPanel {
         phoneLabel.setText(valueOrDash(phone));
         emailLabel.setText(valueOrDash(email));
         usernameLabel.setText(valueOrDash(username));
-        statusLabel.setText(deleted ? "DELETED" : valueOrDash(status));
+        renderStatusPill(deleted ? "DELETED" : valueOrDash(status));
         roleLabel.setText(valueOrDash(role));
         createdAtLabel.setText(createdAt == null ? "--" : createdAt.format(DATE_FORMATTER));
         restoreButton.setVisible(deleted);
@@ -131,7 +133,7 @@ public class AccountDetailPanel extends JPanel {
         card.add(Box.createVerticalStrut(12));
         card.add(createFieldBlock("USERNAME", usernameLabel));
         card.add(Box.createVerticalStrut(12));
-        card.add(createFieldBlock("STATUS", statusLabel));
+        card.add(createFieldBlock("STATUS", statusPillHolder));
         card.add(Box.createVerticalStrut(12));
         card.add(createFieldBlock("ROLE GROUP", roleLabel));
         card.add(Box.createVerticalStrut(12));
@@ -165,7 +167,7 @@ public class AccountDetailPanel extends JPanel {
         return card;
     }
 
-    private JPanel createFieldBlock(String label, JLabel valueLabel) {
+    private JPanel createFieldBlock(String label, JComponent valueComponent) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
         fieldPanel.setOpaque(false);
@@ -180,12 +182,24 @@ public class AccountDetailPanel extends JPanel {
                 new MatteBorder(1, 1, 1, 1, new Color(229, 231, 235)),
                 new EmptyBorder(10, 16, 10, 16)
         ));
-        valueWrapper.add(valueLabel, BorderLayout.CENTER);
+        valueWrapper.add(valueComponent, BorderLayout.CENTER);
 
         fieldPanel.add(labelView);
         fieldPanel.add(Box.createVerticalStrut(6));
         fieldPanel.add(valueWrapper);
         return fieldPanel;
+    }
+
+    private void renderStatusPill(String status) {
+        boolean active = "ACTIVE".equalsIgnoreCase(status);
+        boolean inactive = "INACTIVE".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status);
+        Color background = active ? CrudViewStyle.SUCCESS_BG : inactive ? CrudViewStyle.DANGER_BG : CrudViewStyle.EDIT_BG;
+        Color foreground = active ? CrudViewStyle.SUCCESS_TEXT : inactive ? CrudViewStyle.DANGER_TEXT : CrudViewStyle.EDIT_TEXT;
+
+        statusPillHolder.removeAll();
+        statusPillHolder.add(CrudViewStyle.createStatusPill(status, background, foreground));
+        statusPillHolder.revalidate();
+        statusPillHolder.repaint();
     }
 
     private JButton createActionButton(String text, Color bg, Color fg) {
@@ -203,6 +217,7 @@ public class AccountDetailPanel extends JPanel {
         button.setForeground(fg);
         button.setFont(new Font("Lexend", Font.BOLD, 12));
         button.setBorder(new EmptyBorder(8, 14, 8, 14));
+        button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);

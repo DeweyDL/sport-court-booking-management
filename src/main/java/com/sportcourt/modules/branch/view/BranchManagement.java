@@ -13,22 +13,32 @@ import java.awt.*;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import javax.swing.Scrollable;
 
 public class BranchManagement extends JPanel implements Scrollable {
-    private static final int HEADER_HEIGHT = 45;
-    private static final int ROW_HEIGHT = 64;
+    private static final int HEADER_HEIGHT = 52;
+    private static final int ROW_HEIGHT = 72;
     private static final int COLUMN_GAP = 12;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(248, 250, 252);
+    private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final BranchController branchController = new BranchController();
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
+    private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
+            "Mã chi nhánh",
+            "Tên chi nhánh",
+            "Hotline",
+            "Ngày tạo"
+    });
+    private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer searchDebounceTimer;
+    private boolean sortAscending = true;
 
     private final BranchChange suaChiNhanh = new BranchChange(branchController, id -> loadChiNhanhData(searchField.getText()));
     private final BranchAdd themChiNhanh = new BranchAdd(branchController, id -> loadChiNhanhData(searchField.getText()));
@@ -46,7 +56,7 @@ public class BranchManagement extends JPanel implements Scrollable {
     }
 
     private JPanel createListPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainContentSection(), BorderLayout.CENTER);
@@ -69,7 +79,7 @@ public class BranchManagement extends JPanel implements Scrollable {
         subtitleLabel.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(300, 45));
+        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo MACN hoặc tên chi nhánh...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -106,7 +116,7 @@ public class BranchManagement extends JPanel implements Scrollable {
 
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
@@ -114,7 +124,7 @@ public class BranchManagement extends JPanel implements Scrollable {
 
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -123,15 +133,18 @@ public class BranchManagement extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addButton = createPillButton("+ Thêm chi nhánh", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addButton.setFont(new Font("Lexend", Font.BOLD, 17));
+        addButton.setFont(new Font("Lexend", Font.BOLD, 16));
+        addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event -> showCreateView());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        JPanel rightToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        rightToolbar.setBackground(Color.WHITE);
+        JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
@@ -162,7 +175,8 @@ public class BranchManagement extends JPanel implements Scrollable {
     private JPanel createSearchFieldWithIcon() {
         searchWrapper.removeAll();
         searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(360, 45));
+        searchWrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        searchWrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
 
         JLabel iconLabel = new JLabel(loadSearchIcon());
         iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
@@ -180,13 +194,25 @@ public class BranchManagement extends JPanel implements Scrollable {
             }
         };
         innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(360, 45));
+        innerPanel.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        innerPanel.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
 
         searchWrapper.add(innerPanel, BorderLayout.CENTER);
         return searchWrapper;
+    }
+
+    private JPanel createSortWrapper() {
+        cbSort.addActionListener(event -> loadChiNhanhData(searchField.getText()));
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+            loadChiNhanhData(searchField.getText());
+        });
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private Icon loadSearchIcon() {
@@ -252,14 +278,16 @@ public class BranchManagement extends JPanel implements Scrollable {
     }
 
     private void renderTableData(List<Branch> branches) {
+        List<Branch> sortedBranches = branches == null ? new ArrayList<>() : new ArrayList<>(branches);
+        sortBranches(sortedBranches);
         tablePanel.removeAll();
 
-        if (branches == null || branches.isEmpty()) {
+        if (sortedBranches.isEmpty()) {
             tablePanel.add(createMessageRow("Không tìm thấy chi nhánh phù hợp."));
             infoLabel.setText("Hiển thị 0 chi nhánh");
         } else {
             int rowIndex = 0;
-            for (Branch branch : branches) {
+            for (Branch branch : sortedBranches) {
                 tablePanel.add(createDataRow(branch, rowIndex++));
             }
             infoLabel.setText("Hiển thị " + branches.size() + " chi nhánh");
@@ -267,6 +295,29 @@ public class BranchManagement extends JPanel implements Scrollable {
 
         tablePanel.revalidate();
         tablePanel.repaint();
+    }
+
+    private void sortBranches(List<Branch> branches) {
+        String sortType = (String) cbSort.getSelectedItem();
+        Comparator<Branch> comparator;
+        if ("Tên chi nhánh".equals(sortType)) {
+            comparator = Comparator.comparing(branch -> sortKey(branch.tenChiNhanh()));
+        } else if ("Hotline".equals(sortType)) {
+            comparator = Comparator.comparing(branch -> sortKey(branch.hotline()));
+        } else if ("Ngày tạo".equals(sortType)) {
+            comparator = Comparator.comparing(Branch::createdAt, Comparator.nullsLast(Comparator.naturalOrder()));
+        } else {
+            comparator = Comparator.comparing(branch -> sortKey(branch.maCn()));
+        }
+        comparator = comparator.thenComparing(branch -> sortKey(branch.maCn()));
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        branches.sort(comparator);
+    }
+
+    private String sortKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     private void renderErrorState(Exception exception) {
@@ -300,8 +351,8 @@ public class BranchManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.19; header.add(createFlexibleCell(createHeaderLabel("TÊN CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.22; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.19; header.add(createFlexibleCell(createHeaderLabel("TÊN CHI NHÁNH"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
+        gbc.weightx = 0.22; header.add(createFlexibleCell(createHeaderLabel("ĐỊA CHỈ"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("HOTLINE"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY TẠO"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.18; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
@@ -311,7 +362,7 @@ public class BranchManagement extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -335,12 +386,12 @@ public class BranchManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         JLabel maCnLabel = new JLabel(branch.maCn());
-        maCnLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        maCnLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         maCnLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.13; row.add(createFlexibleCell(maCnLabel, SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
-        gbc.weightx = 0.19; row.add(createFlexibleCell(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
-        gbc.weightx = 0.22; row.add(createFlexibleCell(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
+        gbc.weightx = 0.19; row.add(createFlexibleCell(createCellLabel(branch.tenChiNhanh(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBackground, 8, 8), gbc);
+        gbc.weightx = 0.22; row.add(createFlexibleCell(createCellLabel(branch.diaChi(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBackground, 8, 8), gbc);
         gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(branch.hotline(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatDate(branch.createdAt()), new Color(75, 85, 99)), SwingConstants.CENTER, rowBackground, 0, 8), gbc);
 
@@ -394,7 +445,7 @@ public class BranchManagement extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -467,6 +518,7 @@ public class BranchManagement extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -474,11 +526,11 @@ public class BranchManagement extends JPanel implements Scrollable {
         btn.setBorder(new EmptyBorder(5, 12, 5, 12));
         return btn;
     }
-    
+
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 

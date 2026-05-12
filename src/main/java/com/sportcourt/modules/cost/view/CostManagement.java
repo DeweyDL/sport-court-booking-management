@@ -14,6 +14,8 @@ import java.net.URL;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -26,7 +28,15 @@ public class CostManagement extends JPanel implements Scrollable {
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
     private final JTextField searchField = new JTextField(30);
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
+    private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
+            "Mã bảng giá",
+            "Mã khu vực",
+            "Giờ bắt đầu",
+            "Giá"
+    });
+    private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer searchDebounceTimer;
+    private boolean sortAscending = true;
 
     private final CostChange suaBangGia = new CostChange(store, id -> loadBangGiaData(searchField.getText()));
     private final CostAdd themBangGia = new CostAdd(store, id -> loadBangGiaData(searchField.getText()));
@@ -44,7 +54,7 @@ public class CostManagement extends JPanel implements Scrollable {
     }
 
     private JPanel createListPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainContentSection(), BorderLayout.CENTER);
@@ -67,7 +77,7 @@ public class CostManagement extends JPanel implements Scrollable {
         subtitleLabel.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(300, 45));
+        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo MABG hoặc MAKV...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -104,11 +114,11 @@ public class CostManagement extends JPanel implements Scrollable {
 
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -117,15 +127,18 @@ public class CostManagement extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addButton = createPillButton("+ Thêm bảng giá", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addButton.setFont(new Font("Lexend", Font.BOLD, 17));
+        addButton.setFont(new Font("Lexend", Font.BOLD, 16));
+        addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event -> showCreateView());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        JPanel rightToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        rightToolbar.setBackground(Color.WHITE);
+        JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
@@ -155,7 +168,8 @@ public class CostManagement extends JPanel implements Scrollable {
     private JPanel createSearchFieldWithIcon() {
         searchWrapper.removeAll();
         searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(360, 45));
+        searchWrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        searchWrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
 
         JLabel iconLabel = new JLabel(loadSearchIcon());
         iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
@@ -173,13 +187,25 @@ public class CostManagement extends JPanel implements Scrollable {
             }
         };
         innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(360, 45));
+        innerPanel.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        innerPanel.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
 
         searchWrapper.add(innerPanel, BorderLayout.CENTER);
         return searchWrapper;
+    }
+
+    private JPanel createSortWrapper() {
+        cbSort.addActionListener(event -> loadBangGiaData(searchField.getText()));
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+            loadBangGiaData(searchField.getText());
+        });
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private Icon loadSearchIcon() {
@@ -220,7 +246,8 @@ public class CostManagement extends JPanel implements Scrollable {
         tablePanel.add(createTableHeader());
 
 
-        List<CostItem> costs = store.list(keyword);
+        List<CostItem> costs = new ArrayList<>(store.list(keyword));
+        sortCosts(costs);
         if (costs.isEmpty()) {
                 tablePanel.add(createMessageRow("Không có dữ liệu phù hợp."));
                 infoLabel.setText("Tổng cộng: 0 dòng");
@@ -240,6 +267,29 @@ public class CostManagement extends JPanel implements Scrollable {
                     JOptionPane.ERROR_MESSAGE */
     }
 
+    private void sortCosts(List<CostItem> costs) {
+        String sortType = (String) cbSort.getSelectedItem();
+        Comparator<CostItem> comparator;
+        if ("Mã khu vực".equals(sortType)) {
+            comparator = Comparator.comparing(cost -> sortKey(cost.maKv()));
+        } else if ("Giờ bắt đầu".equals(sortType)) {
+            comparator = Comparator.comparingInt(CostItem::gioBatDau);
+        } else if ("Giá".equals(sortType)) {
+            comparator = Comparator.comparing(CostItem::gia, Comparator.nullsLast(Comparator.naturalOrder()));
+        } else {
+            comparator = Comparator.comparing(cost -> sortKey(cost.maBg()));
+        }
+        comparator = comparator.thenComparing(cost -> sortKey(cost.maBg()));
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        costs.sort(comparator);
+    }
+
+    private String sortKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+
     private JPanel createTableHeader() {
         JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(new Color(248, 249, 250));
@@ -247,8 +297,8 @@ public class CostManagement extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 50));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        header.setPreferredSize(new Dimension(0, 52));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -258,7 +308,7 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.weightx = 0.16; header.add(createHeaderCell("MÃ BẢNG GIÁ", SwingConstants.CENTER), gbc);
         gbc.weightx = 0.15; header.add(createHeaderCell("GIỜ BẮT ĐẦU", SwingConstants.CENTER), gbc);
         gbc.weightx = 0.15; header.add(createHeaderCell("GIỜ KẾT THÚC", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.16; header.add(createHeaderCell("GIÁ", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.16; header.add(createHeaderCell("GIÁ", SwingConstants.RIGHT), gbc);
         gbc.weightx = 0.24; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
 
         return header;
@@ -270,7 +320,7 @@ public class CostManagement extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -283,8 +333,8 @@ public class CostManagement extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 64));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setPreferredSize(new Dimension(0, 72));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -293,13 +343,13 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(cost.maKv(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         JLabel maBgLabel = new JLabel(cost.maBg());
-        maBgLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        maBgLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         maBgLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.16; row.add(createFlexibleCell(maBgLabel, SwingConstants.CENTER, rowBg, 5, 0), gbc);
 
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
-        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
@@ -351,7 +401,7 @@ public class CostManagement extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -366,8 +416,8 @@ public class CostManagement extends JPanel implements Scrollable {
         panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
 
-        panel.setPreferredSize(new Dimension(0, 64));
-        panel.setMinimumSize(new Dimension(0, 64));
+        panel.setPreferredSize(new Dimension(0, 72));
+        panel.setMinimumSize(new Dimension(0, 72));
         return panel;
     }
 
@@ -437,6 +487,7 @@ public class CostManagement extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -447,8 +498,8 @@ public class CostManagement extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 

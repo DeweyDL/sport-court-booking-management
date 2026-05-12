@@ -55,9 +55,9 @@ final class CustomerRankEditDialog {
         root.add(header, BorderLayout.NORTH);
 
         // Pre-fill fields with current values
-        JTextField txtTenHang   = new JTextField(item.getTenHang());
-        JTextField txtChietKhau = new JTextField(item.getChietKhau().toPlainString());
-        JTextField txtMucTien   = new JTextField(item.getMucTien().toPlainString());
+        JTextField txtTenHang   = new JTextField(item.getTenHang() == null ? "" : item.getTenHang());
+        JTextField txtChietKhau = new JTextField(item.getChietKhau() == null ? "0" : item.getChietKhau().toPlainString());
+        JTextField txtMucTien   = new JTextField(item.getMucTien() == null ? "0" : item.getMucTien().toPlainString());
 
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
@@ -189,6 +189,7 @@ final class CustomerRankEditDialog {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);

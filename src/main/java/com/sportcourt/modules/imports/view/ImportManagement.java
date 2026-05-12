@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class ImportManagement extends JPanel implements Scrollable {
-    private static final int HEADER_HEIGHT = 45;
-    private static final int ROW_HEIGHT = 64;
+    private static final int HEADER_HEIGHT = 52;
+    private static final int ROW_HEIGHT = 72;
     private static final int COLUMN_GAP = 12;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
@@ -48,7 +48,7 @@ public class ImportManagement extends JPanel implements Scrollable {
     // --------- PAGE LAYOUT ---------
 
     private JPanel createPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -99,7 +99,7 @@ public class ImportManagement extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         // Top section: toolbar
         JPanel topSection = new JPanel();
@@ -136,7 +136,7 @@ public class ImportManagement extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -145,16 +145,13 @@ public class ImportManagement extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm phiếu nhập", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 14));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
+        addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
 
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setOpaque(false);
-        btnWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
-        btnWrapper.add(addBtn, BorderLayout.CENTER);
-
         leftToolbar.add(tableTitle);
-        leftToolbar.add(btnWrapper);
+        leftToolbar.add(addBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -171,13 +168,13 @@ public class ImportManagement extends JPanel implements Scrollable {
     private JPanel createSearchFieldWithIcon() {
         searchWrapper.removeAll();
         searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(240, 36));
-        searchWrapper.setMaximumSize(new Dimension(240, 36));
+        searchWrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        searchWrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
 
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        searchField.setPreferredSize(new Dimension(240, 36));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã NH, NCC, chứng từ...");
-        searchField.putClientProperty("JTextField.padding", new Insets(4, 6, 4, 8));
+        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
         searchField.setBorder(null);
         searchField.setOpaque(false);
@@ -199,9 +196,9 @@ public class ImportManagement extends JPanel implements Scrollable {
             }
         };
         innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(240, 36));
-        innerPanel.setMaximumSize(new Dimension(240, 36));
-        innerPanel.setBorder(new EmptyBorder(0, 10, 0, 10));
+        innerPanel.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        innerPanel.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SEARCH_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
 
@@ -228,10 +225,10 @@ public class ImportManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("Mã NH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("NHÀ CUNG CẤP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NHÂN VIÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("NHÀ CUNG CẤP"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
+        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NHÂN VIÊN"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ CHỨNG TỪ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRỊ GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRỊ GIÁ"), SwingConstants.RIGHT, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("NGÀY NHẬP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 4), gbc);
         gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         
@@ -240,7 +237,7 @@ public class ImportManagement extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -265,21 +262,21 @@ public class ImportManagement extends JPanel implements Scrollable {
 
         // Mã NH - highlight xanh lá
         JLabel idLabel = new JLabel(item.manh());
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         idLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Nhà cung cấp
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
 
         // Nhân viên
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
 
         // Mã chứng từ
         gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.maChungTu(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Trị giá
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.triGia()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.triGia()), new Color(17, 24, 39)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
 
         // Ngày nhập
         gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.createdAt().format(DATE_FORMATTER), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 4), gbc);
@@ -380,7 +377,7 @@ public class ImportManagement extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -497,8 +494,8 @@ public class ImportManagement extends JPanel implements Scrollable {
             }
         };
         wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(220, 45));
-        wrapper.setMaximumSize(new Dimension(220, 45));
+        wrapper.setPreferredSize(new Dimension(CrudViewStyle.TOOLBAR_SORT_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
+        wrapper.setMaximumSize(new Dimension(CrudViewStyle.TOOLBAR_SORT_WIDTH, CrudViewStyle.TOOLBAR_CONTROL_HEIGHT));
         wrapper.setBorder(new EmptyBorder(0, 12, 0, 0));
         wrapper.add(cbSort, BorderLayout.CENTER);
         wrapper.add(btnSortDir, BorderLayout.EAST);
@@ -566,6 +563,7 @@ public class ImportManagement extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -576,8 +574,8 @@ public class ImportManagement extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(4, 8, 4, 8));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 
