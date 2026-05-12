@@ -19,6 +19,7 @@ import com.sportcourt.modules.imports.view.ImportManagement;
 import com.sportcourt.modules.product.view.ProductPanel;
 import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
+import com.sportcourt.modules.user_profile.view.UserProfilePanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -334,7 +335,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
-        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) contentPanel.registerView("TRANG CÁ NHÂN", () -> createPage("TRANG CÁ NHÂN"));
+        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) contentPanel.registerView("TRANG CÁ NHÂN", UserProfilePanel::new);
     }
 
     private void openView(String key) {
