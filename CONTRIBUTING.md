@@ -82,15 +82,15 @@ chore/logger-config
 
 ### 3.4. Quy tắc thưởng, phạt:
 
-# 3.4.1. Quy tắc thưởng:
+#### 3.4.1. Quy tắc thưởng:
 - Hoàn thành tốt mọi công việc được giao sẽ được ghi nhận và ưu tiên cộng điểm khi đánh  giá kết quả.
 - Giúp đỡ, hỗ trợ đóng góp ý kiến cho thành viên khác hoàn thành công việc sẽ được 1  điểm cộng khi đánh giá kết quả.
 - Có ý tưởng tốt, hỗ trợ xuất sắc cho kết quả của nhóm, giúp nhóm hoàn thiện tốt sẽ được 2  điểm cộng khi đánh giá kết quả.
 
-# 3.4.2. Các quy tắc phạt:
+#### 3.4.2. Các quy tắc phạt:
 - Trễ họp quá 10 phút thì sẽ cảnh cáo lần 1, 3 lần sẽ trừ 1 điểm vào kết quả đánh giá. − Vi phạm nguyên tắc làm việc nhóm đã đề ra sẽ trừ 1 điểm vào kết quả đánh giá. 
 
-# 3.4.5. Đánh giá thành viên:
+#### 3.4.5. Đánh giá thành viên:
 - **90 - 100%**: Hoàn thành rất tốt công việc, có sự chủ động và sáng tạo trong quá trình làm  việc, có tinh thần trách nhiệm cao, biết giúp đỡ những thành viên khác, xây dựng môi trường  làm việc tốt.
 - **80 - 90%**: Hoàn thành tốt công việc, nộp bài đúng hạn. Tích cực trong đóng góp xây  dựng nhóm, có tinh thần trách nhiệm. Không vi phạm nguyên tắc nhóm.
 - **50 - 80%**: Hoàn thành công việc, vi phạm từ 1 – 3 nguyên tắc làm việc nhóm.
