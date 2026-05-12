@@ -1,9 +1,16 @@
 package com.sportcourt.modules.customer_rank.view;
-import com.sportcourt.modules.customer_rank.view.CustomerRankMockData.CustomerRankItem;
+
+import com.sportcourt.modules.customer_rank.controller.CustomerRankController;
+import com.sportcourt.modules.customer_rank.dto.CustomerRankUpdateRequest;
+import com.sportcourt.modules.customer_rank.entity.CustomerRank;
+
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.function.Consumer;
 
 final class CustomerRankEditDialog {
 
@@ -15,10 +22,9 @@ final class CustomerRankEditDialog {
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
 
-    private CustomerRankEditDialog() {
-    }
+    private CustomerRankEditDialog() {}
 
-    static void show(Component parent, CustomerRankItem item) {
+    static void show(Component parent, CustomerRank item, CustomerRankController controller, Consumer<String> onSuccess) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Chỉnh sửa hạng khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -30,11 +36,11 @@ final class CustomerRankEditDialog {
         dialog.setContentPane(root);
 
         // Header
-        JLabel title = new JLabel("Chỉnh sửa hạng: " + item.tenHang());
+        JLabel title = new JLabel("Chỉnh sửa hạng: " + item.getTenHang());
         title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
 
-        JLabel subtitle = new JLabel("Mã hạng: " + item.maHang());
+        JLabel subtitle = new JLabel("Mã hạng: " + item.getMaHang());
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -47,9 +53,11 @@ final class CustomerRankEditDialog {
         header.add(title);
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
-        JTextField txtTenHang   = new JTextField(item.tenHang());
-        JTextField txtChietKhau = new JTextField(item.chietKhau().toPlainString());
-        JTextField txtMucTien   = new JTextField(item.mucTien().toPlainString());
+
+        // Pre-fill fields with current values
+        JTextField txtTenHang   = new JTextField(item.getTenHang());
+        JTextField txtChietKhau = new JTextField(item.getChietKhau().toPlainString());
+        JTextField txtMucTien   = new JTextField(item.getMucTien().toPlainString());
 
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
@@ -60,7 +68,7 @@ final class CustomerRankEditDialog {
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Chiết khấu (%)", txtChietKhau));
         form.add(Box.createVerticalStrut(14));
-        form.add(createField("Mức tiền (VNĐ)", txtMucTien)); // Cập nhật tên nhãn
+        form.add(createField("Mức tiền (VNĐ)", txtMucTien));
 
         JLabel hint = new JLabel("* Chiết khấu từ 0 đến 100. Mức tiền >= 0.");
         hint.setFont(new Font("Segoe UI", Font.ITALIC, 12));
@@ -70,6 +78,8 @@ final class CustomerRankEditDialog {
         form.add(hint);
 
         root.add(form, BorderLayout.CENTER);
+
+        // Actions
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
@@ -77,6 +87,7 @@ final class CustomerRankEditDialog {
         JButton saveBtn   = createPillButton("Lưu thay đổi", BRAND_BG, BRAND_COLOR);
 
         cancelBtn.addActionListener(event -> dialog.dispose());
+
         saveBtn.addActionListener(event -> {
             String tenHang      = txtTenHang.getText().trim();
             String chietKhauStr = txtChietKhau.getText().trim();
@@ -86,27 +97,43 @@ final class CustomerRankEditDialog {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ tất cả các trường.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
+            double chietKhau;
+            double mucTien;
             try {
-                double chietKhau = Double.parseDouble(chietKhauStr);
-                double mucTien   = Double.parseDouble(mucTienStr);
-
-                if (chietKhau < 0 || chietKhau > 100) {
-                    JOptionPane.showMessageDialog(dialog, "Chiết khấu phải từ 0 đến 100.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-                if (mucTien < 0) {
-                    JOptionPane.showMessageDialog(dialog, "Mức tiền không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                System.out.println("[CustomerRank Edit] Mã: " + item.maHang()
-                        + ", Tên: " + tenHang
-                        + ", Chiết khấu: " + chietKhau + "%"
-                        + ", Mức tiền: " + mucTien);
-                JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                dialog.dispose();
+                chietKhau = Double.parseDouble(chietKhauStr);
+                mucTien   = Double.parseDouble(mucTienStr);
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(dialog, "Chiết khấu và mức tiền phải là số hợp lệ.", "Lỗi định dạng", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (chietKhau < 0 || chietKhau > 100) {
+                JOptionPane.showMessageDialog(dialog, "Chiết khấu phải từ 0 đến 100.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (mucTien < 0) {
+                JOptionPane.showMessageDialog(dialog, "Mức tiền không được âm.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            CustomerRankUpdateRequest request = new CustomerRankUpdateRequest();
+            request.setMaHang(item.getMaHang());
+            request.setTenHang(tenHang);
+            request.setChietKhau(BigDecimal.valueOf(chietKhau));
+            request.setMucTien(BigDecimal.valueOf(mucTien));
+
+            try {
+                boolean updated = controller.updateRank(request);
+                if (updated) {
+                    JOptionPane.showMessageDialog(dialog, "Cập nhật hạng thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                    if (onSuccess != null) onSuccess.accept(null);
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Không tìm thấy hạng để cập nhật.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi khi cập nhật: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
 
