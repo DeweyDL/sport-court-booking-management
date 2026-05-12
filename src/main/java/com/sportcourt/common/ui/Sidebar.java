@@ -141,7 +141,6 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.REVENUE_MANAGEMENT)) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI THỂ THAO", "/icon/tools.1.png"));
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
-        if (canView(FunctionId.ROLE_PERMISSION_MANAGEMENT)) menuPanel.add(createMenuButton("PHÂN QUYỀN TÀI KHOẢN", "/icon/user.1.png"));
         JScrollPane menuScrollPane = new JScrollPane(menuPanel);
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
         menuScrollPane.getViewport().setOpaque(false);

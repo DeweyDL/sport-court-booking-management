@@ -1,5 +1,6 @@
 package com.sportcourt.modules.cost.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.cost.view.CostMockData.CostItem;
 
 import javax.swing.*;
@@ -18,7 +19,7 @@ import java.util.Locale;
 
 public class CostManagement extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final Color ALTERNATE_ROW_BACKGROUND = new Color(251, 254, 247);
+    private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final CostMockData.Store store = CostMockData.store();
     private final JPanel tablePanel = new JPanel();
@@ -32,13 +33,13 @@ public class CostManagement extends JPanel implements Scrollable {
 
     public CostManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         searchDebounceTimer = new Timer(300, event -> loadBangGiaData(searchField.getText()));
         searchDebounceTimer.setRepeats(false);
 
         add(createListPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadBangGiaData(null);
     }
 
@@ -253,13 +254,12 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
 
-        gbc.weightx = 0.12; header.add(createHeaderCell("MÃ KHU VỰC", SwingConstants.LEFT), gbc);
-        gbc.weightx = 0.14; header.add(createHeaderCell("MÃ BẢNG GIÁ", SwingConstants.LEFT), gbc);
-        gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ BẮT ĐẦU", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.14; header.add(createHeaderCell("GIỜ KẾT THÚC", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.14; header.add(createHeaderCell("GIÁ", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.14; header.add(createHeaderCell("TRẠNG THÁI", SwingConstants.CENTER), gbc);
-        gbc.weightx = 0.18; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.14; header.add(createHeaderCell("MÃ KHU VỰC", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.16; header.add(createHeaderCell("MÃ BẢNG GIÁ", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.15; header.add(createHeaderCell("GIỜ BẮT ĐẦU", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.15; header.add(createHeaderCell("GIỜ KẾT THÚC", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.16; header.add(createHeaderCell("GIÁ", SwingConstants.CENTER), gbc);
+        gbc.weightx = 0.24; header.add(createHeaderCell("THAO TÁC", SwingConstants.CENTER), gbc);
 
         return header;
     }
@@ -290,19 +290,16 @@ public class CostManagement extends JPanel implements Scrollable {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
 
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(cost.maKv(), new Color(37, 99, 235)), SwingConstants.LEFT, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(cost.maKv(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         JLabel maBgLabel = new JLabel(cost.maBg());
         maBgLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         maBgLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.14; row.add(createFlexibleCell(maBgLabel, SwingConstants.LEFT, rowBg, 5, 0), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(maBgLabel, SwingConstants.CENTER, rowBg, 5, 0), gbc);
 
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
-
-        Color statusColor = cost.isDeleted() ? new Color(185, 28, 28) : new Color(16, 110, 0);
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(cost.getStatus(), statusColor), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioBatDau()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(formatHour(cost.gioKetThuc()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.16; row.add(createFlexibleCell(createCellLabel(formatMoney(cost.gia()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
@@ -321,7 +318,7 @@ public class CostManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.18; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.24; row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
