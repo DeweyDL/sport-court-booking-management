@@ -45,3 +45,10 @@ feature/invoice-payment
 fix/booking-conflict
 docs/update-readme
 chore/logger-config
+```
+
+## Quality Management
+
+The project follows a Definition of Done and GitHub Pull Request review process documented in:
+
+[Quality Management](docs/QUALITY_MANAGEMENT.md)
