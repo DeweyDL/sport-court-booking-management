@@ -113,7 +113,7 @@ public class LoginScreen extends JFrame {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(new Color(57, 255, 20));
+                g2.setColor(new Color(111, 240, 36));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 40, 40);
                 super.paintComponent(g);
                 g2.dispose();

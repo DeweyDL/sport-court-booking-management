@@ -1,6 +1,7 @@
 package com.sportcourt.common.ui;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +48,13 @@ public class ContentPanel extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.decode("#F5F7FA"));
+        wrapper.setBorder(new EmptyBorder(20, 20, 20, 20));
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+
         loadedViews.put(key, scrollPane);
-        cards.add(scrollPane, key);
+        cards.add(wrapper, key);
     }
 }
