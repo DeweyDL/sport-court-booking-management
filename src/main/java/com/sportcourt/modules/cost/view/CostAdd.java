@@ -1,9 +1,6 @@
 package com.sportcourt.modules.cost.view;
 
-import com.sportcourt.modules.cost.view.CostMockData.AreaOption;
-import com.sportcourt.modules.cost.view.CostMockData.CostItem;
-import com.sportcourt.modules.cost.view.CostMockData.KhungGioOption;
-import com.sportcourt.modules.cost.view.CostMockData.Store;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,11 +11,11 @@ import java.math.BigDecimal;
 import java.util.function.Consumer;
 
 public class CostAdd extends JPanel {
-    private final Store store;
+    private final com.sportcourt.modules.cost.controller.CostController controller;
     private final Consumer<String> onSaved;
 
     private final JTextField maBgField = createDisplayField();
-    private final JComboBox<AreaOption> areaComboBox = new JComboBox<>();
+    private final JComboBox<String> areaComboBox = new JComboBox<>();
     private final JComboBox<KhungGioOption> khungGioComboBox = new JComboBox<>();
     private final JTextField startHourField = createDisplayField();
     private final JTextField endHourField = createDisplayField();
@@ -27,8 +24,8 @@ public class CostAdd extends JPanel {
     private JDialog dialog;
     private String generatedMaBg;
 
-    public CostAdd(Store store, Consumer<String> onSaved) {
-        this.store = store;
+    public CostAdd(com.sportcourt.modules.cost.controller.CostController controller, Consumer<String> onSaved) {
+        this.controller = controller;
         this.onSaved = onSaved;
 
         setOpaque(false);
@@ -45,7 +42,7 @@ public class CostAdd extends JPanel {
     }
 
     private void prepareCreateForm() {
-        generatedMaBg = store.generateNextMaBg();
+        generatedMaBg = "Hệ thống tự sinh";
         maBgField.setText(generatedMaBg);
         giaField.setText("");
 
@@ -53,10 +50,17 @@ public class CostAdd extends JPanel {
         bindKhungGio();
     }
 
+    record KhungGioOption(int gioBatDau, int gioKetThuc) {
+        @Override
+        public String toString() {
+            return "%02d:00 - %02d:00".formatted(gioBatDau, gioKetThuc);
+        }
+    }
+
     private void bindAreaOptions() {
-        DefaultComboBoxModel<AreaOption> model = new DefaultComboBoxModel<>();
-        for (AreaOption opt : store.getAreaOptions()) {
-            model.addElement(opt);
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        for (String maKv : controller.getKhuVucOptions()) {
+            model.addElement(maKv);
         }
         areaComboBox.setModel(model);
         styleComboBox(areaComboBox);
@@ -67,15 +71,8 @@ public class CostAdd extends JPanel {
 
     private void bindKhungGio() {
         DefaultComboBoxModel<KhungGioOption> model = new DefaultComboBoxModel<>();
-        java.util.List<KhungGioOption> options = store.getKhungGioOptions();
-        if (options == null || options.isEmpty()) {
-            for (int h = 0; h <= 23; h++) {
-                model.addElement(new KhungGioOption(null, h, h + 1));
-            }
-        } else {
-            for (KhungGioOption opt : options) {
-                model.addElement(opt);
-            }
+        for (int h = 0; h <= 23; h++) {
+            model.addElement(new KhungGioOption(h, h + 1));
         }
         khungGioComboBox.setModel(model);
         styleComboBox(khungGioComboBox);
@@ -334,12 +331,9 @@ public class CostAdd extends JPanel {
     }
 
     private void saveNewBangGia() {
-        if (generatedMaBg == null || generatedMaBg.isBlank()) {
-            JOptionPane.showMessageDialog(this, "Không thể sinh mã bảng giá mới.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        // bỏ qua check generatedMaBg vì nó tự sinh dưới database
 
-        AreaOption selectedArea = (AreaOption) areaComboBox.getSelectedItem();
+        String selectedArea = (String) areaComboBox.getSelectedItem();
         if (selectedArea == null) {
             JOptionPane.showMessageDialog(this, "Hãy chọn khu vực.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
@@ -369,22 +363,20 @@ public class CostAdd extends JPanel {
         }
 
         try {
-            store.create(new CostItem(
-                    generatedMaBg,
-                    selectedArea.maKv(),
-                    selectedKhungGio == null ? null : selectedKhungGio.maKg(),
-                    gioBatDau,
-                    gioKetThuc,
-                    gia,
-                    false,
-                    java.time.LocalDateTime.now()
-            ));
+            com.sportcourt.modules.cost.dto.CostCreateRequest req = new com.sportcourt.modules.cost.dto.CostCreateRequest();
+            req.setMaKv(selectedArea);
+            req.setGioBatDau(gioBatDau);
+            req.setGioKetThuc(gioKetThuc);
+            req.setGia(gia);
+
+            controller.createCost(req);
+
             JOptionPane.showMessageDialog(this, "Đã thêm bảng giá mới.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             if (dialog != null) {
                 dialog.setVisible(false);
             }
-            onSaved.accept(generatedMaBg);
-        } catch (IllegalStateException exception) {
+            onSaved.accept("");
+        } catch (Exception exception) {
             JOptionPane.showMessageDialog(
                     this,
                     exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
