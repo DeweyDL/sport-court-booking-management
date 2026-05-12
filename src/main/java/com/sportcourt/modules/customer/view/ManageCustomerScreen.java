@@ -3,6 +3,7 @@ package com.sportcourt.modules.customer.view;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.customer.controller.ManageCustomerController;
 import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
 import com.sportcourt.modules.customer.dto.CustomerProfile;
@@ -61,10 +62,10 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
     public ManageCustomerScreen() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadCustomers("");
     }
 
@@ -280,10 +281,10 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
         
-        gbc.weightx = 0.07; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.17; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.07; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.17; row.add(createFlexibleCell(createCellLabel(customer.getHoTen(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.11; row.add(createFlexibleCell(createCellLabel(customer.getSdt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.14; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(createWrappedAddressLabel(customer.getDiaChi(), rowBg), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.18; row.add(createFlexibleCell(createTierCell(customer.getMaHang()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.08; row.add(createFlexibleCell(createStatusPill(customer.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.08; row.add(createFlexibleCell(createCellLabel(formatCurrency(customer.getDoanhThu()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
@@ -527,18 +528,11 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         boolean hasAddress = text != null && !text.isBlank();
         String value = hasAddress ? text.trim() : "--";
 
-        JTextArea area = new JTextArea(value);
+        JLabel area = new JLabel("<html><div style='text-align:center;'>" + escapeHtml(value) + "</div></html>", SwingConstants.CENTER);
         area.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         area.setForeground(new Color(43, 47, 55));
         area.setBackground(bg);
         area.setOpaque(true);
-        area.setEditable(false);
-        area.setFocusable(false);
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        area.setRows(2);
-        area.setPreferredSize(new Dimension(0, area.getFontMetrics(area.getFont()).getHeight() * 2 + 2));
-        area.setBorder(BorderFactory.createEmptyBorder());
         if (hasAddress) {
             area.setToolTipText(text.trim());
         }

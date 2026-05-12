@@ -1,5 +1,6 @@
 package com.sportcourt.modules.imports.view;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.imports.view.ImportMockData.ImportItem;
 
 import javax.swing.*;
@@ -37,10 +38,10 @@ public class ImportManagement extends JPanel implements Scrollable {
 
     public ImportManagement() {
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadData(null);
     }
 
@@ -226,9 +227,9 @@ public class ImportManagement extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
-        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("Mã NH"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("NHÀ CUNG CẤP"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NHÂN VIÊN"), SwingConstants.LEFT, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("Mã NH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("NHÀ CUNG CẤP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NHÂN VIÊN"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ CHỨNG TỪ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("TRỊ GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("NGÀY NHẬP"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 4), gbc);
@@ -266,13 +267,13 @@ public class ImportManagement extends JPanel implements Scrollable {
         JLabel idLabel = new JLabel(item.manh());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
-        gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Nhà cung cấp
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Nhân viên
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Mã chứng từ
         gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.maChungTu(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);

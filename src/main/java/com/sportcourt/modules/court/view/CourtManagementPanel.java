@@ -2,6 +2,7 @@ package com.sportcourt.modules.court.view;
 
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.court.controller.CourtManagementController;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
@@ -56,10 +57,10 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         AppFonts.register();
         this.branchId = SessionManager.requireSession().getBranchId();
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(100, 70, 50, 70));
+        CrudViewStyle.applyPageDefaults(this);
 
         add(createPage(), BorderLayout.CENTER);
+        CrudViewStyle.installResponsiveTypography(this);
         loadCourts("");
     }
 
@@ -273,7 +274,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
 
-        gbc.weightx = 0.14; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.14; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createCellLabel(court.getAreaId(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(court.getSportTypeName(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.14; row.add(createFlexibleCell(createStatusPill(court.getStatus()), SwingConstants.CENTER, rowBg, 0, 8), gbc);
