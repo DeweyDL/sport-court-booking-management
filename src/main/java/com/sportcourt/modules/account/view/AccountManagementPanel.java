@@ -23,23 +23,22 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class AccountManagementPanel extends JPanel implements Scrollable {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final int ROW_HEIGHT = 64;
-    private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
-
-    private static final Color PAGE_BACKGROUND = new Color(245, 247, 250);
+    private static final int ROW_HEIGHT = 72;
+    private static final Color ALTERNATE_ROW_BG = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
     private static final Color FOOTER_BACKGROUND = Color.WHITE;
     private static final Color BODY_TEXT = new Color(43, 47, 55);
-    private static final Color EDIT_BG = new Color(239, 246, 255);
-    private static final Color EDIT_TEXT = new Color(29, 78, 216);
-    private static final Color CREATE_BG = new Color(220, 252, 231);
-    private static final Color CREATE_TEXT = new Color(22, 101, 52);
-    private static final Color SOFT_RED_BG = new Color(254, 226, 226);
-    private static final Color SOFT_RED_TEXT = new Color(185, 28, 28);
-    private static final Color INPUT_BORDER = new Color(229, 231, 235);
+    private static final Color EDIT_BG = CrudViewStyle.EDIT_BG;
+    private static final Color EDIT_TEXT = CrudViewStyle.EDIT_TEXT;
+    private static final Color CREATE_BG = CrudViewStyle.SUCCESS_BG;
+    private static final Color CREATE_TEXT = CrudViewStyle.SUCCESS_TEXT;
+    private static final Color SOFT_RED_BG = CrudViewStyle.DANGER_BG;
+    private static final Color SOFT_RED_TEXT = CrudViewStyle.DANGER_TEXT;
+    private static final Color INPUT_BORDER = CrudViewStyle.BORDER;
 
     private static final String LIST_CARD = "LIST";
     private static final String DETAIL_CARD = "DETAIL";
@@ -48,6 +47,15 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private final JPanel tableBodyPanel = new JPanel();
     private final JLabel footerLabel = new JLabel("Đang hiển thị 0 / 0 tài khoản");
     private final JTextField txtSearch = new JTextField();
+    private final JPanel searchWrapper = new JPanel(new BorderLayout());
+    private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
+            "Username",
+            "Họ tên",
+            "Trạng thái",
+            "Quyền",
+            "Ngày tạo"
+    });
+    private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer searchDebounceTimer;
     private final UserSession session = SessionManager.requireSession();
     private final CardLayout contentCardLayout = new CardLayout();
@@ -55,6 +63,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private final AccountDetailPanel detailPanel = new AccountDetailPanel(this::showListView, this::showEditView, this::handleDelete, this::handleRestore);
 
     private List<RoleGroupOption> roleGroups = new ArrayList<>();
+    private boolean sortAscending = true;
 
     public AccountManagementPanel() {
         AppFonts.register();
@@ -77,7 +86,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createListPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -126,7 +135,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
@@ -154,7 +163,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -163,21 +172,20 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm tài khoản", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
-        addBtn.setBorder(new EmptyBorder(4, 12, 6, 12));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
+        addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> showCreateView());
-        JPanel addBtnWrapper = new JPanel(new BorderLayout());
-        addBtnWrapper.setOpaque(false);
-        addBtnWrapper.add(addBtn, BorderLayout.CENTER);
 
         leftToolbar.add(tableTitle);
         if (canAdd()) {
-            leftToolbar.add(addBtnWrapper);
+            leftToolbar.add(addBtn);
         }
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        JPanel rightToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        rightToolbar.setBackground(Color.WHITE);
+        JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
@@ -185,42 +193,30 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        txtSearch.setPreferredSize(new Dimension(310, 38));
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo account, username, họ tên...");
-        txtSearch.setBorder(new EmptyBorder(0, 8, 0, 14));
-        txtSearch.setOpaque(false);
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, txtSearch, loadSearchIcon());
+    }
 
-        JLabel searchIconLabel = new JLabel(loadSearchIcon());
-        searchIconLabel.setBorder(new EmptyBorder(0, 12, 0, 0));
-
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.setColor(INPUT_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(310, 38));
-        wrapper.add(searchIconLabel, BorderLayout.WEST);
-        wrapper.add(txtSearch, BorderLayout.CENTER);
-        return wrapper;
+    private JPanel createSortWrapper() {
+        cbSort.addActionListener(event -> loadAccounts(txtSearch.getText()));
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+            loadAccounts(txtSearch.getText());
+        });
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private JPanel createTableHeader() {
         JPanel header = new JPanel(new GridBagLayout());
-        header.setBackground(new Color(248, 249, 250));
+        header.setBackground(CrudViewStyle.TABLE_HEADER_BACKGROUND);
         header.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
+                new MatteBorder(1, 0, 1, 0, CrudViewStyle.BORDER),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 45));
+        header.setPreferredSize(new Dimension(1000, 52));
+        header.setMinimumSize(new Dimension(800, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -228,8 +224,8 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("MÃ TK", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("USERNAME", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("USERNAME", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SĐT", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.08; header.add(createFlexibleCell(createHeaderLabel("STATUS", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("QUYỀN", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
@@ -251,8 +247,8 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text, int alignment) {
         JLabel label = new JLabel(text, alignment);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        label.setForeground(CrudViewStyle.MUTED);
         return label;
     }
 
@@ -319,18 +315,45 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     }
 
     private void renderTableData(List<AccountRow> rows) {
+        List<AccountRow> sortedRows = new ArrayList<>(rows);
+        sortAccounts(sortedRows);
         tableBodyPanel.removeAll();
-        if (rows.isEmpty()) {
+        if (sortedRows.isEmpty()) {
             tableBodyPanel.add(createEmptyRow("Không tìm thấy account phù hợp."));
         } else {
             int index = 0;
-            for (AccountRow row : rows) {
+            for (AccountRow row : sortedRows) {
                 tableBodyPanel.add(createDataRow(row, index++));
             }
         }
         footerLabel.setText("Đang hiển thị " + rows.size() + " / " + rows.size() + " tài khoản");
         tableBodyPanel.revalidate();
         tableBodyPanel.repaint();
+    }
+
+    private void sortAccounts(List<AccountRow> rows) {
+        String sortType = (String) cbSort.getSelectedItem();
+        Comparator<AccountRow> comparator;
+        if ("Họ tên".equals(sortType)) {
+            comparator = Comparator.comparing(row -> sortKey(row.getDisplayName()));
+        } else if ("Trạng thái".equals(sortType)) {
+            comparator = Comparator.comparing(row -> sortKey(displayStatus(row)));
+        } else if ("Quyền".equals(sortType)) {
+            comparator = Comparator.comparing(row -> sortKey(displayRole(row)));
+        } else if ("Ngày tạo".equals(sortType)) {
+            comparator = Comparator.comparing(AccountRow::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()));
+        } else {
+            comparator = Comparator.comparing(row -> sortKey(row.getUsername()));
+        }
+        comparator = comparator.thenComparing(row -> sortKey(row.getAccountId()));
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        rows.sort(comparator);
+    }
+
+    private String sortKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     private void renderErrorState(Exception exception) {
@@ -353,7 +376,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         JPanel rowPanel = new JPanel(new GridBagLayout());
         rowPanel.setBackground(rowBg);
         rowPanel.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
+                new MatteBorder(0, 0, 1, 0, CrudViewStyle.ROW_BORDER),
                 new EmptyBorder(0, 24, 0, 24)
         ));
         rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
@@ -375,8 +398,8 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         });
 
         gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(accountIdLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getUsername(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
-        gbc.weightx = 0.18; rowPanel.add(createFlexibleCell(createBodyLabel(row.getDisplayName(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getUsername(), false), SwingConstants.LEFT, rowBg, 8, 8), gbc);
+        gbc.weightx = 0.18; rowPanel.add(createFlexibleCell(createBodyLabel(row.getDisplayName(), false), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getPhone(), false), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(createStatusPill(row), SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(displayRole(row), true), SwingConstants.CENTER, rowBg, 0, 8), gbc);
@@ -546,7 +569,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
 
     private JLabel createBodyLabel(String text, boolean bold) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        label.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 16));
         label.setForeground(BODY_TEXT);
         return label;
     }
@@ -591,31 +614,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         boolean inactive = "INACTIVE".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status);
         Color background = active ? CREATE_BG : inactive ? SOFT_RED_BG : EDIT_BG;
         Color foreground = active ? CREATE_TEXT : inactive ? SOFT_RED_TEXT : EDIT_TEXT;
-
-        JLabel label = new JLabel(status == null || status.isBlank() ? "--" : status, SwingConstants.CENTER) {
-            @Override
-            protected void paintComponent(Graphics graphics) {
-                Graphics2D g2 = (Graphics2D) graphics.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(background);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-                super.paintComponent(graphics);
-            }
-        };
-        label.setOpaque(false);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        label.setForeground(foreground);
-        label.setBorder(new EmptyBorder(4, 10, 4, 10));
-        Dimension size = new Dimension(86, 26);
-        label.setPreferredSize(size);
-        label.setMinimumSize(size);
-        label.setMaximumSize(size);
-
-        JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.setOpaque(false);
-        wrapper.add(label);
-        return wrapper;
+        return CrudViewStyle.createStatusPill(status, background, foreground);
     }
 
     private String displayRole(AccountRow row) {
@@ -648,6 +647,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         };
         button.setForeground(foreground);
         button.setFont(new Font("Segoe UI", isBold ? Font.BOLD : Font.PLAIN, 13));
+        button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
@@ -658,8 +658,8 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color background, Color foreground) {
         JButton button = createPillButton(text, background, foreground, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(6, 10, 6, 10));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
 
