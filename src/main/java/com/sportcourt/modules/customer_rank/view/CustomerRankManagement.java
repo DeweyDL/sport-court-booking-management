@@ -11,13 +11,17 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 public class CustomerRankManagement extends JPanel implements Scrollable {
 
     private static final Color ALTERNATE_ROW_BACKGROUND = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
+
+    private final CustomerRankController controller = new CustomerRankController();
 
     private final JPanel tablePanel = new JPanel();
     private final JLabel infoLabel = new JLabel("Đang tải dữ liệu...");
@@ -60,7 +64,7 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         subtitleLabel.setBorder(new EmptyBorder(5, 20, 20, 0));
 
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(360, 45)); // Khớp kích thước bản mẫu
+        searchField.setPreferredSize(new Dimension(360, 45));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã hoặc tên hạng...");
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -111,7 +115,8 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
 
         JButton addButton = createPillButton("+ Thêm hạng", new Color(228, 250, 226), new Color(16, 110, 0), true);
         addButton.setFont(new Font("Lexend", Font.BOLD, 17));
-        addButton.addActionListener(event -> CustomerRankCreateDialog.show(this));
+        addButton.addActionListener(event ->
+                CustomerRankCreateDialog.show(this, controller, this::loadData));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
@@ -190,19 +195,20 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         });
     }
 
-    private void loadData(String keyword) {
+    public void loadData(String keyword) {
         infoLabel.setText("Đang tải dữ liệu...");
         tablePanel.removeAll();
         tablePanel.add(createTableHeader());
 
-        List<CustomerRankItem> all = CustomerRankMockData.createSampleData();
-
-        if (keyword != null && !keyword.isBlank()) {
-            String lower = keyword.toLowerCase().trim();
-            all = all.stream()
-                    .filter(item -> item.maHang().toLowerCase().contains(lower)
-                            || item.tenHang().toLowerCase().contains(lower))
-                    .toList();
+        List<CustomerRank> all;
+        try {
+            all = controller.searchRanks(keyword);
+        } catch (SQLException ex) {
+            tablePanel.add(createMessageRow("Lỗi tải dữ liệu: " + ex.getMessage()));
+            infoLabel.setText("Lỗi kết nối cơ sở dữ liệu");
+            tablePanel.revalidate();
+            tablePanel.repaint();
+            return;
         }
 
         if (all.isEmpty()) {
@@ -210,7 +216,7 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
             infoLabel.setText("Hiển thị 0 hạng khách hàng");
         } else {
             int idx = 0;
-            for (CustomerRankItem item : all) {
+            for (CustomerRank item : all) {
                 tablePanel.add(createDataRow(item, idx++));
             }
             infoLabel.setText("Hiển thị " + all.size() + " hạng khách hàng");
@@ -218,7 +224,6 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         tablePanel.revalidate();
         tablePanel.repaint();
     }
-
 
     private JPanel createTableHeader() {
         JPanel header = new JPanel(new GridBagLayout());
@@ -254,7 +259,7 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         return label;
     }
 
-    private JPanel createDataRow(CustomerRankItem item, int rowIndex) {
+    private JPanel createDataRow(CustomerRank item, int rowIndex) {
         Color rowBackground = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BACKGROUND;
         JPanel row = new JPanel(new GridBagLayout());
         row.setBackground(rowBackground);
@@ -270,17 +275,17 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         gbc.weighty = 1.0;
         gbc.insets = new Insets(0, 0, 0, 16);
 
-        JLabel idLabel = new JLabel(item.maHang());
+        JLabel idLabel = new JLabel(item.getMaHang());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         idLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.15; row.add(createFlexibleCell(idLabel, SwingConstants.LEFT, rowBackground, 0, 0), gbc);
 
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenHang(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBackground, 0, 0), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.getTenHang(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBackground, 0, 0), gbc);
 
-        JPanel discountBadge = createDiscountBadge(item.chietKhau());
+        JPanel discountBadge = createDiscountBadge(item.getChietKhau());
         gbc.weightx = 0.20; row.add(createFlexibleCell(discountBadge, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(formatMoney(item.mucTien()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBackground, 0, 0), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(formatMoney(item.getMucTien()), new Color(37, 99, 235)), SwingConstants.CENTER, rowBackground, 0, 0), gbc);
 
         JPanel actionContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionContainer.setOpaque(false);
@@ -289,7 +294,8 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         deleteButton.addActionListener(event -> confirmDelete(item));
 
         JButton editButton = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editButton.addActionListener(event -> CustomerRankEditDialog.show(this, item));
+        editButton.addActionListener(event ->
+                CustomerRankEditDialog.show(this, item, controller, this::loadData));
 
         actionContainer.add(deleteButton);
         actionContainer.add(editButton);
@@ -299,7 +305,9 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionContainer);
 
-        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
+        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0);
+        row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBackground, 0, 0), gbc);
+
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
@@ -329,30 +337,11 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         return row;
     }
 
-    @Override
-    public Dimension getPreferredScrollableViewportSize() {
-        return getPreferredSize();
-    }
-
-    @Override
-    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-        return 16;
-    }
-
-    @Override
-    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
-        return 64;
-    }
-
-    @Override
-    public boolean getScrollableTracksViewportWidth() {
-        return true;
-    }
-
-    @Override
-    public boolean getScrollableTracksViewportHeight() {
-        return true;
-    }
+    @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+    @Override public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) { return 16; }
+    @Override public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) { return 64; }
+    @Override public boolean getScrollableTracksViewportWidth() { return true; }
+    @Override public boolean getScrollableTracksViewportHeight() { return true; }
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
@@ -370,7 +359,6 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         panel.setOpaque(true);
         panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
-
         panel.setPreferredSize(new Dimension(0, 64));
         panel.setMinimumSize(new Dimension(0, 64));
         return panel;
@@ -378,25 +366,13 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
 
     private JPanel createDiscountBadge(BigDecimal chietKhau) {
         double value = chietKhau == null ? 0 : chietKhau.doubleValue();
-        Color badgeBg;
-        Color badgeFg;
+        Color badgeBg, badgeFg;
+        if (value == 0) { badgeBg = new Color(243, 244, 246); badgeFg = new Color(107, 114, 128); }
+        else if (value <= 5) { badgeBg = new Color(219, 234, 254); badgeFg = new Color(29, 78, 216); }
+        else if (value <= 10) { badgeBg = new Color(220, 252, 231); badgeFg = new Color(22, 101, 52); }
+        else if (value <= 15) { badgeBg = new Color(254, 243, 199); badgeFg = new Color(146, 64, 14); }
+        else { badgeBg = new Color(254, 226, 226); badgeFg = new Color(185, 28, 28); }
 
-        if (value == 0) {
-            badgeBg = new Color(243, 244, 246);
-            badgeFg = new Color(107, 114, 128);
-        } else if (value <= 5) {
-            badgeBg = new Color(219, 234, 254);
-            badgeFg = new Color(29, 78, 216);
-        } else if (value <= 10) {
-            badgeBg = new Color(220, 252, 231);
-            badgeFg = new Color(22, 101, 52);
-        } else if (value <= 15) {
-            badgeBg = new Color(254, 243, 199);
-            badgeFg = new Color(146, 64, 14);
-        } else {
-            badgeBg = new Color(254, 226, 226);
-            badgeFg = new Color(185, 28, 28);
-        }
         String text = value == 0 ? "Không" : (int) value + "%";
         JLabel label = new JLabel(text) {
             @Override
@@ -420,16 +396,26 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         return wrapper;
     }
 
-    private void confirmDelete(CustomerRankItem item) {
+    private void confirmDelete(CustomerRank item) {
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Bạn có chắc muốn xóa hạng \"" + item.tenHang() + "\"?",
+                "Bạn có chắc muốn xóa hạng \"" + item.getTenHang() + "\"?",
                 "Xác nhận xóa",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
         );
         if (confirm == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(this, "Đã ghi nhận (mock).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            try {
+                boolean deleted = controller.deleteRank(item.getMaHang());
+                if (deleted) {
+                    JOptionPane.showMessageDialog(this, "Xóa hạng thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    loadData(searchField.getText());
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không tìm thấy hạng để xóa.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi xóa: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
