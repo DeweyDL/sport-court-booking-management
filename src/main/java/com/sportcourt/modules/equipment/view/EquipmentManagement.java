@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class EquipmentManagement extends JPanel implements Scrollable {
-    private static final int HEADER_HEIGHT = 45;
-    private static final int ROW_HEIGHT = 64;
+    private static final int HEADER_HEIGHT = 52;
+    private static final int ROW_HEIGHT = 72;
     private static final int COLUMN_GAP = 12;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
@@ -53,7 +53,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     // --------- PAGE LAYOUT ---------
 
     private JPanel createPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -104,7 +104,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         // Top section: toolbar
         JPanel topSection = new JPanel();
@@ -141,7 +141,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -150,16 +150,13 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm dụng cụ", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 14));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
+        addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
 
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setOpaque(false);
-        btnWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
-        btnWrapper.add(addBtn, BorderLayout.CENTER);
-
         leftToolbar.add(tableTitle);
-        leftToolbar.add(btnWrapper);
+        leftToolbar.add(addBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -174,44 +171,9 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        searchWrapper.removeAll();
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(300, 45));
-        searchWrapper.setMaximumSize(new Dimension(300, 45));
-
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setPreferredSize(new Dimension(300, 45));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã hoặc tên dụng cụ...");
-        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
-        searchField.putClientProperty("JComponent.roundRect", true);
-        searchField.setBorder(null);
-        searchField.setOpaque(false);
         bindSearchListener();
-
-        JLabel iconLabel = new JLabel(loadSearchIcon());
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
-
-        JPanel innerPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(300, 45));
-        innerPanel.setMaximumSize(new Dimension(300, 45));
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-        innerPanel.add(iconLabel, BorderLayout.WEST);
-        innerPanel.add(searchField, BorderLayout.CENTER);
-
-        searchWrapper.add(innerPanel, BorderLayout.CENTER);
-        return searchWrapper;
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, searchField, loadSearchIcon());
     }
 
 
@@ -233,9 +195,9 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("Mã DC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("TÊN DỤNG CỤ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.25; header.add(createFlexibleCell(createHeaderLabel("TÊN DỤNG CỤ"), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("ĐƠN VỊ TÍNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("GIÁ"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
+        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("GIÁ"), SwingConstants.RIGHT, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("SỐ LƯỢNG"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 4), gbc);
         gbc.weightx = 0.23; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
 
@@ -244,7 +206,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -269,18 +231,18 @@ public class EquipmentManagement extends JPanel implements Scrollable {
 
         // Mã DC - highlight xanh lá
         JLabel idLabel = new JLabel(item.maDc());
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         idLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Tên dụng cụ
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenDc(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenDc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
 
         // Đơn vị tính
         gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(item.dvt(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Giá
-        gbc.weightx = 0.17; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.gia()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.17; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.gia()), new Color(17, 24, 39)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
 
         // Số lượng
         gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(String.valueOf(item.slTon()), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 4), gbc);
@@ -373,7 +335,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -447,63 +409,18 @@ public class EquipmentManagement extends JPanel implements Scrollable {
     // --------- SORT ---------
 
     private JPanel createSortWrapper() {
-        cbSort.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        cbSort.setFocusable(false);
-        cbSort.setOpaque(false);
-        cbSort.setBorder(null);
-        cbSort.setBackground(new Color(0, 0, 0, 0));
-        cbSort.putClientProperty("JComponent.roundRect", true);
-        cbSort.putClientProperty("JComboBox.buttonStyle", "button");
-        cbSort.putClientProperty("JComboBox.isSquare", false);
-        cbSort.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                Object display = index < 0 ? "Sắp xếp: " + value : value;
-                JLabel label = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
-                label.setBorder(new EmptyBorder(6, 10, 6, 10));
-                return label;
-            }
-        });
         cbSort.addActionListener(event -> {
             sortList();
             renderTable();
         });
-
-        btnSortDir.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
-        btnSortDir.setForeground(new Color(75, 85, 99));
-        btnSortDir.setBorder(new EmptyBorder(0, 0, 0, 12));
-        btnSortDir.setContentAreaFilled(false);
-        btnSortDir.setBorderPainted(false);
-        btnSortDir.setFocusPainted(false);
-        btnSortDir.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSortDir.addActionListener(event -> {
             sortAscending = !sortAscending;
-            btnSortDir.setText(sortAscending ? "\u25B2" : "\u25BC");
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
             sortList();
             renderTable();
         });
-
-        JPanel wrapper = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        wrapper.setOpaque(false);
-        wrapper.setPreferredSize(new Dimension(240, 45));
-        wrapper.setMaximumSize(new Dimension(240, 45));
-        wrapper.setBorder(new EmptyBorder(0, 12, 0, 0));
-        wrapper.add(cbSort, BorderLayout.CENTER);
-        wrapper.add(btnSortDir, BorderLayout.EAST);
-        return wrapper;
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     private void sortList() {
@@ -566,6 +483,7 @@ public class EquipmentManagement extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -576,8 +494,8 @@ public class EquipmentManagement extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton button = createPillButton(text, bg, fg, true);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        button.setBorder(new EmptyBorder(4, 8, 4, 8));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        button.setBorder(new EmptyBorder(4, 12, 4, 12));
         return button;
     }
     @Override

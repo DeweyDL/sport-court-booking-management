@@ -15,8 +15,8 @@ final class CustomerRankCreateDialog {
 
     private static final Color DIALOG_BG    = new Color(248, 249, 252);
     private static final Color CARD_BG      = Color.WHITE;
-    private static final Color BRAND_COLOR  = new Color(22, 101, 52);
-    private static final Color BRAND_BG     = new Color(220, 252, 231);
+    private static final Color BRAND_COLOR  = new Color(16, 110, 0);
+    private static final Color BRAND_BG     = new Color(228, 250, 226);
     private static final Color TEXT_DARK    = new Color(30, 41, 59);
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
@@ -31,12 +31,12 @@ final class CustomerRankCreateDialog {
 
         JPanel root = new JPanel(new BorderLayout(0, 16));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
         // Header
         JLabel title = new JLabel("Thêm hạng khách hàng");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setFont(new Font("Lexend", Font.BOLD, 24));
         title.setForeground(TEXT_DARK);
         title.setHorizontalAlignment(SwingConstants.LEFT);
 
@@ -79,8 +79,8 @@ final class CustomerRankCreateDialog {
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
 
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn   = createPillButton("Thêm hạng", BRAND_BG, BRAND_COLOR);
+        JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
+        JButton saveBtn   = createPillButton("Thêm hạng", BRAND_COLOR, Color.WHITE);
 
         cancelBtn.addActionListener(event -> dialog.dispose());
 
@@ -135,7 +135,7 @@ final class CustomerRankCreateDialog {
         root.add(actions, BorderLayout.SOUTH);
 
         dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth(), 480), dialog.getHeight());
+        dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
     }
@@ -148,17 +148,17 @@ final class CustomerRankCreateDialog {
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
         label.setForeground(new Color(75, 85, 99));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        field.setFont(new Font("Lexend", Font.PLAIN, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(new Color(249, 250, 251));
+        field.setBackground(Color.WHITE);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
@@ -181,7 +181,8 @@ final class CustomerRankCreateDialog {
             }
         };
         btn.setForeground(fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Lexend", Font.BOLD, 13));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -204,7 +205,7 @@ final class CustomerRankCreateDialog {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(color);
-            g2.drawRoundRect(x, y, width - 1, height - 1, arc, arc);
+            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
             g2.dispose();
         }
 

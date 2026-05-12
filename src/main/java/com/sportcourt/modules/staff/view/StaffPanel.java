@@ -13,18 +13,29 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class StaffPanel extends JPanel implements Scrollable {
 
-    private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
+    private static final Color ALTERNATE_ROW_BG = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final StaffService staffService       = new StaffServiceImpl();
     private final JPanel       tablePanel         = new JPanel();
     private final JLabel       infoLabel          = new JLabel("Đang tải dữ liệu...");
     private final JTextField   searchField        = new JTextField(30);
     private final JPanel       searchWrapper      = new JPanel(new BorderLayout());
+    private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
+            "Họ tên",
+            "Mã NV",
+            "Ngày vào làm",
+            "Chức vụ",
+            "Trạng thái"
+    });
+    private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer        searchDebounceTimer;
+    private boolean sortAscending = true;
 
     public StaffPanel() {
         setLayout(new BorderLayout());
@@ -41,7 +52,7 @@ public class StaffPanel extends JPanel implements Scrollable {
     // --------- PAGE LAYOUT ---------
 
     private JPanel createPage() {
-        JPanel page = new JPanel(new BorderLayout(0, 20));
+        JPanel page = new JPanel(new BorderLayout(0, 12));
         page.setOpaque(false);
         page.add(createHeaderSection(), BorderLayout.NORTH);
         page.add(createMainSection(), BorderLayout.CENTER);
@@ -92,7 +103,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         };
         container.setOpaque(false);
         container.setBackground(Color.WHITE);
-        container.setBorder(new EmptyBorder(20, 0, 20, 0));
+        container.setBorder(new EmptyBorder(12, 0, 16, 0));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
@@ -126,7 +137,7 @@ public class StaffPanel extends JPanel implements Scrollable {
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(new EmptyBorder(10, 20, 20, 20));
+        toolbar.setBorder(new EmptyBorder(8, 20, 14, 20));
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftToolbar.setBackground(Color.WHITE);
@@ -135,16 +146,18 @@ public class StaffPanel extends JPanel implements Scrollable {
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
         JButton addBtn = createPillButton("+ Thêm nhân viên", new Color(228, 250, 226), new Color(16, 110, 0), true);
-        addBtn.setFont(new Font("Lexend", Font.BOLD, 17));
+        addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
+        addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
+        CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this).setVisible(true));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
-        JPanel rightToolbar = new JPanel();
-        rightToolbar.setLayout(new BoxLayout(rightToolbar, BoxLayout.X_AXIS));
-        rightToolbar.setBackground(Color.WHITE);
+        JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
+        rightToolbar.add(createSortWrapper());
+        rightToolbar.add(Box.createHorizontalStrut(10));
         rightToolbar.add(createSearchFieldWithIcon());
         toolbar.add(rightToolbar, BorderLayout.EAST);
 
@@ -152,43 +165,20 @@ public class StaffPanel extends JPanel implements Scrollable {
     }
 
     private JPanel createSearchFieldWithIcon() {
-        searchWrapper.removeAll();
-        searchWrapper.setOpaque(false);
-        searchWrapper.setPreferredSize(new Dimension(320, 45));
-        searchWrapper.setMaximumSize(new Dimension(320, 45));
-
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         searchField.putClientProperty("JTextField.placeholderText", "Tìm theo Mã NV, Tên, CCCD...");
-        searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
-        searchField.putClientProperty("JComponent.roundRect", true);
-        searchField.setBorder(null);
-        searchField.setOpaque(false);
         bindSearchListener();
+        return CrudViewStyle.createSearchFieldWithIcon(searchWrapper, searchField, loadSearchIcon());
+    }
 
-        JLabel iconLabel = new JLabel(loadSearchIcon());
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
-
-        JPanel innerPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-        };
-        innerPanel.setOpaque(false);
-        innerPanel.setPreferredSize(new Dimension(320, 45));
-        innerPanel.setMaximumSize(new Dimension(320, 45));
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
-        innerPanel.add(iconLabel, BorderLayout.WEST);
-        innerPanel.add(searchField, BorderLayout.CENTER);
-
-        searchWrapper.add(innerPanel, BorderLayout.CENTER);
-        return searchWrapper;
+    private JPanel createSortWrapper() {
+        cbSort.addActionListener(event -> loadData());
+        btnSortDir.addActionListener(event -> {
+            sortAscending = !sortAscending;
+            CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+            loadData();
+        });
+        CrudViewStyle.updateSortDirectionButton(btnSortDir, sortAscending);
+        return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
     // --------- TABLE HEADER ---------
@@ -200,8 +190,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 45));
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        header.setPreferredSize(new Dimension(0, 52));
+        header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -209,7 +199,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ NV"),         SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.LEFT,   new Color(248, 249, 250), 8, 0), gbc);
         gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("CĂN CƯỚC CD"),   SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY VÀO LÀM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("CHỨC VỤ"),       SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
@@ -220,7 +210,7 @@ public class StaffPanel extends JPanel implements Scrollable {
 
     private JLabel createHeaderLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 16));
         label.setForeground(new Color(107, 114, 128));
         return label;
     }
@@ -236,8 +226,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 64));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        row.setPreferredSize(new Dimension(0, 72));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -246,12 +236,12 @@ public class StaffPanel extends JPanel implements Scrollable {
 
         // Cột 1: Mã NV
         JLabel idLabel = new JLabel(staff.getManv());
-        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         idLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 2: Họ tên
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 0), gbc);
 
         // Cột 3: CCCD
         gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(staff.getCccd(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
@@ -304,10 +294,10 @@ public class StaffPanel extends JPanel implements Scrollable {
 
     private JPanel createStatusBadge(String trangThai) {
         boolean active = "ACTIVE".equalsIgnoreCase(trangThai);
-        Color badgeBg  = active ? new Color(220, 252, 231)  : new Color(254, 226, 226);
-        Color badgeFg  = active ? new Color(22, 101, 52)    : new Color(185, 28, 28);
+        Color badgeBg  = active ? CrudViewStyle.SUCCESS_BG  : CrudViewStyle.DANGER_BG;
+        Color badgeFg  = active ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
         String text    = active ? "Hoạt động" : (trangThai == null ? "--" : trangThai);
-        return makeBadge(text, badgeBg, badgeFg);
+        return CrudViewStyle.createStatusPill(text, badgeBg, badgeFg);
     }
 
     private JPanel makeBadge(String text, Color bg, Color fg) {
@@ -357,7 +347,8 @@ public class StaffPanel extends JPanel implements Scrollable {
         criteria.setKeyword(searchField.getText().trim());
 
         try {
-            List<StaffResponse> staffList = staffService.searchStaff(criteria);
+            List<StaffResponse> staffList = new ArrayList<>(staffService.searchStaff(criteria));
+            sortStaff(staffList);
 
             if (staffList.isEmpty()) {
                 tablePanel.add(createMessageRow("Không tìm thấy nhân viên phù hợp."));
@@ -376,6 +367,32 @@ public class StaffPanel extends JPanel implements Scrollable {
 
         tablePanel.revalidate();
         tablePanel.repaint();
+    }
+
+    private void sortStaff(List<StaffResponse> staffList) {
+        String sortType = (String) cbSort.getSelectedItem();
+        Comparator<StaffResponse> comparator;
+        if ("Mã NV".equals(sortType)) {
+            comparator = Comparator.comparing(staff -> sortKey(staff.getManv()));
+        } else if ("Ngày vào làm".equals(sortType)) {
+            comparator = Comparator.comparing(StaffResponse::getNgayVaoLam, Comparator.nullsLast(Comparator.naturalOrder()));
+        } else if ("Chức vụ".equals(sortType)) {
+            comparator = Comparator.comparingInt(StaffResponse::getIsQl)
+                    .thenComparing(staff -> sortKey(staff.getHoten()));
+        } else if ("Trạng thái".equals(sortType)) {
+            comparator = Comparator.comparing(staff -> sortKey(staff.getTrangThai()));
+        } else {
+            comparator = Comparator.comparing(staff -> sortKey(staff.getHoten()));
+        }
+        comparator = comparator.thenComparing(staff -> sortKey(staff.getManv()));
+        if (!sortAscending) {
+            comparator = comparator.reversed();
+        }
+        staffList.sort(comparator);
+    }
+
+    private String sortKey(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     // --------- SEARCH ---------
@@ -421,14 +438,14 @@ public class StaffPanel extends JPanel implements Scrollable {
         panel.setBorder(new EmptyBorder(0, leftPad, 0, rightPad));
         panel.add(component, BorderLayout.CENTER);
 
-        panel.setPreferredSize(new Dimension(0, 64));
-        panel.setMinimumSize(new Dimension(0, 64));
+        panel.setPreferredSize(new Dimension(0, 72));
+        panel.setMinimumSize(new Dimension(0, 72));
         return panel;
     }
 
     private JLabel createCellLabel(String text, Color fg) {
         JLabel label = new JLabel(text == null || text.isBlank() ? "--" : text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         label.setForeground(fg);
         return label;
     }
@@ -454,6 +471,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         };
         btn.setForeground(fg);
         btn.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        btn.setOpaque(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
@@ -464,8 +482,8 @@ public class StaffPanel extends JPanel implements Scrollable {
 
     private JButton createMiniActionButton(String text, Color bg, Color fg) {
         JButton btn = createPillButton(text, bg, fg, true);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setBorder(new EmptyBorder(6, 10, 6, 10));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btn.setBorder(new EmptyBorder(4, 12, 4, 12));
         return btn;
     }
     @Override
