@@ -174,9 +174,13 @@ final class CostMockData {
 
     private static List<AreaOption> createAreaOptions() {
         List<AreaOption> opts = new ArrayList<>();
-        opts.add(new AreaOption("KV001", "Khu A"));
-        opts.add(new AreaOption("KV002", "Khu B"));
-        opts.add(new AreaOption("KV003", "Khu C"));
+        opts.add(new AreaOption("KV-A", "Khu A"));
+        opts.add(new AreaOption("KV-B", "Khu B"));
+        opts.add(new AreaOption("KV-C", "Khu C"));
+        opts.add(new AreaOption("KV-D", "Khu D"));
+        opts.add(new AreaOption("KV-E", "Khu E"));
+        opts.add(new AreaOption("KV-F", "Khu F"));
+        opts.add(new AreaOption("KV-G", "Khu G"));
         return opts;
     }
 
