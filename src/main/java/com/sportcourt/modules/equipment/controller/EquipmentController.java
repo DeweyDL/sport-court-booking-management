@@ -25,6 +25,10 @@ public class EquipmentController {
         return equipmentService.getEquipmentById(maDc);
     }
 
+    public String generateNextMaDc() throws SQLException {
+        return equipmentService.generateNextMaDc();
+    }
+
     public void createEquipment(EquipmentCreateRequest request) throws SQLException {
         equipmentService.createEquipment(request);
     }

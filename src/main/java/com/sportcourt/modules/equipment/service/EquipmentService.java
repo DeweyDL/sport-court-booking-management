@@ -10,6 +10,7 @@ import java.util.List;
 public interface EquipmentService {
     List<Equipment> searchEquipments(String keyword) throws SQLException;
     Equipment getEquipmentById(String maDc) throws SQLException;
+    String generateNextMaDc() throws SQLException;
     void createEquipment(EquipmentCreateRequest request) throws SQLException;
     boolean updateEquipment(EquipmentUpdateRequest request) throws SQLException;
     boolean deleteEquipment(String maDc) throws SQLException;

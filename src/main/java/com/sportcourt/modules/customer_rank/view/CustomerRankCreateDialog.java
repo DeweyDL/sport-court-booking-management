@@ -42,7 +42,7 @@ final class CustomerRankCreateDialog {
         title.setHorizontalAlignment(SwingConstants.LEFT);
 
         JLabel subtitle = new JLabel("Nhập mã hạng và thông tin cho hạng khách hàng mới.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -65,6 +65,9 @@ final class CustomerRankCreateDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        form.add(createReadOnlyField("Mã hạng", generatedMaHang));
+        form.add(Box.createVerticalStrut(14));
 
         form.add(createField("Tên hạng", txtTenHang));
         form.add(Box.createVerticalStrut(14));
@@ -138,12 +141,23 @@ final class CustomerRankCreateDialog {
     }
 
     private static JPanel createReadOnlyField(String labelText, String value) {
-        JTextField field = new JTextField(value);
+        JTextField field = new JTextField(value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 25, 25);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         field.setEditable(false);
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setOpaque(false);
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(
@@ -154,7 +168,7 @@ final class CustomerRankCreateDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel panel = new JPanel();
@@ -177,7 +191,7 @@ final class CustomerRankCreateDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setFont(new Font("Lexend", Font.PLAIN, 14));

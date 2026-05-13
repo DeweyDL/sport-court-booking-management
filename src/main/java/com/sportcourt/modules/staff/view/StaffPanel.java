@@ -253,19 +253,25 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.weightx = 0.10; row.add(createFlexibleCell(createRoleBadge(staff.getIsQl()), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 6: Trạng thái
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusBadge(staff.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusBadge(staff), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 7: Thao tác
         JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionGroup.setOpaque(false);
 
-        JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        deleteBtn.addActionListener(e -> confirmDelete(staff));
-        actionGroup.add(deleteBtn);
+        if (staff.isDeleted()) {
+            JButton restoreBtn = createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0));
+            restoreBtn.addActionListener(e -> confirmRestore(staff));
+            actionGroup.add(restoreBtn);
+        } else {
+            JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+            deleteBtn.addActionListener(e -> confirmDelete(staff));
+            actionGroup.add(deleteBtn);
 
-        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
-        actionGroup.add(editBtn);
+            JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
+            actionGroup.add(editBtn);
+        }
 
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
@@ -292,11 +298,14 @@ public class StaffPanel extends JPanel implements Scrollable {
         return makeBadge(text, badgeBg, badgeFg);
     }
 
-    private JPanel createStatusBadge(String trangThai) {
-        boolean active = "ACTIVE".equalsIgnoreCase(trangThai);
+    private JPanel createStatusBadge(StaffResponse staff) {
+        if (staff.isDeleted()) {
+            return CrudViewStyle.createStatusPill("DELETED", CrudViewStyle.DANGER_BG, CrudViewStyle.DANGER_TEXT);
+        }
+        boolean active = "ACTIVE".equalsIgnoreCase(staff.getTrangThai());
         Color badgeBg  = active ? CrudViewStyle.SUCCESS_BG  : CrudViewStyle.DANGER_BG;
         Color badgeFg  = active ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
-        String text    = active ? "Hoạt động" : (trangThai == null ? "--" : trangThai);
+        String text    = active ? "Hoạt động" : (staff.getTrangThai() == null ? "--" : staff.getTrangThai());
         return CrudViewStyle.createStatusPill(text, badgeBg, badgeFg);
     }
 
@@ -413,7 +422,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         });
     }
 
-    // --------- DELETE ---------
+    // --------- DELETE / RESTORE ---------
 
     private void confirmDelete(StaffResponse staff) {
         int confirm = JOptionPane.showConfirmDialog(
@@ -430,6 +439,25 @@ public class StaffPanel extends JPanel implements Scrollable {
                 loadData();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Lỗi xóa nhân viên: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void confirmRestore(StaffResponse staff) {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn khôi phục nhân viên \"" + staff.getHoten() + "\" (Mã: " + staff.getManv() + ")?",
+                "Xác nhận khôi phục",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                staffService.restoreStaff(staff.getManv());
+                JOptionPane.showMessageDialog(this, "Đã khôi phục nhân viên thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                loadData();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi khôi phục nhân viên: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

@@ -50,7 +50,7 @@ final class CustomerEditDialog {
         title.setForeground(TEXT_DARK);
 
         JLabel subtitle = new JLabel("Chỉnh sửa thông tin cho khách hàng " + profile.maKhachHang() + ".");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -202,7 +202,7 @@ final class CustomerEditDialog {
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setBackground(READONLY_BG);
         return field;
     }

@@ -148,6 +148,9 @@ public class CostAdd extends JPanel {
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
 
+        form.add(createReadOnlyField("Mã bảng giá", maBgField));
+        form.add(Box.createVerticalStrut(17));
+
         form.add(createComboField("Khu vực", areaComboBox));
         form.add(Box.createVerticalStrut(17));
         form.add(createComboField("Khung giờ", khungGioComboBox));
@@ -181,7 +184,7 @@ public class CostAdd extends JPanel {
         label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel wrapper = createInputWrapper();
+        JPanel wrapper = createReadOnlyInputWrapper();
         wrapper.add(field, BorderLayout.CENTER);
 
         JPanel container = new JPanel();
@@ -233,12 +236,20 @@ public class CostAdd extends JPanel {
     }
 
     private JPanel createInputWrapper() {
+        return createInputWrapper(Color.WHITE);
+    }
+
+    private JPanel createReadOnlyInputWrapper() {
+        return createInputWrapper(new Color(241, 245, 249));
+    }
+
+    private JPanel createInputWrapper(Color background) {
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
+                g2.setColor(background);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
@@ -385,7 +396,7 @@ public class CostAdd extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }
@@ -395,7 +406,7 @@ public class CostAdd extends JPanel {
         textField.setEditable(true);
         textField.setBorder(null);
         textField.setOpaque(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.PLAIN, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

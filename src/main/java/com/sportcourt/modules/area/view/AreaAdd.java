@@ -101,6 +101,9 @@ public class AreaAdd extends JPanel {
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
 
+        form.add(createReadOnlyField("Mã khu vực", maKvField));
+        form.add(Box.createVerticalStrut(17));
+
         form.add(createEditableField("Chi nhánh", chiNhanhComboBox));
         form.add(Box.createVerticalStrut(17));
         form.add(createEditableField("Loại thể thao", sportTypeComboBox));
@@ -146,7 +149,7 @@ public class AreaAdd extends JPanel {
         JPanel fieldPanel = createFieldPanel();
 
         JLabel label = createFieldLabel(labelText);
-        editor.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        editor.setFont(new Font("Lexend", Font.PLAIN, 14));
 
         JPanel editorWrapper = createRoundedInputWrapper();
         editorWrapper.setBorder(new EmptyBorder(6, 12, 6, 12));
@@ -161,7 +164,7 @@ public class AreaAdd extends JPanel {
     private JPanel createReadOnlyField(String labelText, JTextField valueField) {
         JPanel fieldPanel = createFieldPanel();
 
-        JPanel wrapper = createRoundedInputWrapper();
+        JPanel wrapper = createReadOnlyInputWrapper();
         wrapper.setBorder(new EmptyBorder(10, 14, 10, 14));
         wrapper.add(valueField, BorderLayout.CENTER);
 
@@ -191,12 +194,20 @@ public class AreaAdd extends JPanel {
     }
 
     private JPanel createRoundedInputWrapper() {
+        return createRoundedInputWrapper(Color.WHITE);
+    }
+
+    private JPanel createReadOnlyInputWrapper() {
+        return createRoundedInputWrapper(new Color(241, 245, 249));
+    }
+
+    private JPanel createRoundedInputWrapper(Color background) {
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
+                g2.setColor(background);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
@@ -307,7 +318,7 @@ public class AreaAdd extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

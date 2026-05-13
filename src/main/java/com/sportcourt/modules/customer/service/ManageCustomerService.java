@@ -13,6 +13,8 @@ public interface ManageCustomerService {
 
     CustomerResult<CustomerProfile> getProfile(String maKhachHang);
 
+    CustomerResult<String> generateNextMaKhachHang();
+
     CustomerResult<CustomerProfile> createCustomer(CreateCustomerRequest request);
 
     CustomerResult<CustomerProfile> updateCustomer(String maKhachHang, UpdateCustomerRequest request);

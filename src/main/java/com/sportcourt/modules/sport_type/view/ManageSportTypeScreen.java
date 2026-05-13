@@ -418,7 +418,7 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
     }
 
     private void openCreateDialog() {
-        SportTypeForm form = SportTypeCreateDialog.show(this);
+        SportTypeForm form = SportTypeCreateDialog.show(this, controller.generateNextId());
         if (form == null) {
             return;
         }

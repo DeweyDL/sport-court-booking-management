@@ -18,6 +18,8 @@ final class CourtCreatePanel {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
+    private static final Color INPUT_BORDER = new Color(203, 213, 225);
     private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_-]{1,20}$");
 
     private CourtCreatePanel() {
@@ -39,28 +41,20 @@ final class CourtCreatePanel {
         JLabel title = new JLabel("Thêm sân con mới");
         title.setFont(AppFonts.lexendBold(24f));
         title.setForeground(TEXT_DARK);
-        JLabel subtitle = new JLabel("Mã sân theo mẫu A-Z, 0-9, dấu gạch dưới (_), tối đa 20 ký tự.");
+        JLabel subtitle = new JLabel("Mã sân được tự sinh. Chọn khu vực và trạng thái để tạo sân.");
         subtitle.setFont(AppFonts.lexendRegular(13f));
         subtitle.setForeground(TEXT_MUTED);
         header.add(title, BorderLayout.NORTH);
         header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtCourtId = new JTextField(generatedCourtId);
-        txtCourtId.setEditable(false);
-        txtCourtId.setFocusable(false);
-        txtCourtId.setRequestFocusEnabled(false);
-        txtCourtId.setCursor(Cursor.getDefaultCursor());
-        txtCourtId.setBackground(new Color(241, 245, 249));
+        JTextField txtCourtId = readonlyField(generatedCourtId);
         JComboBox<String> cbAreaId = new JComboBox<>(areaIds.toArray(new String[0]));
-        cbAreaId.setFont(AppFonts.lexendRegular(14f));
-        cbAreaId.setBackground(Color.WHITE);
+        styleComboBox(cbAreaId);
         cbAreaId.setEnabled(!areaIds.isEmpty());
-        cbAreaId.putClientProperty("JComponent.roundRect", true);
+
         JComboBox<String> cbStatus = new JComboBox<>(new String[]{"ĐANG HOẠT ĐỘNG", "BẢO TRÌ"});
-        cbStatus.setFont(AppFonts.lexendRegular(14f));
-        cbStatus.setBackground(Color.WHITE);
-        cbStatus.putClientProperty("JComponent.roundRect", true);
+        styleComboBox(cbStatus);
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
@@ -72,9 +66,9 @@ final class CourtCreatePanel {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.insets = new Insets(6, 0, 6, 0);
 
-        addField(form, g, 0, "Mã khu vực", cbAreaId);
-        addField(form, g, 1, "Trạng thái", cbStatus);
-
+        addField(form, g, 0, "Mã sân con", txtCourtId);
+        addField(form, g, 1, "Mã khu vực", cbAreaId);
+        addField(form, g, 2, "Trạng thái", cbStatus);
         root.add(form, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -136,22 +130,41 @@ final class CourtCreatePanel {
         panel.add(lb, g);
 
         g.gridy = row * 2 + 1;
-        if (field instanceof JTextField textField) {
-            boolean editable = textField.isEditable();
-            textField.setFont(editable ? AppFonts.lexendRegular(14f) : AppFonts.lexendBold(14f));
-            textField.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
-            ));
-            textField.setBackground(editable ? Color.WHITE : new Color(241, 245, 249));
-        } else {
-            field.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
-            ));
-            field.setBackground(Color.WHITE);
-        }
         panel.add(field, g);
+    }
+
+    private static JTextField readonlyField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, INPUT_CORNER_RADIUS, INPUT_CORNER_RADIUS);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setFont(AppFonts.lexendBold(14f));
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setOpaque(false);
+        field.setBackground(READONLY_BG);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(INPUT_BORDER, INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+        return field;
+    }
+
+    private static void styleComboBox(JComboBox<String> comboBox) {
+        comboBox.setFont(AppFonts.lexendRegular(14f));
+        comboBox.setFocusable(false);
+        comboBox.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(INPUT_BORDER, INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        comboBox.setBackground(Color.WHITE);
     }
 
     private static JButton button(String text, Color background, Color foreground) {
