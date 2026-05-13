@@ -1030,3 +1030,231 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20321, 'Khach hang khong ton tai hoac da bi xoa.');
 END;
 /
+
+CREATE OR REPLACE PROCEDURE PRC_THEM_NHAN_VIEN(
+    P_USER_ID IN USERS.USER_ID%TYPE,
+    P_MANV IN NHAN_VIEN.MANV%TYPE,
+    P_ACCOUNT_ID IN ACCOUNT.ACCOUNT_ID%TYPE,
+    P_ACCOUNT_ROLE_GROUP_ID IN ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID%TYPE,
+    P_ACCOUNT_ROLE_ID IN ACCOUNT_ROLE.ACCOUNT_ROLE_ID%TYPE,
+    P_ROLE_GROUP_ID IN ROLE_GROUP.GROUP_ID%TYPE,
+    P_ROLE_ID IN ROLE.ROLE_ID%TYPE,
+    P_HOTEN IN USERS.HOTEN%TYPE,
+    P_SDT IN USERS.SDT%TYPE,
+    P_MALNV IN NHAN_VIEN.MALNV%TYPE,
+    P_MACN IN NHAN_VIEN.MACN%TYPE,
+    P_CCCD IN NHAN_VIEN.CCCD%TYPE DEFAULT NULL,
+    P_IS_QL IN NHAN_VIEN.IS_QL%TYPE DEFAULT 0,
+    P_TRANG_THAI IN NHAN_VIEN.TRANG_THAI%TYPE DEFAULT 'ACTIVE',
+    P_PASSWORD_HASH IN ACCOUNT.PASSWORD_HASH%TYPE
+)
+AS
+    V_COUNT NUMBER := 0;
+BEGIN
+    IF  P_HOTEN IS NULL OR P_SDT IS NULL OR P_MACN IS NULL
+       OR P_PASSWORD_HASH IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20330, 'Thong tin them nhan vien khong duoc de trong.');
+    END IF;
+
+    IF TRIM(P_SDT) IS NULL OR LENGTH(TRIM(P_SDT)) <> 10 THEN
+        RAISE_APPLICATION_ERROR(-20331, 'So dien thoai phai co 10 chu so.');
+    END IF;
+
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM NHAN_VIEN NV
+    WHERE MANV = P_MANV
+      AND IS_DELETED = 0;
+    IF V_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20334, 'Nhan vien da ton tai.');
+    END IF;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM USERS
+    WHERE SDT = P_SDT
+      AND IS_DELETED = 0;
+    IF V_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20340, 'So dien thoai da ton tai.');
+    END IF;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM ACCOUNT_ROLE_GROUP_MAPPING
+    WHERE ROLE_ID = P_ROLE_ID
+      AND GROUP_ID = P_ROLE_GROUP_ID
+      AND IS_DELETED = 0;
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20339, 'ROLE khong hop le voi ROLE_GROUP.');
+    END IF;
+
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM LOAI_NHAN_VIEN
+    WHERE MALNV = P_MALNV
+      AND IS_DELETED = 0;
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20338, 'Loai nhan vien khong ton tai hoac da bi xoa.');
+    END IF;
+
+    INSERT INTO USERS (
+        USER_ID,
+        HOTEN,
+        SDT,
+        EMAIL,
+        NGAYSINH,
+        DIACHI,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+        P_USER_ID,
+        P_HOTEN,
+        P_SDT,
+        NULL,
+        NULL,
+        NULL,
+        SYSDATE,
+        0
+    );
+
+    INSERT INTO ACCOUNT (
+        ACCOUNT_ID,
+        USER_ID,
+        USERNAME,
+        PASSWORD_HASH,
+        STATUS,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+        P_ACCOUNT_ID,
+        P_USER_ID,
+        P_SDT,
+        P_PASSWORD_HASH,
+        NVL(P_TRANG_THAI, 'ACTIVE'),
+        SYSDATE,
+        0
+    );
+
+    INSERT INTO NHAN_VIEN (
+        MANV,
+        USER_ID,
+        MALNV,
+        MACN,
+        NVL,
+        CCCD,
+        IS_QL,
+        TRANG_THAI,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+        P_MANV,
+        P_USER_ID,
+        P_MALNV,
+        P_MACN,
+        SYSDATE,
+        P_CCCD,
+        NVL(P_IS_QL, 0),
+        NVL(P_TRANG_THAI, 'ACTIVE'),
+        SYSDATE,
+        0
+    );
+
+    INSERT INTO ACCOUNT_ROLE_GROUP (
+        ACCOUNT_ROLE_GROUP_ID,
+        ACCOUNT_ID,
+        GROUP_ID,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+        P_ACCOUNT_ROLE_GROUP_ID,
+        P_ACCOUNT_ID,
+        P_ROLE_GROUP_ID,
+        SYSDATE,
+        0
+    );
+
+    INSERT INTO ACCOUNT_ROLE (
+        ACCOUNT_ROLE_ID,
+        ACCOUNT_ID,
+        ROLE_ID,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+        P_ACCOUNT_ROLE_ID,
+        P_ACCOUNT_ID,
+        P_ROLE_ID,
+        SYSDATE,
+        0
+    );
+END;
+/
+
+CREATE OR REPLACE PROCEDURE PRC_XOA_NHAN_VIEN(
+    P_MANV IN NHAN_VIEN.MANV%TYPE
+)
+AS
+    V_USER_ID    NHAN_VIEN.USER_ID%TYPE;
+    V_ACCOUNT_ID ACCOUNT.ACCOUNT_ID%TYPE;
+    V_COUNT      NUMBER := 0;
+BEGIN
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM NHAN_VIEN
+    WHERE MANV = P_MANV
+      AND IS_DELETED = 0;
+
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20341, 'Nhan vien khong ton tai hoac da bi xoa.');
+    END IF;
+
+    SELECT nv.USER_ID, a.ACCOUNT_ID
+    INTO V_USER_ID, V_ACCOUNT_ID
+    FROM NHAN_VIEN nv
+             JOIN ACCOUNT a
+                  ON a.USER_ID = nv.USER_ID
+                 AND a.IS_DELETED = 0
+             JOIN USERS u
+                  ON u.USER_ID = nv.USER_ID
+                 AND u.IS_DELETED = 0
+    WHERE nv.MANV = P_MANV
+      AND nv.IS_DELETED = 0;
+
+    UPDATE NHAN_VIEN
+    SET TRANG_THAI = 'INACTIVE',
+        IS_DELETED = 1
+    WHERE MANV = P_MANV
+      AND IS_DELETED = 0;
+
+    UPDATE USERS
+    SET IS_DELETED = 1
+    WHERE USER_ID = V_USER_ID
+      AND IS_DELETED = 0;
+
+    UPDATE ACCOUNT
+    SET STATUS = 'INACTIVE',
+        IS_DELETED = 1
+    WHERE ACCOUNT_ID = V_ACCOUNT_ID
+      AND IS_DELETED = 0;
+
+    UPDATE ACCOUNT_ROLE_GROUP
+    SET IS_DELETED = 1
+    WHERE ACCOUNT_ID = V_ACCOUNT_ID
+      AND IS_DELETED = 0;
+
+    UPDATE ACCOUNT_ROLE
+    SET IS_DELETED = 1
+    WHERE ACCOUNT_ID = V_ACCOUNT_ID
+      AND IS_DELETED = 0;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20341, 'Nhan vien khong ton tai hoac da bi xoa.');
+END;
+/
