@@ -1,6 +1,7 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.account.view.AccountManagementPanel;
 import com.sportcourt.modules.area.view.AreaManagement;
 import com.sportcourt.modules.auth.dto.FunctionId;
@@ -27,8 +28,8 @@ import java.awt.*;
 import java.net.URL;
 
 public class Sidebar extends JFrame {
-    private static final int SIDEBAR_MIN_WIDTH = 220;
-    private static final int SIDEBAR_MAX_WIDTH = 320;
+    private static final int SIDEBAR_MIN_WIDTH = UIScale.scale(220);
+    private static final int SIDEBAR_MAX_WIDTH = UIScale.scale(320);
     private static final double SIDEBAR_WIDTH_RATIO = 0.22;
 
     private ContentPanel contentPanel;
@@ -87,25 +88,26 @@ public class Sidebar extends JFrame {
         sidebar.setPreferredSize(new Dimension(SIDEBAR_MAX_WIDTH, 0));
 
         // --- Logo Area ---
-        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
         logoPanel.setOpaque(false);
-        logoPanel.setBorder(new EmptyBorder(30, 20, 30, 20));
+        logoPanel.setBorder(new EmptyBorder(
+                UIScale.scale(30), UIScale.scale(20), UIScale.scale(30), UIScale.scale(20)));
 
         JLabel logoLabel = new JLabel();
-        // Text HTML: Lexend, Extrabold, Italic
         logoLabel.setText("<html><div style='font-family: Lexend; color: " +
                 String.format("#%02x%02x%02x", LOGO_COLOR.getRed(), LOGO_COLOR.getGreen(), LOGO_COLOR.getBlue()) +
-                "; font-size: 20px; font-weight: 800; font-style: italic;'>" +
+                "; font-size: " + UIScale.scaleFontInt(20f) + "px; font-weight: 800; font-style: italic;'>" +
                 "RENTSTA</div></html>");
 
         // Load Logo Icon
         try {
             URL imgURL = getClass().getResource("/icon/logo.png");
             if (imgURL != null) {
+                int logoSz = UIScale.scale(45);
                 ImageIcon icon = new ImageIcon(new ImageIcon(imgURL).getImage()
-                        .getScaledInstance(45, 45, Image.SCALE_SMOOTH));
+                        .getScaledInstance(logoSz, logoSz, Image.SCALE_SMOOTH));
                 logoLabel.setIcon(icon);
-                logoLabel.setIconTextGap(12);
+                logoLabel.setIconTextGap(UIScale.scale(12));
             }
         } catch (Exception e) {
             System.err.println("Logo not found");
@@ -147,13 +149,14 @@ public class Sidebar extends JFrame {
         menuScrollPane.setOpaque(false);
         menuScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         menuScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        styleMenuScrollBar(menuScrollPane.getVerticalScrollBar());
         sidebar.add(menuScrollPane, BorderLayout.CENTER);
 
         // --- Bottom Menu ---
         bottomPanel = new JPanel();
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
         bottomPanel.setOpaque(false);
-        bottomPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+        bottomPanel.setBorder(new EmptyBorder(0, 0, UIScale.scale(20), 0));
 
         if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) bottomPanel.add(createMenuButton("TRANG CÁ NHÂN", "/icon/user.1.png"));
         bottomPanel.add(createMenuButton("ĐĂNG XUẤT", "/icon/logout.png"));
@@ -174,11 +177,12 @@ public class Sidebar extends JFrame {
     private JPanel createTopBar() {
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(Color.WHITE);
-        topBar.setBorder(new EmptyBorder(10, 14, 10, 14));
+        topBar.setBorder(new EmptyBorder(
+                UIScale.scale(10), UIScale.scale(14), UIScale.scale(10), UIScale.scale(14)));
 
         JButton toggleSidebarButton = new JButton("\u2630");
         toggleSidebarButton.setToolTipText("Ẩn/hiện sidebar");
-        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scaleFontInt(16f)));
         toggleSidebarButton.setFocusPainted(false);
         toggleSidebarButton.setContentAreaFilled(false);
         toggleSidebarButton.setBorderPainted(false);
@@ -186,7 +190,7 @@ public class Sidebar extends JFrame {
         toggleSidebarButton.addActionListener(event -> toggleSidebar());
 
         currentTitleLabel = new JLabel("TRANG CHỦ");
-        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, 15));
+        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, UIScale.scaleFontInt(15f)));
         currentTitleLabel.setForeground(new Color(39, 44, 52));
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
@@ -204,9 +208,9 @@ public class Sidebar extends JFrame {
         button.setVerticalAlignment(SwingConstants.CENTER);
         button.setVerticalTextPosition(SwingConstants.CENTER);
         button.setHorizontalTextPosition(SwingConstants.RIGHT);
-        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, 15));
+        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scaleFontInt(15f)));
         button.setContentAreaFilled(false);
-        button.setBorder(new EmptyBorder(0, 30, 0, 10));
+        button.setBorder(new EmptyBorder(0, UIScale.scale(30), 0, UIScale.scale(10)));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -221,28 +225,33 @@ public class Sidebar extends JFrame {
         try {
             URL url = getClass().getResource(iconPath);
             if (url != null) {
+                int iconSz = UIScale.scale(20);
                 button.setIcon(new ImageIcon(new ImageIcon(url).getImage()
-                        .getScaledInstance(20, 20, Image.SCALE_SMOOTH)));
-                button.setIconTextGap(10);
+                        .getScaledInstance(iconSz, iconSz, Image.SCALE_SMOOTH)));
+                button.setIconTextGap(UIScale.scale(10));
             }
         } catch (Exception e) {
         }
 
+        int btnH = UIScale.scale(60);
+        int hPad = UIScale.scale(12);
+        int vPad = UIScale.scale(5);
+
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
-                // Nếu là ĐĂNG XUẤT thì không vẽ nền bao quanh (Wrap)
                 if (text.equals("ĐĂNG XUẤT")) return;
 
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 boolean isActive = Boolean.TRUE.equals(getClientProperty("isActive"));
-                boolean isHover = Boolean.TRUE.equals(getClientProperty("isHover"));
+                boolean isHover  = Boolean.TRUE.equals(getClientProperty("isHover"));
 
                 if (isActive) {
                     g2.setColor(NEON_GREEN);
-                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 10, getHeight() - 10, getHeight() - 10);
+                    int arc = getHeight() - 2 * vPad;
+                    g2.fillRoundRect(hPad, vPad, getWidth() - 2 * hPad, getHeight() - 2 * vPad, arc, arc);
                 } else if (isHover) {
                     g2.setColor(SIDEBAR_HOVER_BG);
                     g2.fillRect(0, 0, getWidth(), getHeight());
@@ -252,7 +261,10 @@ public class Sidebar extends JFrame {
         };
 
         wrapper.setOpaque(false);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        // All three sizes must match so BoxLayout honours the fixed height
+        wrapper.setMinimumSize(new Dimension(0, btnH));
+        wrapper.setPreferredSize(new Dimension(UIScale.scale(220), btnH));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnH));
         wrapper.add(button, BorderLayout.CENTER);
 
         button.addActionListener(e -> {
@@ -374,6 +386,15 @@ public class Sidebar extends JFrame {
         int resolvedWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, targetWidth));
         sidebarContainer.setPreferredSize(new Dimension(resolvedWidth, 0));
         sidebarContainer.revalidate();
+    }
+
+    private static void styleMenuScrollBar(JScrollBar bar) {
+        bar.setUnitIncrement(UIScale.scale(16));
+        // Use FlatLaf client properties to style the scrollbar on the dark sidebar
+        bar.putClientProperty("ScrollBar.thumbColor", new Color(160, 200, 170, 180));
+        bar.putClientProperty("ScrollBar.hoverThumbColor", new Color(190, 230, 200, 220));
+        bar.putClientProperty("ScrollBar.trackColor", new Color(0, 0, 0, 0));
+        bar.putClientProperty("ScrollBar.width", UIScale.scale(6));
     }
 
     private boolean canView(String functionId) {

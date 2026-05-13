@@ -12,6 +12,24 @@ import java.util.List;
 public class JdbcSupplierManagementDAO implements SupplierManagementDAO {
 
     @Override
+    public String generateNextId() throws SQLException {
+        String sql = """
+                SELECT NVL(MAX(TO_NUMBER(SUBSTR(MANCC, 5))), 0) + 1
+                FROM NHA_CUNG_CAP
+                WHERE REGEXP_LIKE(MANCC, '^NCC-[0-9]+$')
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return "NCC-" + rs.getInt(1);
+                }
+                return "NCC-1";
+            }
+        }
+    }
+
+    @Override
     public List<Supplier> findSuppliers(String keyword) throws SQLException {
         String sql = "SELECT MANCC, TENNCC, SDT, EMAIL, WEBSITE, DIACHI, CREATED_AT, IS_DELETED " +
                 "FROM NHA_CUNG_CAP WHERE UPPER(MANCC) LIKE ? OR UPPER(TENNCC) LIKE ? OR UPPER(SDT) LIKE ? " +
@@ -30,7 +48,7 @@ public class JdbcSupplierManagementDAO implements SupplierManagementDAO {
                     row.setTenncc(rs.getString("TENNCC"));
                     row.setSdt(rs.getString("SDT"));
                     row.setEmail(rs.getString("EMAIL"));
-                    row.setWebsite(rs.getString("WEBSITE"));      // thêm WEBSITE
+                    row.setWebsite(rs.getString("WEBSITE"));
                     row.setDiachi(rs.getString("DIACHI"));
                     Date createdAt = rs.getDate("CREATED_AT");
                     if (createdAt != null) {
@@ -54,7 +72,7 @@ public class JdbcSupplierManagementDAO implements SupplierManagementDAO {
             stmt.setString(2, request.getTenncc().trim());
             stmt.setString(3, request.getSdt().trim());
             stmt.setString(4, request.getEmail()   != null ? request.getEmail().trim()   : null);
-            stmt.setString(5, request.getWebsite() != null ? request.getWebsite().trim() : null); // thêm WEBSITE
+            stmt.setString(5, request.getWebsite() != null ? request.getWebsite().trim() : null);
             stmt.setString(6, request.getDiachi().trim());
             stmt.executeUpdate();
         }
@@ -69,7 +87,7 @@ public class JdbcSupplierManagementDAO implements SupplierManagementDAO {
             stmt.setString(1, request.getTenncc().trim());
             stmt.setString(2, request.getSdt().trim());
             stmt.setString(3, request.getEmail()   != null ? request.getEmail().trim()   : null);
-            stmt.setString(4, request.getWebsite() != null ? request.getWebsite().trim() : null); // thêm WEBSITE
+            stmt.setString(4, request.getWebsite() != null ? request.getWebsite().trim() : null);
             stmt.setString(5, request.getDiachi().trim());
             stmt.setString(6, request.getMancc());
             return stmt.executeUpdate() > 0;

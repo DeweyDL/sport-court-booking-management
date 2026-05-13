@@ -2,6 +2,8 @@ package com.sportcourt.modules.user_profile.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.common.style.UIScale;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -39,14 +41,14 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     public UserProfilePanel() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(0, 0, 0, 0));
+        setBackground(CrudViewStyle.PAGE_BACKGROUND);
 
-        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", 16));
-        changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", 16));
+        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", UIScale.scale(16)));
+        changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", UIScale.scale(16)));
 
         add(createPage(), BorderLayout.CENTER);
         bindProfile(UserProfileData.sample());
+        CrudViewStyle.installResponsiveTypography(this);
     }
 
     public void bindProfile(UserProfileData profile) {
@@ -70,25 +72,40 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     }
 
     private JPanel createPage() {
-        JPanel page = new JPanel();
+        JPanel page = new JPanel(new GridBagLayout());
         page.setOpaque(false);
-        page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-        page.add(createHeroSection());
-        page.add(Box.createVerticalStrut(30));
-        page.add(createInfoCard());
-        page.add(Box.createVerticalGlue());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+
+        gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, UIScale.scale(24), 0);
+        page.add(createHeroSection(), gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        page.add(createInfoCard(), gbc);
+
+        // Push content to top when viewport is taller than content
+        gbc.gridy = 2;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        JPanel filler = new JPanel();
+        filler.setOpaque(false);
+        page.add(filler, gbc);
+
         return page;
     }
 
     private JPanel createHeroSection() {
         JPanel hero = new JPanel(new GridBagLayout());
         hero.setOpaque(false);
-        hero.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 0, 28);
+        gbc.insets = new Insets(0, 0, 0, UIScale.scale(28));
         gbc.anchor = GridBagConstraints.WEST;
 
         gbc.gridx = 0;
@@ -104,16 +121,18 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     }
 
     private JComponent createAvatarBlock() {
+        int layerSz = UIScale.scale(176);
         JLayeredPane layeredPane = new JLayeredPane();
-        layeredPane.setPreferredSize(new Dimension(176, 176));
-        layeredPane.setMinimumSize(new Dimension(176, 176));
-        layeredPane.setMaximumSize(new Dimension(176, 176));
+        layeredPane.setPreferredSize(new Dimension(layerSz, layerSz));
+        layeredPane.setMinimumSize(new Dimension(layerSz, layerSz));
+        layeredPane.setMaximumSize(new Dimension(layerSz, layerSz));
 
-        avatarView.setBounds(16, 6, 144, 144);
+        avatarView.setBounds(UIScale.scale(16), UIScale.scale(6), UIScale.scale(144), UIScale.scale(144));
         layeredPane.add(avatarView, JLayeredPane.DEFAULT_LAYER);
 
-        CircleIconButton cameraButton = new CircleIconButton(new LineIcon(Symbol.CAMERA, 15, LIME));
-        cameraButton.setBounds(130, 130, 30, 30);
+        int camSz = UIScale.scale(30);
+        CircleIconButton cameraButton = new CircleIconButton(new LineIcon(Symbol.CAMERA, UIScale.scale(15), LIME));
+        cameraButton.setBounds(UIScale.scale(130), UIScale.scale(130), camSz, camSz);
         cameraButton.setToolTipText("Đổi ảnh đại diện");
         layeredPane.add(cameraButton, JLayeredPane.PALETTE_LAYER);
 
@@ -129,32 +148,31 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         displayNameLabel.setForeground(TEXT_DARK);
         displayNameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel roleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 0));
+        JPanel roleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(7), 0));
         roleRow.setOpaque(false);
         roleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel roleIcon = new JLabel(new LineIcon(Symbol.SHIELD_CHECK, 18, LIME_DARK));
+        JLabel roleIcon = new JLabel(new LineIcon(Symbol.SHIELD_CHECK, UIScale.scale(18), LIME_DARK));
         roleLabel.setFont(AppFonts.lexendRegular(14f));
         roleLabel.setForeground(TEXT_MUTED);
         roleRow.add(roleIcon);
         roleRow.add(roleLabel);
 
         nameBlock.add(displayNameLabel);
-        nameBlock.add(Box.createVerticalStrut(6));
+        nameBlock.add(Box.createVerticalStrut(UIScale.scale(6)));
         nameBlock.add(roleRow);
         return nameBlock;
     }
 
     private JPanel createInfoCard() {
         InfoCardPanel card = new InfoCardPanel();
-        card.setLayout(new BorderLayout(0, 24));
-        card.setBorder(new EmptyBorder(28, 32, 38, 32));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setLayout(new BorderLayout(0, UIScale.scale(24)));
+        card.setBorder(new EmptyBorder(UIScale.scale(28), UIScale.scale(32), UIScale.scale(38), UIScale.scale(32)));
 
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setOpaque(false);
 
-        JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
         heading.setOpaque(false);
         heading.add(new AccentBar());
         JLabel title = new JLabel("Thông tin cá nhân");
@@ -163,7 +181,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         heading.add(title);
         northPanel.add(heading, BorderLayout.WEST);
 
-        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(12), 0));
         buttonRow.setOpaque(false);
         buttonRow.add(editProfileButton);
         buttonRow.add(changePasswordButton);
@@ -176,34 +194,34 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 18, 22);
+        gbc.insets = new Insets(0, 0, UIScale.scale(18), UIScale.scale(22));
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        fields.add(createInfoField("Họ và tên", fullNameValue, 38), gbc);
+        fields.add(createInfoField("Họ và tên", fullNameValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 18, 0);
-        fields.add(createInfoField("Số điện thoại", phoneValue, 38), gbc);
+        gbc.insets = new Insets(0, UIScale.scale(22), UIScale.scale(18), 0);
+        fields.add(createInfoField("Số điện thoại", phoneValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 18, 22);
-        fields.add(createInfoField("Địa chỉ email", emailValue, 38), gbc);
+        gbc.insets = new Insets(0, 0, UIScale.scale(18), UIScale.scale(22));
+        fields.add(createInfoField("Địa chỉ email", emailValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 18, 0);
-        fields.add(createInfoField("Ngày sinh", birthDateValue, 38), gbc);
+        gbc.insets = new Insets(0, UIScale.scale(22), UIScale.scale(18), 0);
+        fields.add(createInfoField("Ngày sinh", birthDateValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
-        gbc.insets = new Insets(0, 0, 0, 22);
-        fields.add(createInfoField("Địa chỉ thường trú", addressValue, 78), gbc);
+        gbc.insets = new Insets(0, 0, 0, UIScale.scale(22));
+        fields.add(createInfoField("Địa chỉ thường trú", addressValue, UIScale.scale(78)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 0, 0);
+        gbc.insets = new Insets(0, UIScale.scale(22), 0, 0);
         gbc.anchor = GridBagConstraints.NORTH;
-        fields.add(createInfoField("Hạng khách hàng", rankValue, 38), gbc);
+        fields.add(createInfoField("Hạng khách hàng", rankValue, UIScale.scale(38)), gbc);
 
         card.add(fields, BorderLayout.CENTER);
         return card;
@@ -217,14 +235,15 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         JLabel label = new JLabel(labelText.toUpperCase(Locale.forLanguageTag("vi-VN")));
         label.setFont(AppFonts.lexendBold(11f));
         label.setForeground(TEXT_MUTED);
-        label.setBorder(new EmptyBorder(0, 8, 4, 8));
+        label.setBorder(new EmptyBorder(0, UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        RoundedPanel valueBox = new RoundedPanel(25, FIELD_BACKGROUND);
+        int arc = UIScale.scale(25);
+        RoundedPanel valueBox = new RoundedPanel(arc, FIELD_BACKGROUND);
         valueBox.setLayout(new BorderLayout());
         valueBox.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(FIELD_BORDER, 25),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                new RoundedLineBorder(FIELD_BORDER, arc),
+                BorderFactory.createEmptyBorder(UIScale.scale(10), UIScale.scale(12), UIScale.scale(10), UIScale.scale(12))
         ));
         valueBox.setPreferredSize(new Dimension(10, valueHeight));
         valueBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, valueHeight));
@@ -269,12 +288,12 @@ public class UserProfilePanel extends JPanel implements Scrollable {
                 super.paintComponent(graphics);
             }
         };
-        button.setBorder(new EmptyBorder(10, 20, 10, 20));
+        button.setBorder(new EmptyBorder(UIScale.scale(10), UIScale.scale(20), UIScale.scale(10), UIScale.scale(20)));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setIconTextGap(14);
+        button.setIconTextGap(UIScale.scale(14));
         button.setForeground(Color.BLACK);
         button.setFont(AppFonts.lexendBold(16f));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -403,7 +422,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
 
     private static class AccentBar extends JComponent {
         private AccentBar() {
-            setPreferredSize(new Dimension(7, 28));
+            setPreferredSize(new Dimension(UIScale.scale(7), UIScale.scale(28)));
         }
 
         @Override

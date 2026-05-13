@@ -16,8 +16,10 @@ public interface ManageCustomerDao {
 
     int countCustomers() throws SQLException;
 
-    void createCustomer(String userId, String accountId, String maKhachHang, CreateCustomerRequest request,
-                        String generatedEmail, String passwordHash, String username) throws SQLException;
+    String nextNumericId(String tableName, String idColumn, String prefix) throws SQLException;
+
+    void createCustomer(String userId, String accountId, String maKhachHang, String accountRoleGroupId,
+                        CreateCustomerRequest request, String passwordHash, String username) throws SQLException;
 
     boolean updateCustomer(String maKhachHang, UpdateCustomerRequest request) throws SQLException;
 

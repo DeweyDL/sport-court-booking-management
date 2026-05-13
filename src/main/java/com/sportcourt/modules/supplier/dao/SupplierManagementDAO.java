@@ -13,4 +13,5 @@ public interface SupplierManagementDAO {
     boolean updateSupplier(SupplierUpdateRequest request) throws SQLException;
     boolean softDeleteSupplier(String mancc) throws SQLException;
     boolean restoreSupplier(String mancc) throws SQLException;
+    String generateNextId() throws SQLException;
 }
