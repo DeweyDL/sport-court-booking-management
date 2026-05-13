@@ -970,3 +970,63 @@ BEGIN
            );
 END;
 /
+
+CREATE OR REPLACE PROCEDURE PRC_XOA_KHACH_HANG(
+    P_MAKH IN KHACH_HANG.MAKH%TYPE
+)
+AS
+    V_USER_ID    KHACH_HANG.USER_ID%TYPE;
+    V_ACCOUNT_ID ACCOUNT.ACCOUNT_ID%TYPE;
+    V_COUNT      NUMBER := 0;
+BEGIN
+
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM KHACH_HANG
+    WHERE MAKH = P_MAKH
+      AND IS_DELETED = 0;
+
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20321, 'Khach hang khong ton tai hoac da bi xoa.');
+    END IF;
+
+    SELECT kh.USER_ID, a.ACCOUNT_ID
+    INTO V_USER_ID, V_ACCOUNT_ID
+    FROM KHACH_HANG kh
+             JOIN ACCOUNT a
+                  ON a.USER_ID = kh.USER_ID
+                 AND a.IS_DELETED = 0
+             JOIN USERS u
+                  ON u.USER_ID = kh.USER_ID
+                 AND u.IS_DELETED = 0
+    WHERE kh.MAKH = P_MAKH
+      AND kh.IS_DELETED = 0;
+
+    UPDATE KHACH_HANG
+    SET TRANGTHAI = 'INACTIVE',
+        IS_DELETED = 1
+    WHERE MAKH = P_MAKH
+      AND IS_DELETED = 0;
+
+    UPDATE USERS
+    SET IS_DELETED = 1
+    WHERE USER_ID = V_USER_ID
+      AND IS_DELETED = 0;
+
+    UPDATE ACCOUNT
+    SET STATUS = 'INACTIVE',
+        IS_DELETED = 1
+    WHERE ACCOUNT_ID = V_ACCOUNT_ID
+      AND IS_DELETED = 0;
+
+    UPDATE ACCOUNT_ROLE_GROUP
+    SET IS_DELETED = 1
+    WHERE ACCOUNT_ID = V_ACCOUNT_ID
+      AND IS_DELETED = 0;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20321, 'Khach hang khong ton tai hoac da bi xoa.');
+END;
+/
