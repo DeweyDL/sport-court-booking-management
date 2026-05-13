@@ -153,9 +153,11 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(e -> openCreateDialog());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> loadData());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();

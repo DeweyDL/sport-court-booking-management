@@ -166,11 +166,16 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> showCreateView());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> {
+            loadRoleGroupOptions();
+            loadAccounts(txtSearch.getText());
+        });
 
         leftToolbar.add(tableTitle);
         if (canAdd()) {
             leftToolbar.add(addBtn);
         }
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
