@@ -24,7 +24,7 @@ final class AccountCreatePanel {
     private AccountCreatePanel() {
     }
 
-    static AccountUpsertRequest show(Component parent, List<RoleGroupOption> roleGroups) {
+    static AccountUpsertRequest show(Component parent, List<RoleGroupOption> roleGroups, String generatedAccountId) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm tài khoản", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -47,6 +47,7 @@ final class AccountCreatePanel {
         header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
+        JTextField accountIdField = readonly(generatedAccountId);
         JTextField displayNameField = new JTextField();
         JTextField phoneField = new JTextField();
         JTextField emailField = new JTextField();
@@ -54,11 +55,23 @@ final class AccountCreatePanel {
         JPasswordField passwordField = new JPasswordField();
 
         phoneField.getDocument().addDocumentListener(new DocumentListener() {
-            private void sync() { usernameField.setText(phoneField.getText()); }
-            public void insertUpdate(DocumentEvent e) { sync(); }
-            public void removeUpdate(DocumentEvent e) { sync(); }
-            public void changedUpdate(DocumentEvent e) { sync(); }
+            private void sync() {
+                usernameField.setText(phoneField.getText());
+            }
+
+            public void insertUpdate(DocumentEvent e) {
+                sync();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                sync();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                sync();
+            }
         });
+
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         JComboBox<RoleGroupOption> roleGroupCombo = new JComboBox<>(roleGroups.toArray(new RoleGroupOption[0]));
 
@@ -72,13 +85,14 @@ final class AccountCreatePanel {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.insets = new Insets(6, 0, 6, 0);
 
-        addField(form, g, 0, "Họ tên", displayNameField);
-        addField(form, g, 1, "SĐT", phoneField);
-        addField(form, g, 2, "Username", usernameField);
-        addField(form, g, 3, "Email", emailField);
-        addField(form, g, 4, "Password", passwordField);
-        addField(form, g, 5, "Status", statusCombo);
-        addField(form, g, 6, "Role group", roleGroupCombo);
+        addField(form, g, 0, "Account ID", accountIdField);
+        addField(form, g, 1, "Họ tên", displayNameField);
+        addField(form, g, 2, "SĐT", phoneField);
+        addField(form, g, 3, "Username", usernameField);
+        addField(form, g, 4, "Email", emailField);
+        addField(form, g, 5, "Password", passwordField);
+        addField(form, g, 6, "Status", statusCombo);
+        addField(form, g, 7, "Role group", roleGroupCombo);
         root.add(form, BorderLayout.CENTER);
 
         JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -92,17 +106,25 @@ final class AccountCreatePanel {
         final AccountUpsertRequest[] result = new AccountUpsertRequest[1];
         btnCancel.addActionListener(e -> dialog.dispose());
         btnConfirm.addActionListener(e -> {
-            if (displayNameField.getText().isBlank() || phoneField.getText().isBlank() ||
-                    new String(passwordField.getPassword()).isBlank()) {
-                JOptionPane.showMessageDialog(dialog, "Các trường bắt buộc không được để trống.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            if (displayNameField.getText().isBlank()
+                    || phoneField.getText().isBlank()
+                    || new String(passwordField.getPassword()).isBlank()) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Các trường bắt buộc không được để trống.",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
             RoleGroupOption roleGroup = (RoleGroupOption) roleGroupCombo.getSelectedItem();
             if (roleGroup == null) {
-                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn role group.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(dialog,
+                        "Vui lòng chọn role group.",
+                        "Thông báo",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
             AccountUpsertRequest request = new AccountUpsertRequest();
+            request.setAccountId(accountIdField.getText().trim());
             request.setDisplayName(displayNameField.getText().trim());
             request.setPhone(phoneField.getText().trim());
             request.setEmail(emailField.getText().trim());
@@ -137,11 +159,7 @@ final class AccountCreatePanel {
         field.setFocusable(false);
         field.setOpaque(false);
         field.setBackground(new Color(241, 245, 249));
-        field.setFont(AppFonts.lexendRegular(14f));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
-        ));
+        styleTextField(field);
         return field;
     }
 
@@ -154,12 +172,8 @@ final class AccountCreatePanel {
 
         g.gridy = row * 2 + 1;
         if (field instanceof JTextField textField) {
+            styleTextField(textField);
             if (textField.isEditable()) {
-                textField.setFont(AppFonts.lexendRegular(14f));
-                textField.setBorder(BorderFactory.createCompoundBorder(
-                        new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                        BorderFactory.createEmptyBorder(10, 12, 10, 12)
-                ));
                 textField.setBackground(Color.WHITE);
             }
         } else {
@@ -170,6 +184,14 @@ final class AccountCreatePanel {
             field.setBackground(Color.WHITE);
         }
         panel.add(field, g);
+    }
+
+    private static void styleTextField(JTextField textField) {
+        textField.setFont(textField.isEditable() ? AppFonts.lexendRegular(14f) : AppFonts.lexendBold(14f));
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
     }
 
     private static JButton button(String text, Color background, Color foreground) {

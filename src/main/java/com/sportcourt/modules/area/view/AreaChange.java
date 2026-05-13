@@ -142,7 +142,7 @@ public class AreaChange extends JPanel {
         JPanel fieldPanel = createFieldPanel();
 
         JLabel label = createFieldLabel(labelText);
-        editor.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        editor.setFont(new Font("Lexend", Font.PLAIN, 14));
 
         JPanel editorWrapper = createRoundedInputWrapper();
         editorWrapper.setBorder(new EmptyBorder(6, 12, 6, 12));
@@ -157,7 +157,7 @@ public class AreaChange extends JPanel {
     private JPanel createReadOnlyField(String labelText, JTextField valueField) {
         JPanel fieldPanel = createFieldPanel();
 
-        valueField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        valueField.setFont(new Font("Lexend", Font.BOLD, 14));
         valueField.setCursor(Cursor.getDefaultCursor());
         JPanel wrapper = createRoundedInputWrapper(true);
         wrapper.setBorder(new EmptyBorder(10, 14, 10, 14));
@@ -323,7 +323,7 @@ public class AreaChange extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }
