@@ -346,7 +346,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.PRODUCT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", ProductPanel::new);
         if (canView(FunctionId.EQUIPMENT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", EquipmentManagement::new);
         if (canView(FunctionId.IMPORT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
-        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", SupplierManagementPanel::new));
+        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", SupplierManagementPanel::new);
         if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
