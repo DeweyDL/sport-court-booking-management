@@ -24,6 +24,7 @@ import com.sportcourt.modules.user_profile.view.UserProfilePanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.net.URL;
 
@@ -149,6 +150,7 @@ public class Sidebar extends JFrame {
         menuScrollPane.setOpaque(false);
         menuScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         menuScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        styleMenuScrollBar(menuScrollPane.getVerticalScrollBar());
         sidebar.add(menuScrollPane, BorderLayout.CENTER);
 
         // --- Bottom Menu ---
@@ -378,6 +380,47 @@ public class Sidebar extends JFrame {
         int resolvedWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, targetWidth));
         sidebarContainer.setPreferredSize(new Dimension(resolvedWidth, 0));
         sidebarContainer.revalidate();
+    }
+
+    private static void styleMenuScrollBar(JScrollBar bar) {
+        bar.setPreferredSize(new Dimension(UIScale.scale(6), 0));
+        bar.setUnitIncrement(UIScale.scale(16));
+        bar.setUI(new BasicScrollBarUI() {
+            private static final Color THUMB = new Color(160, 200, 170, 180);
+            private static final Color THUMB_HOVER = new Color(190, 230, 200, 220);
+
+            @Override
+            protected void configureScrollBarColors() {
+                thumbColor = THUMB;
+                thumbHighlightColor = THUMB_HOVER;
+                trackColor = new Color(0, 0, 0, 0);
+                trackHighlightColor = new Color(0, 0, 0, 0);
+            }
+
+            @Override
+            protected JButton createDecreaseButton(int o) { return zeroButton(); }
+            @Override
+            protected JButton createIncreaseButton(int o) { return zeroButton(); }
+            private JButton zeroButton() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0, 0));
+                return b;
+            }
+
+            @Override
+            protected void paintThumb(Graphics g, JComponent c, Rectangle bounds) {
+                if (bounds.isEmpty()) return;
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(isDragging ? THUMB_HOVER : THUMB);
+                int arc = UIScale.scale(4);
+                g2.fillRoundRect(bounds.x + 1, bounds.y + 2, bounds.width - 2, bounds.height - 4, arc, arc);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintTrack(Graphics g, JComponent c, Rectangle bounds) {}
+        });
     }
 
     private boolean canView(String functionId) {
