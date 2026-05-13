@@ -8,6 +8,8 @@ import com.sportcourt.modules.auth.dto.LoginRequest;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.common.style.BackgroundPanel;
+import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.common.style.UIScale;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,8 +20,8 @@ import java.net.URL;
 public class LoginScreen extends JFrame {
     private static final double WINDOW_WIDTH_RATIO = 0.9;
     private static final double WINDOW_HEIGHT_RATIO = 0.9;
-    private static final int MIN_WINDOW_WIDTH = 1100;
-    private static final int MIN_WINDOW_HEIGHT = 680;
+    private static final int MIN_WINDOW_WIDTH = UIScale.scale(1100);
+    private static final int MIN_WINDOW_HEIGHT = UIScale.scale(680);
     private static final double LEFT_PANEL_WEIGHT = 1.8;
     private static final double RIGHT_PANEL_WEIGHT = 0.9;
 
@@ -52,11 +54,12 @@ public class LoginScreen extends JFrame {
         JPanel loginPanel = new JPanel();
         loginPanel.setBackground(new Color(242, 242, 242));
         loginPanel.setLayout(new GridBagLayout());
-        loginPanel.setBorder(BorderFactory.createEmptyBorder(32, 24, 32, 24));
+        loginPanel.setBorder(BorderFactory.createEmptyBorder(
+                UIScale.scale(32), UIScale.scale(24), UIScale.scale(32), UIScale.scale(24)));
 
         // Giữ nguyên các thông số r của bạn
         GridBagConstraints r = new GridBagConstraints();
-        r.insets = new Insets(8, 24, 8, 24);
+        r.insets = new Insets(UIScale.scale(8), UIScale.scale(24), UIScale.scale(8), UIScale.scale(24));
         r.gridx = 0;
         r.weightx = 1;
         r.weighty = 0;
@@ -72,7 +75,7 @@ public class LoginScreen extends JFrame {
         subtitle.setForeground(new Color(120, 120, 120));
 
         JTextField phoneField = new JTextField();
-        phoneField.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        phoneField.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         phoneField.setBackground(new Color(242, 242, 242));
         phoneField.setBorder(null);
         phoneField.putClientProperty("JTextField.placeholderText", "Số điện thoại");
@@ -80,15 +83,15 @@ public class LoginScreen extends JFrame {
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
         userPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        userPanel.setPreferredSize(new Dimension(200, 50));
+        userPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
 
-        JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", 18, 18));
-        userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
+        userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(phoneField, BorderLayout.CENTER);
 
         JPasswordField password = new JPasswordField();
-        password.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        password.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         password.setBackground(new Color(242, 242, 242));
         password.setBorder(null);
         password.putClientProperty("JTextField.placeholderText", "Mật khẩu");
@@ -96,10 +99,10 @@ public class LoginScreen extends JFrame {
         JPanel passPanel = new JPanel(new BorderLayout());
         passPanel.setBackground(new Color(242, 242, 242));
         passPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        passPanel.setPreferredSize(new Dimension(200, 50));
+        passPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
 
-        JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", 18, 18));
-        passIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
+        passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
         passPanel.add(passIcon, BorderLayout.WEST);
         passPanel.add(password, BorderLayout.CENTER);
 
@@ -124,7 +127,7 @@ public class LoginScreen extends JFrame {
         loginBtn.setFocusPainted(false);
         loginBtn.setContentAreaFilled(false);
         loginBtn.setBorderPainted(false);
-        loginBtn.setPreferredSize(new Dimension(200, 50));
+        loginBtn.setPreferredSize(new Dimension(200, UIScale.scale(50)));
         loginBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel label = new JLabel(
@@ -190,6 +193,9 @@ public class LoginScreen extends JFrame {
         rightPanel.add(new Register(cardLayout, rightPanel), "REGISTER");
 
         rightPanel.add(new ForgotPassword(cardLayout, rightPanel), "FORGOT");
+
+        // Single scaling path for all auth-screen fonts
+        CrudViewStyle.installResponsiveTypography(rightPanel);
 
         // Layout JFrame chính (Giữ nguyên weightx của bạn)
         gbc.gridx = 0;

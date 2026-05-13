@@ -12,10 +12,13 @@ import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public class ManageCustomerServiceImpl implements ManageCustomerService {
     private static final String DEFAULT_PASSWORD = "12345678";
+    private static final String CUSTOMER_USER_PREFIX = "USERS-";
+    private static final String CUSTOMER_ACCOUNT_PREFIX = "ACC-";
+    private static final String CUSTOMER_ID_PREFIX = "KH-";
+    private static final String CUSTOMER_ACCOUNT_ROLE_GROUP_PREFIX = "ACCRGR-";
     private final ManageCustomerDao manageCustomerDao;
 
     public ManageCustomerServiceImpl() {
@@ -63,13 +66,14 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
             return CustomerResult.fail("Chưa điền số điện thoại.");
         }
 
-        String userId = generateId("USR");
-        String accountId = generateId("ACC");
         String username = request.sdt().trim();
         String passwordHash = Sha256Password.hash(DEFAULT_PASSWORD);
 
         try {
-            String maKhachHang = generateCustomerId();
+            String userId = generateCustomerId("USERS", "USER_ID", CUSTOMER_USER_PREFIX);
+            String accountId = generateCustomerId("ACCOUNT", "ACCOUNT_ID", CUSTOMER_ACCOUNT_PREFIX);
+            String maKhachHang = generateCustomerId("KHACH_HANG", "MAKH", CUSTOMER_ID_PREFIX);
+            String accountRoleGroupId = generateCustomerId("ACCOUNT_ROLE_GROUP", "ACCOUNT_ROLE_GROUP_ID", CUSTOMER_ACCOUNT_ROLE_GROUP_PREFIX);
             CreateCustomerRequest normalized = new CreateCustomerRequest(
                     request.hoTen().trim(),
                     username
@@ -78,8 +82,8 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
                     userId,
                     accountId,
                     maKhachHang,
+                    accountRoleGroupId,
                     normalized,
-                    null,
                     passwordHash,
                     username
             );
@@ -91,12 +95,8 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
 
     @Override
     public CustomerResult<CustomerProfile> updateCustomer(String maKhachHang, UpdateCustomerRequest request) {
-        if (isBlank(maKhachHang)) {
-            return CustomerResult.fail("Chưa điền mã khách hàng.");
-        }
-        if (request == null) {
-            return CustomerResult.fail("Chưa điền thông tin cập nhật.");
-        }
+
+
         if (isBlank(request.hoTen())) {
             return CustomerResult.fail("Chưa điền họ tên.");
         }
@@ -133,6 +133,7 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
             if (!deleted) {
                 return CustomerResult.fail("Không tìm thấy khách hàng để xóa.");
             }
+
             return CustomerResult.ok("Xóa thành công.", null);
         } catch (SQLException e) {
             return CustomerResult.fail(mapOracleError(e));
@@ -155,12 +156,8 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
         }
     }
 
-    private String generateId(String prefix) {
-        return prefix + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
-    }
-
-    private String generateCustomerId() throws SQLException {
-        return "KH-" + (manageCustomerDao.countCustomers() + 1);
+    private String generateCustomerId(String tableName, String idColumn, String prefix) throws SQLException {
+        return manageCustomerDao.nextNumericId(tableName, idColumn, prefix);
     }
 
     private String mapOracleError(SQLException e) {

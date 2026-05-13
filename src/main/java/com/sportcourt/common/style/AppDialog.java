@@ -16,8 +16,8 @@ public final class AppDialog {
     }
 
     private static void show(Component parent, String title, String message, int type) {
-        UIManager.put("OptionPane.messageFont", AppFonts.lexendRegular(14f));
-        UIManager.put("OptionPane.buttonFont", AppFonts.lexendBold(13f));
+        UIManager.put("OptionPane.messageFont", AppFonts.lexendRegular(UIScale.scaleFont(14f)));
+        UIManager.put("OptionPane.buttonFont",  AppFonts.lexendBold(UIScale.scaleFont(13f)));
         UIManager.put("OptionPane.minimumSize", new Dimension(420, 150));
         JOptionPane.showMessageDialog(parent, message, title, type);
     }

@@ -11,18 +11,15 @@ import java.awt.*;
 
 final class SupplierCreatePanel {
     private static final int INPUT_CORNER_RADIUS = 25;
-    private static final Color DIALOG_BG   = new Color(248, 249, 252);
-    private static final Color CARD_BG     = Color.WHITE;
-    private static final Color BRAND_GREEN = new Color(16, 110, 0);
-    private static final Color TEXT_DARK   = new Color(30, 41, 59);
-    private static final Color TEXT_MUTED  = new Color(100, 116, 139);
+    private static final Color DIALOG_BG    = new Color(248, 249, 252);
+    private static final Color CARD_BG      = Color.WHITE;
+    private static final Color BRAND_GREEN  = new Color(16, 110, 0);
+    private static final Color TEXT_DARK    = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
 
     private SupplierCreatePanel() {}
 
-    /**
-     * @param controller reuse the injected controller (avoids permission error in demo mode)
-     */
     static void show(Component parent, SupplierManagementController controller, Runnable onSuccess) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm nhà cung cấp", Dialog.ModalityType.APPLICATION_MODAL);
@@ -34,7 +31,7 @@ final class SupplierCreatePanel {
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
-        // ── Header ─────────────────────────────────────────────────────────────
+        // ── Header ──────────────────────────────────────────────────────────────
         JPanel header = new JPanel(new BorderLayout(0, 6));
         header.setOpaque(false);
         JLabel title = new JLabel("Thêm nhà cung cấp mới");
@@ -47,13 +44,24 @@ final class SupplierCreatePanel {
         header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
+        // ── Tải mã tự sinh ──────────────────────────────────────────────────────
+        String autoMancc;
+        try {
+            autoMancc = controller.generateNextId();
+        } catch (Exception ex) {
+            autoMancc = "NCC-?";
+        }
+
         // ── Fields ──────────────────────────────────────────────────────────────
-        JTextField manccField  = new JTextField();
-        JTextField tennccField = new JTextField();
-        JTextField sdtField    = new JTextField();
-        JTextField diachiField = new JTextField();
-        JTextField emailField  = new JTextField();
-        JTextField websiteField = new JTextField();
+        JTextField manccDisplay  = readonly(autoMancc);   // chỉ hiển thị, không cho nhập
+        JTextField tennccField   = new JTextField();
+        JTextField sdtField      = new JTextField();
+        JTextField diachiField   = new JTextField();
+        JTextField emailField    = new JTextField();
+        JTextField websiteField  = new JTextField();
+
+        // lưu mã để dùng khi submit
+        final String mancc = autoMancc;
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(CARD_BG);
@@ -65,12 +73,12 @@ final class SupplierCreatePanel {
         g.fill    = GridBagConstraints.HORIZONTAL;
         g.insets  = new Insets(6, 0, 6, 0);
 
-        addField(form, g, 0, "Mã nhà cung cấp (*)",    manccField);
-        addField(form, g, 1, "Tên nhà cung cấp (*)",   tennccField);
-        addField(form, g, 2, "Số điện thoại (*)",       sdtField);
-        addField(form, g, 3, "Địa chỉ (*)",             diachiField);
-        addField(form, g, 4, "Email",                   emailField);
-        addField(form, g, 5, "Website",                 websiteField);
+        addField(form, g, 0, "Mã nhà cung cấp", manccDisplay);
+        addField(form, g, 1, "Tên nhà cung cấp (*)",      tennccField);
+        addField(form, g, 2, "Số điện thoại (*)",          sdtField);
+        addField(form, g, 3, "Địa chỉ (*)",                diachiField);
+        addField(form, g, 4, "Email",                      emailField);
+        addField(form, g, 5, "Website",                    websiteField);
         root.add(form, BorderLayout.CENTER);
 
         // ── Actions ─────────────────────────────────────────────────────────────
@@ -84,8 +92,7 @@ final class SupplierCreatePanel {
 
         btnCancel.addActionListener(e -> dialog.dispose());
         btnConfirm.addActionListener(e -> {
-            if (manccField.getText().isBlank()
-                    || tennccField.getText().isBlank()
+            if (tennccField.getText().isBlank()
                     || sdtField.getText().isBlank()
                     || diachiField.getText().isBlank()) {
                 JOptionPane.showMessageDialog(dialog,
@@ -95,7 +102,7 @@ final class SupplierCreatePanel {
             }
             try {
                 SupplierCreateRequest request = new SupplierCreateRequest();
-                request.setMancc(manccField.getText().trim());
+                request.setMancc(mancc);   // dùng mã tự sinh
                 request.setTenncc(tennccField.getText().trim());
                 request.setSdt(sdtField.getText().trim());
                 request.setDiachi(diachiField.getText().trim());
@@ -127,18 +134,15 @@ final class SupplierCreatePanel {
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
-    private static JTextField readonly(String placeholder) {
-        JTextField field = new JTextField(placeholder);
+    private static JTextField readonly(String value) {
+        JTextField field = new JTextField(value);
         field.setEditable(false);
         field.setFocusable(false);
-        field.setOpaque(true);
+        field.setOpaque(false);
         field.setBackground(new Color(241, 245, 249));
-        field.setForeground(new Color(148, 163, 184));
-        field.setFont(AppFonts.lexendRegular(13f));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
-        ));
+        field.setForeground(new Color(100, 116, 139));
+        field.setFont(AppFonts.lexendBold(14f));
+        field.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
         return field;
     }
 
@@ -147,7 +151,7 @@ final class SupplierCreatePanel {
         g.gridy = row * 2;
         JLabel lb = new JLabel(label);
         lb.setFont(AppFonts.lexendBold(12f));
-        lb.setForeground(TEXT_DARK);
+        lb.setForeground(new Color(30, 41, 59));
         panel.add(lb, g);
 
         g.gridy = row * 2 + 1;
@@ -158,8 +162,22 @@ final class SupplierCreatePanel {
                     BorderFactory.createEmptyBorder(10, 12, 10, 12)
             ));
             field.setBackground(Color.WHITE);
+            panel.add(field, g);
+        } else {
+            JPanel pill = new JPanel(new BorderLayout()) {
+                @Override protected void paintComponent(Graphics g2) {
+                    Graphics2D g2d = (Graphics2D) g2.create();
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setColor(new Color(241, 245, 249));
+                    g2d.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                    g2d.dispose();
+                    super.paintComponent(g2);
+                }
+            };
+            pill.setOpaque(false);
+            pill.add(field, BorderLayout.CENTER);
+            panel.add(pill, g);
         }
-        panel.add(field, g);
     }
 
     private static JButton button(String text, Color background, Color foreground) {
