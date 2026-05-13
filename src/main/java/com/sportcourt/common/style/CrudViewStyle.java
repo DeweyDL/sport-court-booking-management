@@ -24,9 +24,12 @@ public final class CrudViewStyle {
     public static final Color EDIT_TEXT = new Color(29, 78, 216);
     public static final Color EDIT_BG = new Color(239, 246, 255);
 
-    // All pixel dimensions are scaled relative to a 1920×1080 baseline via UIScale.
-    public static final int STATUS_PILL_WIDTH = UIScale.scale(112);
-    public static final int STATUS_PILL_HEIGHT = UIScale.scale(24);
+    // Dimension constants scaled via dimFactor (1920 baseline).
+    // Note: the status pill itself no longer uses these for fixed sizing — it
+    // auto-sizes to its content. These values remain as layout hints for panels
+    // that need a minimum column width for status columns.
+    public static final int STATUS_PILL_WIDTH  = UIScale.scaleFontInt(120f);
+    public static final int STATUS_PILL_HEIGHT = UIScale.scaleFontInt(28f);
     public static final int TOOLBAR_CONTROL_HEIGHT = UIScale.scale(41);
     public static final int TOOLBAR_SEARCH_WIDTH = UIScale.scale(270);
     public static final int TOOLBAR_SORT_WIDTH = UIScale.scale(214);
@@ -191,6 +194,29 @@ public final class CrudViewStyle {
     }
 
     public static JPanel createStatusPill(String text, Color background, Color foreground) {
+        JLabel textLabel = new JLabel(text == null || text.isBlank() ? "--" : text);
+        // Raw size — installResponsiveTypography scales it via fontFactor; no fixed width needed.
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        textLabel.setForeground(foreground);
+
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setOpaque(false);
+
+        GridBagConstraints dotConstraints = new GridBagConstraints();
+        dotConstraints.gridx = 0;
+        dotConstraints.gridy = 0;
+        dotConstraints.insets = new Insets(UIScale.scale(2), 0, 0, UIScale.scale(6));
+        content.add(createStatusDot(foreground), dotConstraints);
+
+        GridBagConstraints textConstraints = new GridBagConstraints();
+        textConstraints.gridx = 1;
+        textConstraints.gridy = 0;
+        content.add(textLabel, textConstraints);
+
+        // Pill sizes itself to its content; EmptyBorder provides the visual padding.
+        // No fixed min/max/preferred — the scaled font fits without clipping.
+        int hPad = UIScale.scale(10);
+        int vPad = UIScale.scale(5);
         JPanel pill = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics graphics) {
@@ -202,29 +228,7 @@ public final class CrudViewStyle {
             }
         };
         pill.setOpaque(false);
-        Dimension size = new Dimension(STATUS_PILL_WIDTH, STATUS_PILL_HEIGHT);
-        pill.setPreferredSize(size);
-        pill.setMinimumSize(size);
-        pill.setMaximumSize(size);
-
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
-
-        GridBagConstraints dotConstraints = new GridBagConstraints();
-        dotConstraints.gridx = 0;
-        dotConstraints.gridy = 0;
-        dotConstraints.insets = new Insets(2, 0, 0, 7);
-        content.add(createStatusDot(foreground), dotConstraints);
-
-        JLabel textLabel = new JLabel(text == null || text.isBlank() ? "--" : text);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(13)));
-        textLabel.setForeground(foreground);
-
-        GridBagConstraints textConstraints = new GridBagConstraints();
-        textConstraints.gridx = 1;
-        textConstraints.gridy = 0;
-        content.add(textLabel, textConstraints);
-
+        pill.setBorder(new EmptyBorder(vPad, hPad, vPad, hPad));
         pill.add(content);
 
         JPanel wrapper = new JPanel(new GridBagLayout());
@@ -244,7 +248,8 @@ public final class CrudViewStyle {
                 g2.dispose();
             }
         };
-        int dotSize = UIScale.scale(5);
+        // Dot sized to match the scaled font baseline.
+        int dotSize = UIScale.scaleFontInt(6f);
         Dimension size = new Dimension(dotSize, dotSize);
         dot.setOpaque(false);
         dot.setPreferredSize(size);
