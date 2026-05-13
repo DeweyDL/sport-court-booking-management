@@ -321,35 +321,14 @@ public final class CrudViewStyle {
     }
 
     /**
-     * Returns the combined text-scale factor for a panel of the given pixel width.
+     * Returns the font scale factor for a panel.
      *
-     * Two components:
-     *  1. UIScale.getFactor()  — screen-resolution scale (set once at startup).
-     *  2. A smooth width-ratio adjustment — fine-tunes when the window is resized.
-     *
-     * The width ratio compares the current panel width to the expected content
-     * width for this screen (≈ 72 % of screen width after the sidebar).
-     * Ratio 1.0 → widthAdjust 1.0 (natural size for this screen).
-     * Ratio 0.5 → widthAdjust 0.85 (panel is cramped → shrink text).
-     * Ratio 1.5 → widthAdjust 1.08 (panel is extra wide → slightly larger text).
+     * Uses the screen-based font factor only — no width-based reduction.
+     * When a panel's content is too wide for the current window, the layout
+     * scrolls rather than shrinking text.
      */
     private static float resolveTextScale(int width) {
-        float screenScale = UIScale.getFactor();
-
-        float normalContentWidth = UIScale.getScreenWidth() * 0.72f;
-        float ratio = width / normalContentWidth;
-        float clamped = Math.max(0.5f, Math.min(1.5f, ratio));
-
-        float widthAdjust;
-        if (clamped <= 1.0f) {
-            // 0.85 at ratio=0.5 → 1.0 at ratio=1.0
-            widthAdjust = 0.85f + (clamped - 0.5f) * 0.30f;
-        } else {
-            // 1.0 at ratio=1.0 → 1.08 at ratio=1.5
-            widthAdjust = 1.0f + (clamped - 1.0f) * 0.16f;
-        }
-
-        return screenScale * widthAdjust;
+        return UIScale.getFactor(); // fontFactor: larger on big screens, no width penalty
     }
 
     private static int clamp(int value, int min, int max) {

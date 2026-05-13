@@ -22,20 +22,18 @@ public final class AppFonts {
 
     public static Font lexendRegular(float size) {
         register();
-        float scaled = UIScale.scaleFont(size);
         if (lexendRegular != null) {
-            return lexendRegular.deriveFont(Font.PLAIN, scaled);
+            return lexendRegular.deriveFont(Font.PLAIN, size);
         }
-        return new Font("SansSerif", Font.PLAIN, Math.round(scaled));
+        return new Font("SansSerif", Font.PLAIN, Math.round(size));
     }
 
     public static Font lexendBold(float size) {
         register();
-        float scaled = UIScale.scaleFont(size);
         if (lexendBold != null) {
-            return lexendBold.deriveFont(Font.BOLD, scaled);
+            return lexendBold.deriveFont(Font.BOLD, size);
         }
-        return new Font("SansSerif", Font.BOLD, Math.round(scaled));
+        return new Font("SansSerif", Font.BOLD, Math.round(size));
     }
 
     private static Font loadFont(String resourcePath) {
