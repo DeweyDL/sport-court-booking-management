@@ -12,4 +12,5 @@ public interface StaffService {
     void createStaff(StaffCreateRequest req) throws Exception;
     void updateStaff(String manv, StaffUpdateRequest req) throws Exception;
     void deleteStaff(String manv) throws Exception;
+    String generateNextManv() throws Exception;
 }

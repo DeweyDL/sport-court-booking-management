@@ -39,4 +39,8 @@ public class CustomerRankController {
     public boolean deleteRank(String maHang) throws SQLException {
         return customerRankService.deleteRank(maHang);
     }
+
+    public String generateNextMaHang() throws SQLException {
+        return customerRankService.generateNextMaHang();
+    }
 }

@@ -23,4 +23,5 @@ public interface ProductDao {
     boolean softDelete(Connection conn, String maSp) throws SQLException;
 
     boolean restore(Connection conn, String maSp) throws SQLException;
+    String generateNextMaSp() throws SQLException;
 }

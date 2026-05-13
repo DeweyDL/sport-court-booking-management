@@ -293,6 +293,23 @@ public class CourtDAOImpl implements CourtDAO {
     }
 
     @Override
+    public String generateNextCourtId() throws SQLException {
+        String sql = """
+            SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MASAN, '\\d+$'))), 0) + 1 AS NEXT_ID
+            FROM SAN_CON
+            WHERE REGEXP_LIKE(MASAN, '^SC-\\d+$')
+            """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return "SC-" + rs.getInt("NEXT_ID");
+            }
+        }
+        return "SC-1";
+    }
+
+    @Override
     public void insert(Court court) throws SQLException {
         String sql = """
             INSERT INTO SAN_CON (

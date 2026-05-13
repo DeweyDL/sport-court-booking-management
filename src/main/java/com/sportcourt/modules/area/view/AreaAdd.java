@@ -7,7 +7,6 @@ import com.sportcourt.modules.area.enitity.Area;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
 
 public class AreaAdd extends JPanel {
@@ -15,7 +14,7 @@ public class AreaAdd extends JPanel {
     private final Consumer<String> onSaved;
 
     private final JTextField maKvField = createDisplayField();
-    private final JTextField maCnField = createDisplayField();
+    private final JComboBox<Area.ChiNhanhOption> chiNhanhComboBox = new JComboBox<>();
     private final JComboBox<Area.SportTypeOption> sportTypeComboBox = new JComboBox<>();
     private final JTextField courtCountField = createDisplayField();
 
@@ -26,9 +25,10 @@ public class AreaAdd extends JPanel {
         this.areaController = areaController;
         this.onSaved = onSaved;
 
-        setOpaque(false);
+        setOpaque(true);
+        setBackground(new Color(248, 249, 252));
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(18, 18, 18, 18));
+        setBorder(new EmptyBorder(20, 20, 20, 20));
         add(createContent(), BorderLayout.CENTER);
     }
 
@@ -42,10 +42,8 @@ public class AreaAdd extends JPanel {
     private void prepareCreateForm() {
         generatedMaKv = areaController.generateNextMaKv();
         maKvField.setText(generatedMaKv);
-        maCnField.setText(areaController.getDefaultChiNhanhId());
-
         courtCountField.setText("0");
-
+        bindChiNhanh();
         bindLoaiTheThao();
     }
 
@@ -65,29 +63,8 @@ public class AreaAdd extends JPanel {
     }
 
     private JPanel createContent() {
-        JPanel content = new JPanel(new BorderLayout(0, 18)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-
-            @Override
-            protected void paintChildren(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setClip(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 28, 28));
-                super.paintChildren(g2);
-                g2.dispose();
-            }
-        };
+        JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(20, 22, 20, 22));
         content.add(createHeader(), BorderLayout.NORTH);
         content.add(createForm(), BorderLayout.CENTER);
         content.add(createActions(), BorderLayout.SOUTH);
@@ -100,13 +77,13 @@ public class AreaAdd extends JPanel {
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
         JLabel titleLabel = new JLabel("Thêm khu vực");
-        titleLabel.setFont(new Font("Lexend", Font.BOLD, 22));
-        titleLabel.setForeground(new Color(30, 31, 36));
+        titleLabel.setFont(new Font("Lexend", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(30, 41, 59));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel subtitleLabel = new JLabel("Khởi tạo các thông tin cơ bản cho khu vực mới.");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitleLabel.setForeground(new Color(107, 114, 128));
+        subtitleLabel.setFont(new Font("Lexend", Font.PLAIN, 13));
+        subtitleLabel.setForeground(new Color(100, 116, 139));
         subtitleLabel.setBorder(new EmptyBorder(6, 0, 0, 0));
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -117,14 +94,14 @@ public class AreaAdd extends JPanel {
 
     private JPanel createForm() {
         JPanel form = new JPanel();
-        form.setOpaque(false);
+        form.setOpaque(true);
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
 
-        form.add(createReadOnlyField("Mã khu vực", maKvField));
-        form.add(Box.createVerticalStrut(17));
-        form.add(createReadOnlyField("Mã chi nhánh", maCnField));
+        form.add(createEditableField("Chi nhánh", chiNhanhComboBox));
         form.add(Box.createVerticalStrut(17));
         form.add(createEditableField("Loại thể thao", sportTypeComboBox));
         form.add(Box.createVerticalStrut(17));
@@ -150,14 +127,14 @@ public class AreaAdd extends JPanel {
     }
 
     private JPanel createActions() {
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
         actions.setBorder(new EmptyBorder(2, 0, 0, 0));
 
-        JButton cancelButton = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55), true);
+        JButton cancelButton = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59), true);
         cancelButton.addActionListener(event -> cancelCreate());
 
-        JButton saveButton = createPillButton("Tạo khu vực", new Color(16, 110, 0), new Color(228, 250, 226), true);
+        JButton saveButton = createPillButton("Tạo khu vực", new Color(16, 110, 0), Color.WHITE, true);
         saveButton.addActionListener(event -> saveNewKhuVuc());
 
         actions.add(cancelButton);
@@ -207,8 +184,8 @@ public class AreaAdd extends JPanel {
 
     private JLabel createFieldLabel(String labelText) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        label.setForeground(new Color(75, 85, 99));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
     }
@@ -219,10 +196,10 @@ public class AreaAdd extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(249, 250, 251));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
                 g2.dispose();
             }
         };
@@ -232,6 +209,19 @@ public class AreaAdd extends JPanel {
         wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
         return wrapper;
+    }
+
+    private void bindChiNhanh() {
+        DefaultComboBoxModel<Area.ChiNhanhOption> model = new DefaultComboBoxModel<>();
+        for (Area.ChiNhanhOption chiNhanh : areaController.getChiNhanhList()) {
+            model.addElement(chiNhanh);
+        }
+        chiNhanhComboBox.setModel(model);
+        chiNhanhComboBox.setBorder(null);
+        chiNhanhComboBox.setBackground(new Color(249, 250, 251));
+        if (model.getSize() > 0) {
+            chiNhanhComboBox.setSelectedIndex(0);
+        }
     }
 
     private void bindLoaiTheThao() {
@@ -254,6 +244,12 @@ public class AreaAdd extends JPanel {
             return;
         }
 
+        Area.ChiNhanhOption selectedChiNhanh = (Area.ChiNhanhOption) chiNhanhComboBox.getSelectedItem();
+        if (selectedChiNhanh == null) {
+            JOptionPane.showMessageDialog(this, "Hãy chọn chi nhánh.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         Area.SportTypeOption selectedSportType = (Area.SportTypeOption) sportTypeComboBox.getSelectedItem();
         if (selectedSportType == null) {
             JOptionPane.showMessageDialog(this, "Hãy chọn loại thể thao.", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -273,7 +269,7 @@ public class AreaAdd extends JPanel {
 
         AreaCreateRequest request = new AreaCreateRequest(
                 generatedMaKv,
-                areaController.getDefaultChiNhanhId(),
+                selectedChiNhanh.maCn(),
                 selectedSportType.maTt(),
                 0
         );
@@ -329,7 +325,7 @@ public class AreaAdd extends JPanel {
             }
         };
         button.setForeground(fg);
-        button.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        button.setFont(new Font("Lexend", bold ? Font.BOLD : Font.PLAIN, 13));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);

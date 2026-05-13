@@ -518,10 +518,18 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         }
     }
 
+    private String generateNextCourtId() {
+        try {
+            return controller.generateNextCourtId();
+        } catch (SQLException e) {
+            return "SC-1";
+        }
+    }
+
     private void openCreateDialog() {
         try {
             List<String> areaIds = controller.getAreaIdsByBranch(branchId);
-            Court court = CourtCreatePanel.show(this, areaIds);
+            Court court = CourtCreatePanel.show(this, areaIds, generateNextCourtId());
             if (court == null) {
                 return;
             }

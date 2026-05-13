@@ -75,8 +75,6 @@ final class ProductCreateDialog {
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        form.add(createField("Mã sản phẩm", txtMaSp));
-        form.add(Box.createVerticalStrut(14));
         form.add(createField("Tên sản phẩm", txtTenSp));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Đơn vị tính", txtDvt));

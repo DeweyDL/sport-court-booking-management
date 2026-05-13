@@ -18,18 +18,19 @@ public class AddStaffDialog extends JDialog {
     private static final Color TEXT_DARK    = new Color(30, 41, 59);
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG  = new Color(241, 245, 249);
 
     private final StaffService staffService = new StaffServiceImpl();
     private final StaffPanel parentPanel;
 
-    public AddStaffDialog(JFrame parent, StaffPanel parentPanel) {
+    public AddStaffDialog(JFrame parent, StaffPanel parentPanel, String generatedManv) {
         super(parent, "Thêm nhân viên", ModalityType.APPLICATION_MODAL);
         this.parentPanel = parentPanel;
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         setContentPane(root);
@@ -54,7 +55,6 @@ public class AddStaffDialog extends JDialog {
         root.add(header, BorderLayout.NORTH);
 
         // Form Fields (Đã bỏ Chi nhánh và Loại nhân viên)
-        JTextField txtMaNV = new JTextField();
         JTextField txtHoTen = new JTextField();
         JTextField txtCCCD = new JTextField();
         JComboBox<String> cbChucVu = new JComboBox<>(new String[]{"Nhân viên", "Quản lý"});
@@ -66,8 +66,6 @@ public class AddStaffDialog extends JDialog {
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        form.add(createField("Mã nhân viên", txtMaNV));
-        form.add(Box.createVerticalStrut(14));
         form.add(createField("Họ và tên", txtHoTen));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Căn cước công dân", txtCCCD));
@@ -84,7 +82,7 @@ public class AddStaffDialog extends JDialog {
         root.add(form, BorderLayout.CENTER);
 
         // Actions
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
 
         JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
@@ -94,7 +92,7 @@ public class AddStaffDialog extends JDialog {
         saveBtn.addActionListener(e -> {
             try {
                 StaffCreateRequest req = new StaffCreateRequest();
-                req.setManv(txtMaNV.getText().trim());
+                req.setManv(generatedManv);
                 req.setHoten(txtHoTen.getText().trim());
                 req.setCccd(txtCCCD.getText().trim());
                 req.setIsQl(cbChucVu.getSelectedIndex()); // 0: Nhân viên, 1: Quản lý
@@ -118,6 +116,35 @@ public class AddStaffDialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
+    private JPanel createReadOnlyField(String labelText, String value) {
+        JTextField field = new JTextField(value);
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(TEXT_DARK);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
+    }
+
     private JPanel createField(String labelText, JComponent field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -125,7 +152,7 @@ public class AddStaffDialog extends JDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
 
         field.setFont(new Font("Lexend", Font.PLAIN, 14));
         field.setForeground(new Color(31, 41, 55));
@@ -137,7 +164,7 @@ public class AddStaffDialog extends JDialog {
 
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
         panel.add(label);
         panel.add(Box.createVerticalStrut(6));

@@ -28,4 +28,5 @@ public interface CourtDAO {
     boolean update(Court court, String branchId) throws SQLException;
 
     boolean softDelete(String courtId, String branchId) throws SQLException;
+    String generateNextCourtId() throws SQLException;
 }
