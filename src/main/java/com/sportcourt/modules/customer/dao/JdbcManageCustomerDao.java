@@ -7,6 +7,7 @@ import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
 
 import java.sql.Connection;
+import java.sql.CallableStatement;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -108,46 +109,58 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
     }
 
     @Override
-    public void createCustomer(String userId, String accountId, String maKhachHang, CreateCustomerRequest request,
-                               String generatedEmail, String passwordHash, String username) throws SQLException {
-        String insertUser = """
-                INSERT INTO USERS(USER_ID, HOTEN, SDT, EMAIL, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, ?, ?, SYSDATE, 0)
-                """;
-        String insertAccount = """
-                INSERT INTO ACCOUNT(ACCOUNT_ID, USER_ID, USERNAME, PASSWORD_HASH, STATUS, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, ?, ?, 'ACTIVE', SYSDATE, 0)
-                """;
-        String insertCustomer = """
-                INSERT INTO KHACH_HANG(MAKH, USER_ID, MA_HANG, TRANGTHAI, DOANH_THU, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, NULL, 'ACTIVE', 0, SYSDATE, 0)
-                """;
+    public String nextNumericId(String tableName, String idColumn, String prefix) throws SQLException {
+        String sql = switch ((tableName + "." + idColumn).toUpperCase()) {
+            case "USERS.USER_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(USER_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM USERS
+                    WHERE USER_ID LIKE ?
+                    """;
+            case "ACCOUNT.ACCOUNT_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(ACCOUNT_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM ACCOUNT
+                    WHERE ACCOUNT_ID LIKE ?
+                    """;
+            case "KHACH_HANG.MAKH" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MAKH, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM KHACH_HANG
+                    WHERE MAKH LIKE ?
+                    """;
+            case "ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(ACCOUNT_ROLE_GROUP_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM ACCOUNT_ROLE_GROUP
+                    WHERE ACCOUNT_ROLE_GROUP_ID LIKE ?
+                    """;
+            default -> throw new SQLException("Khong ho tro sinh ID cho " + tableName + "." + idColumn);
+        };
 
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, prefix + "%");
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return prefix + rs.getLong("NEXT_ID");
+                }
+            }
+        }
+        throw new SQLException("Khong the sinh ID moi cho " + tableName + "." + idColumn);
+    }
+
+    @Override
+    public void createCustomer(String userId, String accountId, String maKhachHang, String accountRoleGroupId,
+                               CreateCustomerRequest request, String passwordHash, String username) throws SQLException {
+        String call = "{ call PRC_THEM_KHACH_HANG(?, ?, ?, ?, ?, ?, ?) }";
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement userStmt = connection.prepareStatement(insertUser);
-                 PreparedStatement accountStmt = connection.prepareStatement(insertAccount);
-                 PreparedStatement customerStmt = connection.prepareStatement(insertCustomer)) {
-                userStmt.setString(1, userId);
-                userStmt.setString(2, request.hoTen().trim());
-                userStmt.setString(3, request.sdt().trim());
-                if (generatedEmail == null || generatedEmail.trim().isEmpty()) {
-                    userStmt.setNull(4, Types.VARCHAR);
-                } else {
-                    userStmt.setString(4, generatedEmail);
-                }
-                userStmt.executeUpdate();
-
-                accountStmt.setString(1, accountId);
-                accountStmt.setString(2, userId);
-                accountStmt.setString(3, username);
-                accountStmt.setString(4, passwordHash);
-                accountStmt.executeUpdate();
-
-                customerStmt.setString(1, maKhachHang);
-                customerStmt.setString(2, userId);
-                customerStmt.executeUpdate();
-
+            try (CallableStatement statement = connection.prepareCall(call)) {
+                statement.setString(1, userId);
+                statement.setString(2, maKhachHang);
+                statement.setString(3, accountId);
+                statement.setString(4, accountRoleGroupId);
+                statement.setString(5, request.hoTen().trim());
+                statement.setString(6, request.sdt().trim());
+                statement.setString(7, passwordHash);
+                statement.execute();
                 connection.commit();
             } catch (SQLException e) {
                 connection.rollback();
@@ -234,50 +247,11 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
 
     @Override
     public boolean softDeleteCustomer(String maKhachHang) throws SQLException {
-        String deactivateCustomer = """
-                UPDATE KHACH_HANG
-                SET TRANGTHAI = 'INACTIVE',
-                    IS_DELETED = 1
-                WHERE MAKH = ?
-                """;
-        String deactivateUser = """
-                UPDATE USERS
-                SET IS_DELETED = 1
-                WHERE USER_ID = (
-                    SELECT USER_ID
-                    FROM KHACH_HANG
-                    WHERE MAKH = ?
-                )
-                """;
-        String deactivateAccount = """
-                UPDATE ACCOUNT
-                SET STATUS = 'INACTIVE',
-                    IS_DELETED = 1
-                WHERE USER_ID = (
-                    SELECT USER_ID
-                    FROM KHACH_HANG
-                    WHERE MAKH = ?
-                )
-                """;
-
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement customerStmt = connection.prepareStatement(deactivateCustomer);
-                 PreparedStatement userStmt = connection.prepareStatement(deactivateUser);
-                 PreparedStatement accountStmt = connection.prepareStatement(deactivateAccount)) {
-                customerStmt.setString(1, maKhachHang);
-                int customerUpdated = customerStmt.executeUpdate();
-                if (customerUpdated <= 0) {
-                    connection.rollback();
-                    return false;
-                }
-
-                userStmt.setString(1, maKhachHang);
-                userStmt.executeUpdate();
-
-                accountStmt.setString(1, maKhachHang);
-                accountStmt.executeUpdate();
-
+            try (CallableStatement statement = connection.prepareCall("{ call PRC_XOA_KHACH_HANG(?) }")) {
+                statement.setString(1, maKhachHang);
+                statement.execute();
                 connection.commit();
                 return true;
             } catch (SQLException e) {
