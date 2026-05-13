@@ -78,7 +78,7 @@ public class Register extends JPanel {
         userPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
-        userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(username, BorderLayout.CENTER);
@@ -96,7 +96,7 @@ public class Register extends JPanel {
         phonePanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel phoneIcon = new JLabel(scaleIcon("/icon/phone.png", UIScale.scale(18), UIScale.scale(18)));
-        phoneIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        phoneIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         phonePanel.add(phoneIcon, BorderLayout.WEST);
         phonePanel.add(phonenum, BorderLayout.CENTER);
@@ -114,7 +114,7 @@ public class Register extends JPanel {
         emailPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", UIScale.scale(18), UIScale.scale(18)));
-        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         emailPanel.add(emailIcon, BorderLayout.WEST);
         emailPanel.add(email, BorderLayout.CENTER);
@@ -139,7 +139,7 @@ public class Register extends JPanel {
         otpField.putClientProperty("JTextField.placeholderText", "Nhập OTP email");
 
         JLabel otpIcon = new JLabel(scaleIcon("/icon/otp.png", UIScale.scale(18), UIScale.scale(18)));
-        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         JPanel otpPanel = new JPanel(new BorderLayout());
         otpPanel.setBackground(new Color(242, 242, 242));
@@ -173,14 +173,14 @@ public class Register extends JPanel {
         passPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        passIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         passPanel.add(passIcon, BorderLayout.WEST);
         passPanel.add(password, BorderLayout.CENTER);
 
         // ===== XÁC NHẬN PASSWORD =====
         JPasswordField checkPassword = new JPasswordField();
-        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         checkPassword.setBackground(new Color(242, 242, 242));
         checkPassword.setBorder(null);
         checkPassword.putClientProperty("JTextField.placeholderText", "Xác nhận mật khẩu");
@@ -191,7 +191,7 @@ public class Register extends JPanel {
         checkpassPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         checkpassPanel.add(checkpassIcon, BorderLayout.WEST);
         checkpassPanel.add(checkPassword, BorderLayout.CENTER);

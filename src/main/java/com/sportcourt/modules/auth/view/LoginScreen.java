@@ -85,7 +85,7 @@ public class LoginScreen extends JFrame {
         userPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
-        userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(phoneField, BorderLayout.CENTER);
 
@@ -101,7 +101,7 @@ public class LoginScreen extends JFrame {
         passPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        passIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
         passPanel.add(passIcon, BorderLayout.WEST);
         passPanel.add(password, BorderLayout.CENTER);
 

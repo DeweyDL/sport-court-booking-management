@@ -24,7 +24,6 @@ import com.sportcourt.modules.user_profile.view.UserProfilePanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.net.URL;
 
@@ -383,44 +382,12 @@ public class Sidebar extends JFrame {
     }
 
     private static void styleMenuScrollBar(JScrollBar bar) {
-        bar.setPreferredSize(new Dimension(UIScale.scale(6), 0));
         bar.setUnitIncrement(UIScale.scale(16));
-        bar.setUI(new BasicScrollBarUI() {
-            private static final Color THUMB = new Color(160, 200, 170, 180);
-            private static final Color THUMB_HOVER = new Color(190, 230, 200, 220);
-
-            @Override
-            protected void configureScrollBarColors() {
-                thumbColor = THUMB;
-                thumbHighlightColor = THUMB_HOVER;
-                trackColor = new Color(0, 0, 0, 0);
-                trackHighlightColor = new Color(0, 0, 0, 0);
-            }
-
-            @Override
-            protected JButton createDecreaseButton(int o) { return zeroButton(); }
-            @Override
-            protected JButton createIncreaseButton(int o) { return zeroButton(); }
-            private JButton zeroButton() {
-                JButton b = new JButton();
-                b.setPreferredSize(new Dimension(0, 0));
-                return b;
-            }
-
-            @Override
-            protected void paintThumb(Graphics g, JComponent c, Rectangle bounds) {
-                if (bounds.isEmpty()) return;
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isDragging ? THUMB_HOVER : THUMB);
-                int arc = UIScale.scale(4);
-                g2.fillRoundRect(bounds.x + 1, bounds.y + 2, bounds.width - 2, bounds.height - 4, arc, arc);
-                g2.dispose();
-            }
-
-            @Override
-            protected void paintTrack(Graphics g, JComponent c, Rectangle bounds) {}
-        });
+        // Use FlatLaf client properties to style the scrollbar on the dark sidebar
+        bar.putClientProperty("ScrollBar.thumbColor", new Color(160, 200, 170, 180));
+        bar.putClientProperty("ScrollBar.hoverThumbColor", new Color(190, 230, 200, 220));
+        bar.putClientProperty("ScrollBar.trackColor", new Color(0, 0, 0, 0));
+        bar.putClientProperty("ScrollBar.width", UIScale.scale(6));
     }
 
     private boolean canView(String functionId) {
