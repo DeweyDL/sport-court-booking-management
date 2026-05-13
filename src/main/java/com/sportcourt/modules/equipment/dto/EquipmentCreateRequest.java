@@ -3,12 +3,21 @@ package com.sportcourt.modules.equipment.dto;
 import java.math.BigDecimal;
 
 public class EquipmentCreateRequest {
+    private String maDc;
     private String tenDc;
     private String dvt;
     private BigDecimal gia;
     private int slTon;
 
     public EquipmentCreateRequest() {
+    }
+
+    public String getMaDc() {
+        return maDc;
+    }
+
+    public void setMaDc(String maDc) {
+        this.maDc = maDc;
     }
 
     public String getTenDc() {

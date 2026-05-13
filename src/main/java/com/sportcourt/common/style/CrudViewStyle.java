@@ -3,10 +3,12 @@ package com.sportcourt.common.style;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
+import java.net.URL;
 
 public final class CrudViewStyle {
     public static final Color PAGE_BACKGROUND = new Color(245, 247, 250);
@@ -83,6 +85,44 @@ public final class CrudViewStyle {
         button.setPreferredSize(new Dimension(preferred.width, TOOLBAR_CONTROL_HEIGHT));
         button.setMinimumSize(new Dimension(preferred.width, TOOLBAR_CONTROL_HEIGHT));
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, TOOLBAR_CONTROL_HEIGHT));
+    }
+
+    public static JButton createRefreshButton(ActionListener actionListener) {
+        int size = TOOLBAR_CONTROL_HEIGHT;
+        JButton button = new JButton(loadToolbarIcon("/icon/reload.png", 18, 18)) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(196, 232, 193) : SUCCESS_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        button.setToolTipText("Làm mới");
+        button.getAccessibleContext().setAccessibleName("Làm mới");
+        button.setFocusable(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(0, UIScale.scale(11), 0, UIScale.scale(11)));
+        button.setIconTextGap(0);
+        button.setPreferredSize(new Dimension(size, size));
+        button.setMinimumSize(new Dimension(size, size));
+        button.setMaximumSize(new Dimension(size, size));
+        if (actionListener != null) {
+            button.addActionListener(actionListener);
+        }
+        return button;
+    }
+
+    private static Icon loadToolbarIcon(String resourcePath, int baseWidth, int baseHeight) {
+        URL url = CrudViewStyle.class.getResource(resourcePath);
+        if (url == null) {
+            return UIManager.getIcon("FileView.fileIcon");
+        }
+        return UIScale.scaleIcon(url, baseWidth, baseHeight);
     }
 
     public static JPanel createSearchFieldWithIcon(JPanel wrapper, JTextField searchField, Icon icon) {

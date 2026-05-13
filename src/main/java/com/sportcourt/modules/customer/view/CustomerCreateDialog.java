@@ -16,11 +16,12 @@ final class CustomerCreateDialog {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private CustomerCreateDialog() {
     }
 
-    static CreateCustomerRequest show(Component parent) {
+    static CreateCustomerRequest show(Component parent, String generatedMaKhachHang) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -37,7 +38,7 @@ final class CustomerCreateDialog {
         title.setHorizontalAlignment(SwingConstants.LEFT);
 
         JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho khách hàng mới.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -50,6 +51,7 @@ final class CustomerCreateDialog {
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
+        JTextField txtMaKh = createReadOnlyField(generatedMaKhachHang);
         JTextField txtHoTen = new JTextField();
         JTextField txtSdt = new JTextField();
 
@@ -58,6 +60,9 @@ final class CustomerCreateDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        form.add(createField("Mã khách hàng", txtMaKh));
+        form.add(Box.createVerticalStrut(14));
 
         form.add(createField("Họ tên", txtHoTen));
         form.add(Box.createVerticalStrut(14));
@@ -89,12 +94,12 @@ final class CustomerCreateDialog {
                 return;
             }
 
-            result[0] = new CreateCustomerRequest(hoTen, sdt);
+            result[0] = new CreateCustomerRequest(txtMaKh.getText().trim(), hoTen, sdt);
             dialog.dispose();
         });
 
         dialog.pack();
-        applyResponsiveWindowSize(dialog, 0.4, 0.6, 560, 400);
+        applyResponsiveWindowSize(dialog, 0.4, 0.6, 560, 460);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
@@ -109,6 +114,29 @@ final class CustomerCreateDialog {
     }
 
 
+    private static JTextField createReadOnlyField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value.trim()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 25, 25);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setOpaque(false);
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        return field;
+    }
+
     private static JPanel createField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -121,13 +149,14 @@ final class CustomerCreateDialog {
         label.setForeground(new Color(75, 85, 99));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Lexend", Font.PLAIN, 14));
+        boolean editable = field.isEditable();
+        field.setFont(new Font("Lexend", editable ? Font.PLAIN : Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(BORDER_COLOR, 25),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(Color.WHITE);
+        field.setBackground(editable ? Color.WHITE : READONLY_BG);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
