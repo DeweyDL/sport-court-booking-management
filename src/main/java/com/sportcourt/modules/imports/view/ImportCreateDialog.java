@@ -88,9 +88,9 @@ final class ImportCreateDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(true);
 
-        JPanel root = new JPanel(new BorderLayout(0, 12));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
         // Header
@@ -99,12 +99,12 @@ final class ImportCreateDialog {
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
         JLabel title = new JLabel(itemToEdit == null ? "Tạo phiếu nhập hàng" : "Chỉnh sửa phiếu nhập");
-        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setFont(new Font("Lexend", Font.BOLD, 24));
         title.setForeground(TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel subtitle = new JLabel("Nhập thông tin phiếu nhập và chi tiết hàng hóa.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -284,12 +284,16 @@ final class ImportCreateDialog {
         root.add(mainScroll, BorderLayout.CENTER);
 
         // Actions
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
         actions.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        JButton cancelBtn = createPillButton("Hủy", new Color(229, 231, 235), new Color(31, 41, 55));
-        JButton saveBtn = createPillButton(itemToEdit == null ? "Tạo phiếu nhập" : "Lưu thay đổi", BRAND_GREEN_BG, BRAND_GREEN);
+        JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
+        JButton saveBtn = createPillButton(
+                itemToEdit == null ? "Tạo phiếu nhập" : "Lưu thay đổi",
+                itemToEdit == null ? BRAND_GREEN : new Color(29, 78, 216),
+                Color.WHITE
+        );
 
         cancelBtn.addActionListener(event -> dialog.dispose());
         saveBtn.addActionListener(event -> {
@@ -599,17 +603,17 @@ final class ImportCreateDialog {
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        label.setForeground(new Color(75, 85, 99));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        field.setFont(new Font("Lexend", Font.PLAIN, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 18),
-                BorderFactory.createEmptyBorder(9, 14, 9, 14)
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(new Color(249, 250, 251));
+        field.setBackground(Color.WHITE);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
@@ -661,7 +665,7 @@ final class ImportCreateDialog {
         Color bg = active ? TOGGLE_ACTIVE_BG : TOGGLE_INACTIVE_BG;
         Color fg = active ? TOGGLE_ACTIVE_FG : TOGGLE_INACTIVE_FG;
         JButton btn = createPillButton(text, bg, fg);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Lexend", Font.BOLD, 13));
         btn.putClientProperty("isActive", active);
         return btn;
     }

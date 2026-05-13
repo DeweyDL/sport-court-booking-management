@@ -28,7 +28,7 @@ final class SportTypeEditDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
@@ -38,7 +38,7 @@ final class SportTypeEditDialog {
         title.setForeground(TEXT_DARK);
 
         JLabel subtitle = new JLabel("Chỉnh sửa thông tin cho loại thể thao " + row.sportId() + ".");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -63,8 +63,8 @@ final class SportTypeEditDialog {
 
         JScrollPane descScroll = new JScrollPane(txtDescription);
         descScroll.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(BORDER_COLOR, 12),
-                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
         ));
         descScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
@@ -86,7 +86,7 @@ final class SportTypeEditDialog {
         formScroll.getViewport().setBackground(DIALOG_BG);
         root.add(formScroll, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
 
         JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
@@ -156,7 +156,7 @@ final class SportTypeEditDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -176,7 +176,7 @@ final class SportTypeEditDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setAlignmentX(Component.LEFT_ALIGNMENT);

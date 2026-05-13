@@ -9,7 +9,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
 import java.util.function.Consumer;
 
@@ -31,9 +30,10 @@ public class CostChange extends JPanel {
         this.store = store;
         this.onSaved = onSaved;
 
-        setOpaque(false);
+        setOpaque(true);
+        setBackground(new Color(248, 249, 252));
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(18, 18, 18, 18));
+        setBorder(new EmptyBorder(20, 20, 20, 20));
         add(createContent(), BorderLayout.CENTER);
     }
 
@@ -137,29 +137,8 @@ public class CostChange extends JPanel {
     }
 
     private JPanel createContent() {
-        JPanel content = new JPanel(new BorderLayout(0, 18)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-
-            @Override
-            protected void paintChildren(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setClip(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 28, 28));
-                super.paintChildren(g2);
-                g2.dispose();
-            }
-        };
+        JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(20, 22, 20, 22));
         content.add(createHeader(), BorderLayout.NORTH);
         content.add(createForm(), BorderLayout.CENTER);
         content.add(createActions(), BorderLayout.SOUTH);
@@ -172,13 +151,13 @@ public class CostChange extends JPanel {
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
         JLabel titleLabel = new JLabel("Cập nhật bảng giá");
-        titleLabel.setFont(new Font("Lexend", Font.BOLD, 22));
-        titleLabel.setForeground(new Color(30, 31, 36));
+        titleLabel.setFont(new Font("Lexend", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(30, 41, 59));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel subtitleLabel = new JLabel("Chỉnh sửa thông tin khung giờ và giá.");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitleLabel.setForeground(new Color(107, 114, 128));
+        subtitleLabel.setFont(new Font("Lexend", Font.PLAIN, 13));
+        subtitleLabel.setForeground(new Color(100, 116, 139));
         subtitleLabel.setBorder(new EmptyBorder(6, 0, 0, 0));
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -189,7 +168,9 @@ public class CostChange extends JPanel {
 
     private JPanel createForm() {
         JPanel form = new JPanel();
-        form.setOpaque(false);
+        form.setOpaque(true);
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(420, Integer.MAX_VALUE));
@@ -209,13 +190,13 @@ public class CostChange extends JPanel {
     }
 
     private JPanel createActions() {
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
 
-        JButton cancel = createPillButton("Đóng", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        JButton cancel = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59), true);
         cancel.addActionListener(e -> closeEditor());
 
-        JButton save = createPillButton("Lưu", new Color(16, 110, 0), new Color(228, 250, 226),true);
+        JButton save = createPillButton("Lưu thay đổi", new Color(29, 78, 216), Color.WHITE, true);
         save.addActionListener(e -> saveChanges());
 
         actions.add(cancel);
@@ -225,11 +206,13 @@ public class CostChange extends JPanel {
 
     private JPanel createReadOnlyField(String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel wrapper = createInputWrapper();
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setCursor(Cursor.getDefaultCursor());
+        JPanel wrapper = createInputWrapper(true);
         wrapper.add(field, BorderLayout.CENTER);
 
         JPanel container = new JPanel();
@@ -244,8 +227,8 @@ public class CostChange extends JPanel {
 
     private JPanel createEditField(String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel wrapper = createInputWrapper();
@@ -263,8 +246,8 @@ public class CostChange extends JPanel {
 
     private JPanel createComboField(String labelText, JComponent component) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel wrapper = createInputWrapper();
@@ -280,16 +263,23 @@ public class CostChange extends JPanel {
         return container;
     }
 
+    private static final Color READONLY_BG = new Color(241, 245, 249);
+
     private JPanel createInputWrapper() {
+        return createInputWrapper(false);
+    }
+
+    private JPanel createInputWrapper(boolean readOnly) {
+        Color fillColor = readOnly ? READONLY_BG : Color.WHITE;
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(249, 250, 251));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(fillColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
                 g2.dispose();
             }
         };
@@ -461,7 +451,7 @@ public class CostChange extends JPanel {
             }
         };
         button.setForeground(fg);
-        button.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.BOLD, 17));
+        button.setFont(new Font("Lexend", bold ? Font.BOLD : Font.PLAIN, 13));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);

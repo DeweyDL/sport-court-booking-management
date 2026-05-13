@@ -19,4 +19,5 @@ public interface ProductService {
     void deleteProduct(String maSp);
 
     void restoreProduct(String maSp);
+    String generateNextMaSp();
 }

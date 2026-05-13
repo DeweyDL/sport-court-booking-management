@@ -188,6 +188,19 @@ public class JdbcStaffDao {
         }
     }
 
+    public String generateNextManv() throws SQLException {
+        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MANV, '\\d+$'))), 0) + 1 AS NEXT_ID " +
+                "FROM NHAN_VIEN WHERE REGEXP_LIKE(MANV, '^NV-\\d+$')";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return "NV-" + rs.getInt("NEXT_ID");
+            }
+        }
+        return "NV-1";
+    }
+
     // 4. Xóa mềm nhân viên
     public boolean delete(String manv) throws SQLException {
         String sql = "UPDATE NHAN_VIEN SET IS_DELETED = 1, TRANG_THAI = 'ĐÃ NGHỈ' WHERE MANV = ?";

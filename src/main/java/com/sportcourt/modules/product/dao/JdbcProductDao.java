@@ -208,6 +208,20 @@ public class JdbcProductDao implements ProductDao {
         }
     }
 
+    @Override
+    public String generateNextMaSp() throws SQLException {
+        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MASP, '\\d+$'))), 0) + 1 AS NEXT_ID " +
+                "FROM SAN_PHAM WHERE REGEXP_LIKE(MASP, '^SP-\\d+$')";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return "SP-" + rs.getInt("NEXT_ID");
+            }
+        }
+        return "SP-1";
+    }
+
     private ProductResponse mapResponse(ResultSet rs) throws SQLException {
         ProductResponse response = new ProductResponse();
 

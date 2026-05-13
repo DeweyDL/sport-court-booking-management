@@ -13,4 +13,5 @@ public interface CustomerRankDAO {
     void createCustomerRank(CustomerRankCreateRequest request) throws SQLException;
     boolean updateCustomerRank(CustomerRankUpdateRequest request) throws SQLException;
     boolean softDeleteCustomerRank(String maHang) throws SQLException;
+    String generateNextMaHang() throws SQLException;
 }

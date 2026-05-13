@@ -128,7 +128,7 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event ->
-                CustomerRankCreateDialog.show(this, controller, this::loadData));
+                CustomerRankCreateDialog.show(this, controller, generateNextMaHang(), this::loadData));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
@@ -223,6 +223,14 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         }
         tablePanel.revalidate();
         tablePanel.repaint();
+    }
+
+    private String generateNextMaHang() {
+        try {
+            return controller.generateNextMaHang();
+        } catch (java.sql.SQLException ignored) {
+            return "HKH-1";
+        }
     }
 
     private void sortRanks(List<CustomerRank> ranks) {

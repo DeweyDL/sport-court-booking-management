@@ -45,4 +45,9 @@ public class CustomerRankServiceImpl implements CustomerRankService {
     public boolean deleteRank(String maHang) throws SQLException {
         return customerRankDAO.softDeleteCustomerRank(maHang);
     }
+
+    @Override
+    public String generateNextMaHang() throws SQLException {
+        return customerRankDAO.generateNextMaHang();
+    }
 }

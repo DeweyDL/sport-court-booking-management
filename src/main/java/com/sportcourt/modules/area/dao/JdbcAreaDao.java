@@ -121,19 +121,19 @@ public class JdbcAreaDao implements AreaDao {
     @Override
     public String generateNextMaKv() throws SQLException {
         String sql = """
-                SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MAKV, '\\d+$'))), 0) + 1 AS NEXT_ID
+                SELECT NVL(MAX(ASCII(REGEXP_SUBSTR(MAKV, '[A-Z]$'))), ASCII('A') - 1) + 1 AS NEXT_ASCII
                 FROM KHU_VUC
-                WHERE REGEXP_LIKE(MAKV, '^KV\\d+$')
+                WHERE REGEXP_LIKE(MAKV, '^KV-[A-Z]$')
                 """;
 
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
-                return "KV%03d".formatted(resultSet.getInt("NEXT_ID"));
+                return "KV-" + (char) resultSet.getInt("NEXT_ASCII");
             }
         }
-        throw new SQLException("Khong the sinh ma khu vuc moi.");
+        return "KV-A";
     }
 
     @Override
@@ -187,7 +187,7 @@ public class JdbcAreaDao implements AreaDao {
     public void saveKhuVucChanges(AreaUpdateRequest request) throws SQLException {
         String updateKhuVucSql = """
                 UPDATE KHU_VUC
-                SET MATT = ?, IS_DELETED = 0
+                SET MACN = ?, MATT = ?, IS_DELETED = 0
                 WHERE MAKV = ?
                 """;
 
@@ -196,8 +196,9 @@ public class JdbcAreaDao implements AreaDao {
             connection.setAutoCommit(false);
 
             try (PreparedStatement updateKhuVucStatement = connection.prepareStatement(updateKhuVucSql)) {
-                updateKhuVucStatement.setString(1, request.maTt());
-                updateKhuVucStatement.setString(2, request.maKv());
+                updateKhuVucStatement.setString(1, request.maCn());
+                updateKhuVucStatement.setString(2, request.maTt());
+                updateKhuVucStatement.setString(3, request.maKv());
 
                 if (updateKhuVucStatement.executeUpdate() == 0) {
                     throw new SQLException("Khong tim thay khu vuc de cap nhat: " + request.maKv());
