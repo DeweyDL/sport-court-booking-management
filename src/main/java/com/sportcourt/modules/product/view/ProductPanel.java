@@ -49,6 +49,7 @@ public class ProductPanel extends JPanel implements Scrollable {
     });
     private final JButton btnSortDir = new JButton("\u25B2");
     private final JButton addButton;
+    private final JButton refreshButton;
 
     private ActionListener searchAction;
     private ActionListener addAction;
@@ -71,6 +72,7 @@ public class ProductPanel extends JPanel implements Scrollable {
         addButton.setFont(new Font("Lexend", Font.BOLD, 16));
         addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addButton);
+        refreshButton = CrudViewStyle.createRefreshButton(null);
 
         add(createPage(), BorderLayout.CENTER);
         CrudViewStyle.installResponsiveTypography(this);
@@ -153,6 +155,7 @@ public class ProductPanel extends JPanel implements Scrollable {
         this.loading = loading;
         searchField.setEnabled(!loading);
         addButton.setEnabled(!loading);
+        refreshButton.setEnabled(!loading);
         cbSort.setEnabled(!loading);
         btnSortDir.setEnabled(!loading);
         footerLabel.setText(loading ? "Đang tải dữ liệu..." : "Hiển thị " + products.size() + " sản phẩm");
@@ -266,6 +269,7 @@ public class ProductPanel extends JPanel implements Scrollable {
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
+        leftToolbar.add(refreshButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -507,6 +511,8 @@ public class ProductPanel extends JPanel implements Scrollable {
             }
         });
 
+        refreshButton.addActionListener(event -> fireRefreshAction());
+
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -622,7 +628,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         }
     }
 
-    @SuppressWarnings("unused")
     private void fireRefreshAction() {
         if (refreshAction != null) {
             refreshAction.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "refresh"));

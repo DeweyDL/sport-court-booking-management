@@ -27,8 +27,16 @@ public class SportTypeServiceImpl implements SportTypeService {
     }
 
     @Override
+    public String generateNextId() throws SQLException {
+        return sportTypeDAO.generateNextId();
+    }
+
+    @Override
     public void create(SportTypeForm form) throws SQLException {
-        SportTypeForm info = new SportTypeForm(sportTypeDAO.generateNextId(),
+        String sportId = form.getSportId() == null || form.getSportId().isBlank()
+                ? sportTypeDAO.generateNextId()
+                : form.getSportId().trim();
+        SportTypeForm info = new SportTypeForm(sportId,
                                                form.getName(),
                                                form.getDescription());
         sportTypeDAO.insert(info);

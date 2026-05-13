@@ -211,7 +211,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
 
         gbc.gridx = 1;
         gbc.insets = new Insets(0, UIScale.scale(22), UIScale.scale(18), 0);
-        fields.add(createInfoField("Ngày sinh", birthDateValue, UIScale.scale(38)), gbc);
+        fields.add(createInfoField("Ngày sinh", birthDateValue, UIScale.scale(42)), gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
@@ -250,7 +250,8 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         valueBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         if (valueComponent instanceof JLabel labelValue) {
-            labelValue.setFont(AppFonts.lexendRegular(14f));
+            float fontSize = labelText.equalsIgnoreCase("Ngày sinh") ? 13f : 14f;
+            labelValue.setFont(AppFonts.lexendRegular(fontSize));
             labelValue.setForeground(TEXT_DARK);
             valueBox.add(labelValue, BorderLayout.CENTER);
         } else if (valueComponent instanceof JTextArea textArea) {

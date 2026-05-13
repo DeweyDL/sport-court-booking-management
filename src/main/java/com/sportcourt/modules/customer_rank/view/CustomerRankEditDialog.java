@@ -42,7 +42,7 @@ final class CustomerRankEditDialog {
         title.setForeground(TEXT_DARK);
 
         JLabel subtitle = new JLabel("Mã hạng: " + item.getMaHang());
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -156,7 +156,7 @@ final class CustomerRankEditDialog {
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(
@@ -174,7 +174,7 @@ final class CustomerRankEditDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         panel.add(label);
@@ -192,7 +192,7 @@ final class CustomerRankEditDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setFont(new Font("Lexend", Font.PLAIN, 14));

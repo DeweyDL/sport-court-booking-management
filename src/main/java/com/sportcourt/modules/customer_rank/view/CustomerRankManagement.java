@@ -129,9 +129,11 @@ public class CustomerRankManagement extends JPanel implements Scrollable {
         CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event ->
                 CustomerRankCreateDialog.show(this, controller, generateNextMaHang(), this::loadData));
+        JButton refreshButton = CrudViewStyle.createRefreshButton(event -> loadData(searchField.getText()));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
+        leftToolbar.add(refreshButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
         rightToolbar.add(createSortWrapper());

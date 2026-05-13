@@ -40,9 +40,6 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private static final Color SOFT_RED_TEXT = CrudViewStyle.DANGER_TEXT;
     private static final Color INPUT_BORDER = CrudViewStyle.BORDER;
 
-    private static final String LIST_CARD = "LIST";
-    private static final String DETAIL_CARD = "DETAIL";
-
     private final AccountManagementController controller = new AccountManagementController();
     private final JPanel tableBodyPanel = new JPanel();
     private final JLabel footerLabel = new JLabel("Đang hiển thị 0 / 0 tài khoản");
@@ -58,10 +55,6 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private final JButton btnSortDir = new JButton("\u25B2");
     private final Timer searchDebounceTimer;
     private final UserSession session = SessionManager.requireSession();
-    private final CardLayout contentCardLayout = new CardLayout();
-    private final JPanel contentPanel = new JPanel(contentCardLayout);
-    private final AccountDetailPanel detailPanel = new AccountDetailPanel(this::showListView, this::showEditView, this::handleDelete, this::handleRestore);
-
     private List<RoleGroupOption> roleGroups = new ArrayList<>();
     private boolean sortAscending = true;
 
@@ -74,10 +67,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         searchDebounceTimer = new Timer(300, event -> loadAccounts(txtSearch.getText()));
         searchDebounceTimer.setRepeats(false);
 
-        contentPanel.setOpaque(false);
-        contentPanel.add(createListPage(), LIST_CARD);
-        contentPanel.add(detailPanel, DETAIL_CARD);
-        add(contentPanel, BorderLayout.CENTER);
+        add(createListPage(), BorderLayout.CENTER);
         CrudViewStyle.installResponsiveTypography(this);
 
         bindSearchListener();
@@ -176,11 +166,16 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> showCreateView());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> {
+            loadRoleGroupOptions();
+            loadAccounts(txtSearch.getText());
+        });
 
         leftToolbar.add(tableTitle);
         if (canAdd()) {
             leftToolbar.add(addBtn);
         }
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
@@ -388,14 +383,6 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         JLabel accountIdLabel = createBodyLabel(row.getAccountId(), true);
-        accountIdLabel.setForeground(new Color(22, 163, 74));
-        accountIdLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        accountIdLabel.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                showDetailView(row);
-            }
-        });
 
         gbc.weightx = 0.08; rowPanel.add(createFlexibleCell(accountIdLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
         gbc.weightx = 0.12; rowPanel.add(createFlexibleCell(createBodyLabel(row.getUsername(), false), SwingConstants.LEFT, rowBg, 8, 8), gbc);
@@ -422,30 +409,40 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         panel.setOpaque(false);
 
         boolean isDeleted = row.isDeleted();
-        JButton toggleButton = isDeleted
-                ? createMiniActionButton("Khôi phục", CREATE_BG, CREATE_TEXT)
-                : createMiniActionButton("Xóa", SOFT_RED_BG, SOFT_RED_TEXT);
-        toggleButton.addActionListener(event -> {
-            if (row.isDeleted()) {
-                handleRestore(row);
-            } else {
-                handleDelete(row);
-            }
-        });
-        toggleButton.setEnabled(isDeleted ? canRestore() : canDelete());
+        if (isDeleted) {
+            JButton restoreButton = createMiniActionButton("Khôi phục", CREATE_BG, CREATE_TEXT);
+            restoreButton.addActionListener(event -> handleRestore(row));
+            restoreButton.setEnabled(canRestore());
+            panel.add(restoreButton);
+        } else {
+            JButton deleteButton = createMiniActionButton("Xóa", SOFT_RED_BG, SOFT_RED_TEXT);
+            deleteButton.addActionListener(event -> handleDelete(row));
+            deleteButton.setEnabled(canDelete());
+            panel.add(deleteButton);
 
-        panel.add(toggleButton);
-
-        JButton editButton = createMiniActionButton("Chỉnh sửa", EDIT_BG, EDIT_TEXT);
-        editButton.addActionListener(event -> showEditView(row));
-        editButton.setEnabled(canEdit());
-
-        panel.add(editButton);
+            JButton editButton = createMiniActionButton("Chỉnh sửa", EDIT_BG, EDIT_TEXT);
+            editButton.addActionListener(event -> showEditView(row));
+            editButton.setEnabled(canEdit());
+            panel.add(editButton);
+        }
         return panel;
     }
 
     private void showCreateView() {
-        AccountUpsertRequest request = AccountCreatePanel.show(this, roleGroups);
+        String generatedAccountId;
+        try {
+            generatedAccountId = controller.generateNextAccountId();
+        } catch (Exception exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage(),
+                    "Lỗi sinh mã account",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        AccountUpsertRequest request = AccountCreatePanel.show(this, roleGroups, generatedAccountId);
         if (request == null) {
             return;
         }
@@ -471,9 +468,6 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         try {
             controller.updateAccount(result.request());
             loadAccounts(txtSearch.getText());
-            detailPanel.bindAccount(result.request().getAccountId(), result.request().getDisplayName(), result.request().getPhone(),
-                    result.request().getEmail(), result.request().getUsername(), result.request().getStatus(), row.getCreatedAt(),
-                    findRoleName(result.request().getRoleGroupId()), false);
             JOptionPane.showMessageDialog(this, "Đã cập nhật account thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception exception) {
             JOptionPane.showMessageDialog(
@@ -483,27 +477,6 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
                     JOptionPane.ERROR_MESSAGE
             );
         }
-    }
-
-    private void showDetailView(AccountRow row) {
-        detailPanel.bindAccount(
-                row.getAccountId(),
-                row.getDisplayName(),
-                row.getPhone(),
-                row.getEmail(),
-                row.getUsername(),
-                row.getStatus(),
-                row.getCreatedAt(),
-                displayRole(row),
-                row.isDeleted()
-        );
-        detailPanel.setCurrentRow(row);
-        contentCardLayout.show(contentPanel, DETAIL_CARD);
-    }
-
-    private void showListView() {
-        contentCardLayout.show(contentPanel, LIST_CARD);
-        loadAccounts(txtSearch.getText());
     }
 
     private void handleDelete(AccountRow row) {

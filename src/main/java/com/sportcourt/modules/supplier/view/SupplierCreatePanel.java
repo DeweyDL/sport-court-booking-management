@@ -135,14 +135,22 @@ final class SupplierCreatePanel {
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
     private static JTextField readonly(String value) {
-        JTextField field = new JTextField(value);
+        JTextField field = new JTextField(value == null ? "" : value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, INPUT_CORNER_RADIUS, INPUT_CORNER_RADIUS);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
         field.setEditable(false);
         field.setFocusable(false);
         field.setOpaque(false);
         field.setBackground(new Color(241, 245, 249));
-        field.setForeground(new Color(100, 116, 139));
-        field.setFont(AppFonts.lexendBold(14f));
-        field.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+        styleTextField(field);
         return field;
     }
 
@@ -155,29 +163,19 @@ final class SupplierCreatePanel {
         panel.add(lb, g);
 
         g.gridy = row * 2 + 1;
+        styleTextField(field);
         if (field.isEditable()) {
-            field.setFont(AppFonts.lexendRegular(14f));
-            field.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
-            ));
             field.setBackground(Color.WHITE);
-            panel.add(field, g);
-        } else {
-            JPanel pill = new JPanel(new BorderLayout()) {
-                @Override protected void paintComponent(Graphics g2) {
-                    Graphics2D g2d = (Graphics2D) g2.create();
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2d.setColor(new Color(241, 245, 249));
-                    g2d.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                    g2d.dispose();
-                    super.paintComponent(g2);
-                }
-            };
-            pill.setOpaque(false);
-            pill.add(field, BorderLayout.CENTER);
-            panel.add(pill, g);
         }
+        panel.add(field, g);
+    }
+
+    private static void styleTextField(JTextField field) {
+        field.setFont(field.isEditable() ? AppFonts.lexendRegular(14f) : AppFonts.lexendBold(14f));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
     }
 
     private static JButton button(String text, Color background, Color foreground) {
