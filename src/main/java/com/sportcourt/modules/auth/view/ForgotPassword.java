@@ -75,7 +75,7 @@ public class ForgotPassword extends JPanel {
         userPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
-        userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(username, BorderLayout.CENTER);
@@ -93,7 +93,7 @@ public class ForgotPassword extends JPanel {
         emailPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", UIScale.scale(18), UIScale.scale(18)));
-        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         JButton sendOtp = new JButton("Gửi mã OTP");
         sendOtp.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(20)));
@@ -123,7 +123,7 @@ public class ForgotPassword extends JPanel {
         otpPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
 
         JLabel otpIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         otpPanel.add(otpIcon, BorderLayout.WEST);
         otpPanel.add(otp, BorderLayout.CENTER);
@@ -155,14 +155,14 @@ public class ForgotPassword extends JPanel {
         passPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        passIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         passPanel.add(passIcon, BorderLayout.WEST);
         passPanel.add(password, BorderLayout.CENTER);
 
         // ===== CHECK NEW PASSWORD =====
         JPasswordField checkPassword = new JPasswordField();
-        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         checkPassword.setBackground(new Color(242, 242, 242));
         checkPassword.setBorder(null);
         checkPassword.putClientProperty("JTextField.placeholderText", "Xác nhận mật khẩu mới");
@@ -173,7 +173,7 @@ public class ForgotPassword extends JPanel {
         checkpassPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
-        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         checkpassPanel.add(checkpassIcon, BorderLayout.WEST);
         checkpassPanel.add(checkPassword, BorderLayout.CENTER);

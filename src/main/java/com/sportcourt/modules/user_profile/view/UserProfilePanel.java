@@ -41,7 +41,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     public UserProfilePanel() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        CrudViewStyle.applyPageDefaults(this);
+        setBackground(CrudViewStyle.PAGE_BACKGROUND);
 
         editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", UIScale.scale(16)));
         changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", UIScale.scale(16)));
