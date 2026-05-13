@@ -20,4 +20,5 @@ public interface CourtService {
     void update(Court court, String branchId) throws SQLException;
 
     void delete(String courtId, String branchId) throws SQLException;
+    String generateNextCourtId() throws SQLException;
 }

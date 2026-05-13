@@ -59,4 +59,9 @@ public class StaffServiceImpl implements StaffService {
             throw new Exception("Lỗi hệ thống: Không thể xóa nhân viên.");
         }
     }
+
+    @Override
+    public String generateNextManv() throws Exception {
+        return staffDao.generateNextManv();
+    }
 }

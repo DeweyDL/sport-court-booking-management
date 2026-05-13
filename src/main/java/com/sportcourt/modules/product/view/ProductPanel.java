@@ -116,8 +116,8 @@ public class ProductPanel extends JPanel implements Scrollable {
         return selectedProduct == null ? null : selectedProduct.getMaSp();
     }
 
-    public ProductCreateRequest showCreateDialog() {
-        return ProductCreateDialog.show(this, generateNextProductId());
+    public ProductCreateRequest showCreateDialog(String generatedId) {
+        return ProductCreateDialog.show(this, generatedId);
     }
 
     public ProductUpdateRequest showUpdateDialog(ProductResponse product) {
@@ -660,25 +660,6 @@ public class ProductPanel extends JPanel implements Scrollable {
         return text == null || text.isBlank() ? "--" : text;
     }
 
-    private String generateNextProductId() {
-        int maxNumber = 0;
-        for (ProductVm product : products) {
-            String code = product.getMaSp();
-            if (code == null) {
-                continue;
-            }
-            String normalized = code.trim().toUpperCase(Locale.ROOT);
-            if (!normalized.startsWith("SP-")) {
-                continue;
-            }
-            String numberPart = normalized.substring(3);
-            try {
-                maxNumber = Math.max(maxNumber, Integer.parseInt(numberPart));
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return "SP-" + (maxNumber + 1);
-    }
 
     private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
         JButton btn = new JButton(text) {

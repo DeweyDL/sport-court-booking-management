@@ -115,18 +115,17 @@ public class CostJdbcDAO implements CostDAO {
 
     @Override
     public String generateNextMaBg() {
-        String sql = "SELECT MAX(TO_NUMBER(SUBSTR(MABG, 3))) AS MAX_ID FROM BANG_GIA WHERE REGEXP_LIKE(MABG, '^BG[0-9]+$')";
+        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MABG, '\\d+$'))), 0) + 1 AS NEXT_ID FROM BANG_GIA WHERE REGEXP_LIKE(MABG, '^BG-\\d+$')";
         try (Connection conn = OracleConnection.getOracleConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
-                int maxId = rs.getInt("MAX_ID");
-                return String.format("BG%03d", maxId + 1);
+                return "BG-" + rs.getInt("NEXT_ID");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return "BG001";
+        return "BG-1";
     }
 
     private Cost mapResultSetToCost(ResultSet rs) throws SQLException {

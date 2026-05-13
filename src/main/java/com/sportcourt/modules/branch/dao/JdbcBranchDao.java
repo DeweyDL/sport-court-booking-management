@@ -75,15 +75,16 @@ public class JdbcBranchDao implements BranchDao {
         String sql = """
                 SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MACN, '\\d+$'))), 0) + 1 AS NEXT_ID
                 FROM CHI_NHANH
+                WHERE REGEXP_LIKE(MACN, '^CN-\\d+$')
                 """;
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
-                return "CN%03d".formatted(resultSet.getInt("NEXT_ID"));
+                return "CN-" + resultSet.getInt("NEXT_ID");
             }
         }
-        throw new SQLException("Khong the sinh ma chi nhanh moi.");
+        return "CN-1";
     }
 
     @Override

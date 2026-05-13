@@ -20,10 +20,11 @@ final class CustomerRankCreateDialog {
     private static final Color TEXT_DARK    = new Color(30, 41, 59);
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG  = new Color(241, 245, 249);
 
     private CustomerRankCreateDialog() {}
 
-    static void show(Component parent, CustomerRankController controller, Consumer<String> onSuccess) {
+    static void show(Component parent, CustomerRankController controller, String generatedMaHang, Consumer<String> onSuccess) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm hạng khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -55,7 +56,6 @@ final class CustomerRankCreateDialog {
         root.add(header, BorderLayout.NORTH);
 
         // Form fields
-        JTextField txtMaHang    = new JTextField();
         JTextField txtTenHang   = new JTextField();
         JTextField txtChietKhau = new JTextField();
         JTextField txtMucTien   = new JTextField();
@@ -66,8 +66,6 @@ final class CustomerRankCreateDialog {
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        form.add(createField("Mã hạng", txtMaHang));
-        form.add(Box.createVerticalStrut(14));
         form.add(createField("Tên hạng", txtTenHang));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Chiết khấu (%)", txtChietKhau));
@@ -85,12 +83,11 @@ final class CustomerRankCreateDialog {
         cancelBtn.addActionListener(event -> dialog.dispose());
 
         saveBtn.addActionListener(event -> {
-            String maHang       = txtMaHang.getText().trim();
             String tenHang      = txtTenHang.getText().trim();
             String chietKhauStr = txtChietKhau.getText().trim();
             String mucTienStr   = txtMucTien.getText().trim();
 
-            if (maHang.isEmpty() || tenHang.isEmpty() || chietKhauStr.isEmpty() || mucTienStr.isEmpty()) {
+            if (tenHang.isEmpty() || chietKhauStr.isEmpty() || mucTienStr.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ tất cả các trường.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -115,7 +112,7 @@ final class CustomerRankCreateDialog {
             }
 
             CustomerRankCreateRequest request = new CustomerRankCreateRequest();
-            request.setMaHang(maHang);
+            request.setMaHang(generatedMaHang);
             request.setTenHang(tenHang);
             request.setChietKhau(BigDecimal.valueOf(chietKhau));
             request.setMucTien(BigDecimal.valueOf(mucTien));
@@ -138,6 +135,37 @@ final class CustomerRankCreateDialog {
         dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
+    }
+
+    private static JPanel createReadOnlyField(String labelText, String value) {
+        JTextField field = new JTextField(value);
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
     }
 
     private static JPanel createField(String labelText, JTextField field) {

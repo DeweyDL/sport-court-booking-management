@@ -13,4 +13,5 @@ public interface CustomerRankService {
     void createRank(CustomerRankCreateRequest request) throws SQLException;
     boolean updateRank(CustomerRankUpdateRequest request) throws SQLException;
     boolean deleteRank(String maHang) throws SQLException;
+    String generateNextMaHang() throws SQLException;
 }

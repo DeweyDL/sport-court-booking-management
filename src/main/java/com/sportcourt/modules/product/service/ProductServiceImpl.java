@@ -262,6 +262,16 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    @Override
+    public String generateNextMaSp() {
+        try {
+            return productDao.generateNextMaSp();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi SQL khi sinh mã sản phẩm: " + e.getMessage(), e);
+        }
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
