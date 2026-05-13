@@ -96,7 +96,7 @@ public class Sidebar extends JFrame {
         JLabel logoLabel = new JLabel();
         logoLabel.setText("<html><div style='font-family: Lexend; color: " +
                 String.format("#%02x%02x%02x", LOGO_COLOR.getRed(), LOGO_COLOR.getGreen(), LOGO_COLOR.getBlue()) +
-                "; font-size: " + UIScale.scale(20) + "px; font-weight: 800; font-style: italic;'>" +
+                "; font-size: " + UIScale.scaleFontInt(20f) + "px; font-weight: 800; font-style: italic;'>" +
                 "RENTSTA</div></html>");
 
         // Load Logo Icon
@@ -182,7 +182,7 @@ public class Sidebar extends JFrame {
 
         JButton toggleSidebarButton = new JButton("\u2630");
         toggleSidebarButton.setToolTipText("Ẩn/hiện sidebar");
-        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scale(16)));
+        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scaleFontInt(16f)));
         toggleSidebarButton.setFocusPainted(false);
         toggleSidebarButton.setContentAreaFilled(false);
         toggleSidebarButton.setBorderPainted(false);
@@ -190,7 +190,7 @@ public class Sidebar extends JFrame {
         toggleSidebarButton.addActionListener(event -> toggleSidebar());
 
         currentTitleLabel = new JLabel("TRANG CHỦ");
-        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, UIScale.scale(15)));
+        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, UIScale.scaleFontInt(15f)));
         currentTitleLabel.setForeground(new Color(39, 44, 52));
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
@@ -208,7 +208,7 @@ public class Sidebar extends JFrame {
         button.setVerticalAlignment(SwingConstants.CENTER);
         button.setVerticalTextPosition(SwingConstants.CENTER);
         button.setHorizontalTextPosition(SwingConstants.RIGHT);
-        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scale(15)));
+        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scaleFontInt(15f)));
         button.setContentAreaFilled(false);
         button.setBorder(new EmptyBorder(0, UIScale.scale(30), 0, UIScale.scale(10)));
         button.setFocusPainted(false);
@@ -233,21 +233,25 @@ public class Sidebar extends JFrame {
         } catch (Exception e) {
         }
 
+        int btnH = UIScale.scale(60);
+        int hPad = UIScale.scale(12);
+        int vPad = UIScale.scale(5);
+
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
-                // Nếu là ĐĂNG XUẤT thì không vẽ nền bao quanh (Wrap)
                 if (text.equals("ĐĂNG XUẤT")) return;
 
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 boolean isActive = Boolean.TRUE.equals(getClientProperty("isActive"));
-                boolean isHover = Boolean.TRUE.equals(getClientProperty("isHover"));
+                boolean isHover  = Boolean.TRUE.equals(getClientProperty("isHover"));
 
                 if (isActive) {
                     g2.setColor(NEON_GREEN);
-                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 10, getHeight() - 10, getHeight() - 10);
+                    int arc = getHeight() - 2 * vPad;
+                    g2.fillRoundRect(hPad, vPad, getWidth() - 2 * hPad, getHeight() - 2 * vPad, arc, arc);
                 } else if (isHover) {
                     g2.setColor(SIDEBAR_HOVER_BG);
                     g2.fillRect(0, 0, getWidth(), getHeight());
@@ -257,7 +261,10 @@ public class Sidebar extends JFrame {
         };
 
         wrapper.setOpaque(false);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(60)));
+        // All three sizes must match so BoxLayout honours the fixed height
+        wrapper.setMinimumSize(new Dimension(0, btnH));
+        wrapper.setPreferredSize(new Dimension(UIScale.scale(220), btnH));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnH));
         wrapper.add(button, BorderLayout.CENTER);
 
         button.addActionListener(e -> {

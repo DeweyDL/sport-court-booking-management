@@ -8,6 +8,7 @@ import com.sportcourt.modules.auth.dto.LoginRequest;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.common.style.BackgroundPanel;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.common.style.UIScale;
 
 import javax.swing.*;
@@ -192,6 +193,9 @@ public class LoginScreen extends JFrame {
         rightPanel.add(new Register(cardLayout, rightPanel), "REGISTER");
 
         rightPanel.add(new ForgotPassword(cardLayout, rightPanel), "FORGOT");
+
+        // Single scaling path for all auth-screen fonts
+        CrudViewStyle.installResponsiveTypography(rightPanel);
 
         // Layout JFrame chính (Giữ nguyên weightx của bạn)
         gbc.gridx = 0;
