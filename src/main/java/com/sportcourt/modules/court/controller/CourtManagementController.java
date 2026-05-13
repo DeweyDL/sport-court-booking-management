@@ -44,4 +44,8 @@ public class CourtManagementController {
     public void delete(String courtId, String branchId) throws SQLException {
         courtService.delete(courtId, branchId);
     }
+
+    public String generateNextCourtId() throws SQLException {
+        return courtService.generateNextCourtId();
+    }
 }

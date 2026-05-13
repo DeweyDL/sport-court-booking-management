@@ -872,4 +872,101 @@ BEGIN
 
     DBMS_OUTPUT.PUT_LINE(RPAD('=', 80, '='));
 END;
+--them khachhang
+CREATE OR REPLACE PROCEDURE PRC_THEM_KHACH_HANG
+(
+
+    P_USER_ID               IN USERS.USER_ID%TYPE,
+    P_MAKH                  IN KHACH_HANG.MAKH%TYPE,
+    P_ACCOUNT_ID            IN ACCOUNT.ACCOUNT_ID%TYPE,
+    P_ACCOUNT_ROLE_GROUP_ID IN ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID%TYPE,
+    P_HOTEN                 IN USERS.HOTEN%TYPE,
+    P_SDT                   IN USERS.SDT%TYPE,
+    P_PASSWORD_HASH         IN ACCOUNT.PASSWORD_HASH%TYPE
+)
+AS
+    V_GROUP_ID CONSTANT ROLE_GROUP.GROUP_ID%TYPE := 'RG-4';
+BEGIN
+    IF P_HOTEN IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20300, 'Vui long nhap ho ten.');
+    END IF;
+
+    IF P_SDT IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20301, 'Vui long nhap so dien thoai.');
+    END IF;
+
+    INSERT INTO USERS (
+        USER_ID,
+        HOTEN,
+        SDT,
+        EMAIL,
+        NGAYSINH,
+        DIACHI,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+               P_USER_ID,
+               P_HOTEN,
+               P_SDT,
+               NULL,
+               NULL,
+               NULL,
+               SYSDATE,
+               0
+           );
+
+    INSERT INTO KHACH_HANG (
+        MAKH,
+        USER_ID,
+        MA_HANG,
+        TRANGTHAI,
+        DOANH_THU,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+               P_MAKH,
+               P_USER_ID,
+               NULL,
+               'ACTIVE',
+               0,
+               SYSDATE,
+               0
+           );
+
+    INSERT INTO ACCOUNT (
+        ACCOUNT_ID,
+        USER_ID,
+        USERNAME,
+        PASSWORD_HASH,
+        STATUS,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+               P_ACCOUNT_ID,
+               P_USER_ID,
+               P_SDT,
+               P_PASSWORD_HASH,
+               'ACTIVE',
+               SYSDATE,
+               0
+           );
+
+    INSERT INTO ACCOUNT_ROLE_GROUP (
+        ACCOUNT_ROLE_GROUP_ID,
+        ACCOUNT_ID,
+        GROUP_ID,
+        CREATED_AT,
+        IS_DELETED
+    )
+    VALUES (
+               P_ACCOUNT_ROLE_GROUP_ID,
+               P_ACCOUNT_ID,
+               V_GROUP_ID,
+               SYSDATE,
+               0
+           );
+END;
 /

@@ -149,7 +149,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
-        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this).setVisible(true));
+        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv()).setVisible(true));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
@@ -367,6 +367,14 @@ public class StaffPanel extends JPanel implements Scrollable {
 
         tablePanel.revalidate();
         tablePanel.repaint();
+    }
+
+    private String generateNextManv() {
+        try {
+            return staffService.generateNextManv();
+        } catch (Exception ignored) {
+            return "NV-1";
+        }
     }
 
     private void sortStaff(List<StaffResponse> staffList) {

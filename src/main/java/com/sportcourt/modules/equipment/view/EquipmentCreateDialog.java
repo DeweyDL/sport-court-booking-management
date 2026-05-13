@@ -40,7 +40,7 @@ final class EquipmentCreateDialog {
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 18));
         root.setBackground(DIALOG_BG);
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
@@ -52,7 +52,7 @@ final class EquipmentCreateDialog {
         title.setHorizontalAlignment(SwingConstants.LEFT);
 
         JLabel subtitle = new JLabel("Nhập thông tin cơ bản cho dụng cụ mới.");
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
 
@@ -84,10 +84,16 @@ final class EquipmentCreateDialog {
         form.add(createField("Giá (VNĐ)", txtGia));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Số lượng tồn", txtSlTon));
-        root.add(form, BorderLayout.CENTER);
+
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(BorderFactory.createEmptyBorder());
+        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        formScroll.getViewport().setBackground(DIALOG_BG);
+        root.add(formScroll, BorderLayout.CENTER);
 
         // Actions
-        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
 
         JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
@@ -157,7 +163,7 @@ final class EquipmentCreateDialog {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Lexend", Font.BOLD, 12));
-        label.setForeground(new Color(75, 85, 99));
+        label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         field.setFont(new Font("Lexend", Font.PLAIN, 14));

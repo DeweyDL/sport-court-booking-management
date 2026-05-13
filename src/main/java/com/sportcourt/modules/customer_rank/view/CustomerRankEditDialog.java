@@ -21,6 +21,7 @@ final class CustomerRankEditDialog {
     private static final Color TEXT_DARK    = new Color(30, 41, 59);
     private static final Color TEXT_MUTED   = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private CustomerRankEditDialog() {}
 
@@ -64,6 +65,8 @@ final class CustomerRankEditDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
+        form.add(createReadOnlyField("Mã hạng", item.getMaHang()));
+        form.add(Box.createVerticalStrut(14));
         form.add(createField("Tên hạng", txtTenHang));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Chiết khấu (%)", txtChietKhau));
@@ -145,6 +148,39 @@ final class CustomerRankEditDialog {
         dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
+    }
+
+    private static JPanel createReadOnlyField(String labelText, String value) {
+        JTextField field = new JTextField(value);
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(BORDER_COLOR, 25),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(75, 85, 99));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(field);
+        return panel;
     }
 
     private static JPanel createField(String labelText, JTextField field) {

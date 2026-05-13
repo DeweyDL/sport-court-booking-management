@@ -140,6 +140,11 @@ public class CourtServiceImpl implements CourtService {
         }
     }
 
+    @Override
+    public String generateNextCourtId() throws SQLException {
+        return courtDAO.generateNextCourtId();
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }

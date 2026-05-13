@@ -158,7 +158,7 @@ final class CourtEditPanel {
 
     private static JTextField readonlyField(String value) {
         JTextField field = new JTextField(value);
-        field.setFont(AppFonts.lexendRegular(14f));
+        field.setFont(AppFonts.lexendBold(14f));
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)

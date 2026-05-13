@@ -100,6 +100,20 @@ public class CustomerRankJdbcDAO implements CustomerRankDAO {
         }
     }
 
+    @Override
+    public String generateNextMaHang() throws SQLException {
+        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MA_HANG, '\\d+$'))), 0) + 1 AS NEXT_ID " +
+                "FROM HANG_KHACH_HANG WHERE REGEXP_LIKE(MA_HANG, '^HKH-\\d+$')";
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            if (rs.next()) {
+                return "HKH-" + rs.getInt("NEXT_ID");
+            }
+        }
+        return "HKH-1";
+    }
+
     private CustomerRank mapRow(ResultSet rs) throws SQLException {
         CustomerRank row = new CustomerRank();
         row.setMaHang(rs.getString("MA_HANG"));

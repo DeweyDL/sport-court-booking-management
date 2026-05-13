@@ -18,12 +18,12 @@ final class CourtCreatePanel {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
-    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_]{1,20}$");
+    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_-]{1,20}$");
 
     private CourtCreatePanel() {
     }
 
-    static Court show(Component parent, List<String> areaIds) {
+    static Court show(Component parent, List<String> areaIds, String generatedCourtId) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm sân con", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -46,9 +46,12 @@ final class CourtCreatePanel {
         header.add(subtitle, BorderLayout.SOUTH);
         root.add(header, BorderLayout.NORTH);
 
-        JTextField txtCourtId = new JTextField();
-        txtCourtId.putClientProperty("JTextField.placeholderText", "Ví dụ: SAN_01");
-        txtCourtId.putClientProperty("JComponent.roundRect", true);
+        JTextField txtCourtId = new JTextField(generatedCourtId);
+        txtCourtId.setEditable(false);
+        txtCourtId.setFocusable(false);
+        txtCourtId.setRequestFocusEnabled(false);
+        txtCourtId.setCursor(Cursor.getDefaultCursor());
+        txtCourtId.setBackground(new Color(241, 245, 249));
         JComboBox<String> cbAreaId = new JComboBox<>(areaIds.toArray(new String[0]));
         cbAreaId.setFont(AppFonts.lexendRegular(14f));
         cbAreaId.setBackground(Color.WHITE);
@@ -69,9 +72,8 @@ final class CourtCreatePanel {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.insets = new Insets(6, 0, 6, 0);
 
-        addField(form, g, 0, "Mã sân con", txtCourtId);
-        addField(form, g, 1, "Mã khu vực", cbAreaId);
-        addField(form, g, 2, "Trạng thái", cbStatus);
+        addField(form, g, 0, "Mã khu vực", cbAreaId);
+        addField(form, g, 1, "Trạng thái", cbStatus);
 
         root.add(form, BorderLayout.CENTER);
 
@@ -86,25 +88,16 @@ final class CourtCreatePanel {
         final Court[] result = new Court[1];
         btnCancel.addActionListener(e -> dialog.dispose());
         btnConfirm.addActionListener(e -> {
-            String courtId = normalizeCode(txtCourtId.getText());
+            String courtId = normalizeCode(generatedCourtId);
             String areaId = cbAreaId.getSelectedItem() == null
                     ? ""
                     : normalizeCode(cbAreaId.getSelectedItem().toString());
             String status = (String) cbStatus.getSelectedItem();
 
-            if (courtId.isEmpty() || areaId.isEmpty() || status == null || status.isBlank()) {
+            if (areaId.isEmpty() || status == null || status.isBlank()) {
                 JOptionPane.showMessageDialog(
                         dialog,
-                        "Mã sân, mã khu vực và trạng thái không được để trống.",
-                        "Thông báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
-            if (!isValidCode(courtId)) {
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Mã sân con không hợp lệ. Chỉ cho phép A-Z, 0-9, dấu gạch dưới (_) và tối đa 20 ký tự.",
+                        "Mã khu vực và trạng thái không được để trống.",
                         "Thông báo",
                         JOptionPane.WARNING_MESSAGE
                 );
@@ -144,12 +137,13 @@ final class CourtCreatePanel {
 
         g.gridy = row * 2 + 1;
         if (field instanceof JTextField textField) {
-            textField.setFont(AppFonts.lexendRegular(14f));
+            boolean editable = textField.isEditable();
+            textField.setFont(editable ? AppFonts.lexendRegular(14f) : AppFonts.lexendBold(14f));
             textField.setBorder(BorderFactory.createCompoundBorder(
                     new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
                     BorderFactory.createEmptyBorder(10, 12, 10, 12)
             ));
-            textField.setBackground(Color.WHITE);
+            textField.setBackground(editable ? Color.WHITE : new Color(241, 245, 249));
         } else {
             field.setBorder(BorderFactory.createCompoundBorder(
                     new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),

@@ -7,7 +7,6 @@ import com.sportcourt.modules.branch.entity.Branch;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
 
 public class BranchChange extends JPanel {
@@ -37,9 +36,10 @@ public class BranchChange extends JPanel {
         this.branchController = branchController;
         this.onSaved = onSaved;
 
-        setOpaque(false);
+        setOpaque(true);
+        setBackground(new Color(248, 249, 252));
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(18, 18, 18, 18));
+        setBorder(new EmptyBorder(20, 20, 20, 20));
         add(createContent(), BorderLayout.CENTER);
     }
 
@@ -63,37 +63,23 @@ public class BranchChange extends JPanel {
             dialog.setContentPane(this);
             dialog.setResizable(false);
             dialog.pack();
-            applyResponsiveWindowSize(dialog, 560, dialog.getHeight());
+            applyResponsiveWindowSize(dialog, 560, 580);
         }
         return dialog;
     }
 
     private JPanel createContent() {
-        JPanel content = new JPanel(new BorderLayout(0, 18)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 28, 28);
-                g2.dispose();
-            }
-
-            @Override
-            protected void paintChildren(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setClip(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 28, 28));
-                super.paintChildren(g2);
-                g2.dispose();
-            }
-        };
+        JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(20, 22, 20, 22));
         content.add(createHeader(), BorderLayout.NORTH);
-        content.add(createForm(), BorderLayout.CENTER);
+
+        JScrollPane formScroll = new JScrollPane(createForm());
+        formScroll.setBorder(null);
+        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        formScroll.getViewport().setBackground(new Color(248, 249, 252));
+        content.add(formScroll, BorderLayout.CENTER);
+
         content.add(createActions(), BorderLayout.SOUTH);
         return content;
     }
@@ -104,13 +90,13 @@ public class BranchChange extends JPanel {
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
 
         JLabel titleLabel = new JLabel("Cập nhật chi nhánh");
-        titleLabel.setFont(new Font("Lexend", Font.BOLD, 22));
-        titleLabel.setForeground(new Color(30, 31, 36));
+        titleLabel.setFont(new Font("Lexend", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(30, 41, 59));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel subtitleLabel = new JLabel("Chỉnh sửa các thông tin cơ bản của chi nhánh.");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        subtitleLabel.setForeground(new Color(107, 114, 128));
+        subtitleLabel.setFont(new Font("Lexend", Font.PLAIN, 13));
+        subtitleLabel.setForeground(new Color(100, 116, 139));
         subtitleLabel.setBorder(new EmptyBorder(6, 0, 0, 0));
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -121,7 +107,9 @@ public class BranchChange extends JPanel {
 
     private JPanel createForm() {
         JPanel form = new JPanel();
-        form.setOpaque(false);
+        form.setOpaque(true);
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
@@ -137,19 +125,15 @@ public class BranchChange extends JPanel {
     }
 
     private JPanel createActions() {
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
 
-        JButton areaButton = createPillButton("Xem khu vực", new Color(243, 244, 246), new Color(31, 41, 55), false);
-        areaButton.addActionListener(event -> showAreaList());
-
-        JButton cancelButton = createPillButton("Hủy", new Color(243, 244, 246), new Color(31, 41, 55), false);
+        JButton cancelButton = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59), true);
         cancelButton.addActionListener(event -> cancelEdit());
 
-        JButton saveButton = createPillButton("Lưu", new Color(209, 250, 229), new Color(16, 110, 0), true);
+        JButton saveButton = createPillButton("Lưu thay đổi", new Color(29, 78, 216), Color.WHITE, true);
         saveButton.addActionListener(event -> saveChanges());
 
-        actions.add(areaButton);
         actions.add(cancelButton);
         actions.add(saveButton);
         return actions;
@@ -157,8 +141,8 @@ public class BranchChange extends JPanel {
 
     private JPanel createReadOnlyField(String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel wrapper = createFieldWrapper(field, false);
@@ -176,8 +160,8 @@ public class BranchChange extends JPanel {
 
     private JPanel createEditableField(String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(107, 114, 128));
+        label.setFont(new Font("Lexend", Font.BOLD, 12));
+        label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel wrapper = createFieldWrapper(field, true);
@@ -193,24 +177,28 @@ public class BranchChange extends JPanel {
         return container;
     }
 
+    private static final Color READONLY_BG = new Color(241, 245, 249);
+
     private JPanel createFieldWrapper(JTextField field, boolean editable) {
         field.setEditable(editable);
         field.setBorder(null);
         field.setOpaque(false);
         field.setFocusable(editable);
+        if (!editable) field.setCursor(Cursor.getDefaultCursor());
         field.setFont(new Font("Segoe UI", editable ? Font.PLAIN : Font.BOLD, 15));
         field.setForeground(new Color(31, 41, 55));
         field.setPreferredSize(new Dimension(480, 40));
 
+        Color fillColor = editable ? Color.WHITE : READONLY_BG;
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(249, 250, 251));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                g2.setColor(fillColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
                 g2.dispose();
             }
         };
@@ -319,7 +307,7 @@ public class BranchChange extends JPanel {
             }
         };
         button.setForeground(fg);
-        button.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, 14));
+        button.setFont(new Font("Lexend", bold ? Font.BOLD : Font.PLAIN, 13));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);

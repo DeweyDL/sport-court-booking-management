@@ -70,7 +70,8 @@ public class ProductController {
 
     private void addProduct() {
         try {
-            ProductCreateRequest request = view.showCreateDialog();
+            String generatedId = productService.generateNextMaSp();
+            ProductCreateRequest request = view.showCreateDialog(generatedId);
 
             if (request == null) {
                 return;
