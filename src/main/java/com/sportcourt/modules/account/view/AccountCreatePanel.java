@@ -7,6 +7,8 @@ import com.sportcourt.modules.account.dto.RoleGroupOption;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.List;
 
@@ -48,8 +50,15 @@ final class AccountCreatePanel {
         JTextField displayNameField = new JTextField();
         JTextField phoneField = new JTextField();
         JTextField emailField = new JTextField();
-        JTextField usernameField = new JTextField();
+        JTextField usernameField = readonly("");
         JPasswordField passwordField = new JPasswordField();
+
+        phoneField.getDocument().addDocumentListener(new DocumentListener() {
+            private void sync() { usernameField.setText(phoneField.getText()); }
+            public void insertUpdate(DocumentEvent e) { sync(); }
+            public void removeUpdate(DocumentEvent e) { sync(); }
+            public void changedUpdate(DocumentEvent e) { sync(); }
+        });
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         JComboBox<RoleGroupOption> roleGroupCombo = new JComboBox<>(roleGroups.toArray(new RoleGroupOption[0]));
 
@@ -65,8 +74,8 @@ final class AccountCreatePanel {
 
         addField(form, g, 0, "Họ tên", displayNameField);
         addField(form, g, 1, "SĐT", phoneField);
-        addField(form, g, 2, "Email", emailField);
-        addField(form, g, 3, "Username", usernameField);
+        addField(form, g, 2, "Username", usernameField);
+        addField(form, g, 3, "Email", emailField);
         addField(form, g, 4, "Password", passwordField);
         addField(form, g, 5, "Status", statusCombo);
         addField(form, g, 6, "Role group", roleGroupCombo);
@@ -84,7 +93,7 @@ final class AccountCreatePanel {
         btnCancel.addActionListener(e -> dialog.dispose());
         btnConfirm.addActionListener(e -> {
             if (displayNameField.getText().isBlank() || phoneField.getText().isBlank() ||
-                    usernameField.getText().isBlank() || new String(passwordField.getPassword()).isBlank()) {
+                    new String(passwordField.getPassword()).isBlank()) {
                 JOptionPane.showMessageDialog(dialog, "Các trường bắt buộc không được để trống.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -112,6 +121,30 @@ final class AccountCreatePanel {
         return result[0];
     }
 
+    private static JTextField readonly(String value) {
+        JTextField field = new JTextField(value == null ? "" : value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, INPUT_CORNER_RADIUS, INPUT_CORNER_RADIUS);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setOpaque(false);
+        field.setBackground(new Color(241, 245, 249));
+        field.setFont(AppFonts.lexendRegular(14f));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+        return field;
+    }
+
     private static void addField(JPanel panel, GridBagConstraints g, int row, String label, JComponent field) {
         g.gridy = row * 2;
         JLabel lb = new JLabel(label);
@@ -121,18 +154,21 @@ final class AccountCreatePanel {
 
         g.gridy = row * 2 + 1;
         if (field instanceof JTextField textField) {
-            textField.setFont(AppFonts.lexendRegular(14f));
-            textField.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
-            ));
+            if (textField.isEditable()) {
+                textField.setFont(AppFonts.lexendRegular(14f));
+                textField.setBorder(BorderFactory.createCompoundBorder(
+                        new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                        BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                ));
+                textField.setBackground(Color.WHITE);
+            }
         } else {
             field.setBorder(BorderFactory.createCompoundBorder(
                     new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
                     BorderFactory.createEmptyBorder(6, 8, 6, 8)
             ));
+            field.setBackground(Color.WHITE);
         }
-        field.setBackground(Color.WHITE);
         panel.add(field, g);
     }
 
