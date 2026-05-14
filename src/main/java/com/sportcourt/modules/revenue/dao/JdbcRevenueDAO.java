@@ -31,28 +31,36 @@ public class JdbcRevenueDAO implements RevenueDAO {
                 SELECT dt.MADT,
                        dt.MACN,
                        cn.TEN_CHI_NHANH,
+                       dt.LOAI,
                        dt.NOIDUNG,
                        dt.NGAY,
+                       dt.NGAY_BAT_DAU,
+                       dt.NGAY_KET_THUC,
+                       dt.DT_THUE_SAN,
+                       dt.DT_DICH_VU,
                        dt.TONGDOANHTHU
                 FROM DOANH_THU dt
                 LEFT JOIN CHI_NHANH cn ON cn.MACN = dt.MACN
                 WHERE dt.IS_DELETED = 0
                   AND (? IS NULL OR dt.NGAY >= ?)
                   AND (? IS NULL OR dt.NGAY <= ?)
-                  AND (? IS NULL OR dt.MACN = ?)
+                  AND (? = 0 AND (? IS NULL OR dt.MACN = ?) OR ? = 1 AND dt.MACN IS NULL)
                   AND (
                         ? IS NULL
                         OR UPPER(dt.MADT)    LIKE ?
                         OR UPPER(dt.NOIDUNG) LIKE ?
                         OR UPPER(cn.TEN_CHI_NHANH) LIKE ?
                   )
+                  AND (? IS NULL OR dt.LOAI = ?)
                 ORDER BY dt.NGAY DESC, dt.MADT ASC
                 """;
 
-        LocalDate from    = criteria.getFromDate();
-        LocalDate to      = criteria.getToDate();
-        String    branch  = normalizeBranch(criteria.getMaCn());
-        String    keyword = normalizeKeyword(criteria.getKeyword());
+        LocalDate from       = criteria.getFromDate();
+        LocalDate to         = criteria.getToDate();
+        String    branch     = normalizeBranch(criteria.getMaCn());
+        String    keyword    = normalizeKeyword(criteria.getKeyword());
+        String    loai       = criteria.getLoai();
+        int       nullBranch = criteria.isFilterNullBranch() ? 1 : 0;
 
         List<RevenueRow> rows = new ArrayList<>();
         try (Connection conn = ConnectionUtils.getMyConnection();
@@ -61,12 +69,16 @@ public class JdbcRevenueDAO implements RevenueDAO {
             ps.setDate(2, from == null ? null : Date.valueOf(from));
             ps.setDate(3, to   == null ? null : Date.valueOf(to));
             ps.setDate(4, to   == null ? null : Date.valueOf(to));
-            ps.setString(5, branch);
+            ps.setInt(5, nullBranch);
             ps.setString(6, branch);
-            ps.setString(7, keyword);
-            ps.setString(8, toLike(keyword));
-            ps.setString(9, toLike(keyword));
+            ps.setString(7, branch);
+            ps.setInt(8, nullBranch);
+            ps.setString(9, keyword);
             ps.setString(10, toLike(keyword));
+            ps.setString(11, toLike(keyword));
+            ps.setString(12, toLike(keyword));
+            ps.setString(13, loai);
+            ps.setString(14, loai);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     rows.add(mapRow(rs));
@@ -367,9 +379,16 @@ public class JdbcRevenueDAO implements RevenueDAO {
         row.setMaDt(rs.getString("MADT"));
         row.setMaCn(rs.getString("MACN"));
         row.setTenChiNhanh(rs.getString("TEN_CHI_NHANH"));
+        row.setLoai(rs.getString("LOAI"));
         row.setNoiDung(rs.getString("NOIDUNG"));
         Date ngay = rs.getDate("NGAY");
         row.setNgay(ngay == null ? null : ngay.toLocalDate());
+        Date batDau = rs.getDate("NGAY_BAT_DAU");
+        row.setNgayBatDau(batDau == null ? null : batDau.toLocalDate());
+        Date ketThuc = rs.getDate("NGAY_KET_THUC");
+        row.setNgayKetThuc(ketThuc == null ? null : ketThuc.toLocalDate());
+        row.setDtThueSan(rs.getBigDecimal("DT_THUE_SAN"));
+        row.setDtDichVu(rs.getBigDecimal("DT_DICH_VU"));
         row.setTongDoanhThu(rs.getBigDecimal("TONGDOANHTHU"));
         return row;
     }
@@ -377,16 +396,22 @@ public class JdbcRevenueDAO implements RevenueDAO {
     @Override
     public void create(RevenueCreateRequest req) throws SQLException {
         String sql = """
-                INSERT INTO DOANH_THU (MADT, MACN, NOIDUNG, NGAY, TONGDOANHTHU, IS_DELETED)
-                VALUES (?, ?, ?, ?, ?, 0)
+                INSERT INTO DOANH_THU (MADT, MACN, LOAI, NOIDUNG, NGAY, NGAY_BAT_DAU, NGAY_KET_THUC,
+                                       DT_THUE_SAN, DT_DICH_VU, TONGDOANHTHU, IS_DELETED)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
                 """;
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, req.getMaDt());
             ps.setString(2, req.getMaCn());
-            ps.setString(3, req.getNoiDung());
-            ps.setDate(4, Date.valueOf(req.getNgay()));
-            ps.setBigDecimal(5, req.getTongDoanhThu());
+            ps.setString(3, req.getLoai());
+            ps.setString(4, req.getNoiDung());
+            ps.setDate(5, Date.valueOf(req.getNgay()));
+            ps.setDate(6, Date.valueOf(req.getNgayBatDau()));
+            ps.setDate(7, Date.valueOf(req.getNgayKetThuc()));
+            ps.setBigDecimal(8, req.getDtThueSan());
+            ps.setBigDecimal(9, req.getDtDichVu());
+            ps.setBigDecimal(10, req.getTongDoanhThu());
             ps.executeUpdate();
         }
     }
