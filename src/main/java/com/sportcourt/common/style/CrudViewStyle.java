@@ -2,6 +2,7 @@ package com.sportcourt.common.style;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -21,10 +22,13 @@ public final class CrudViewStyle {
     public static final Color MUTED = new Color(107, 114, 128);
     public static final Color SUCCESS_TEXT = new Color(16, 110, 0);
     public static final Color SUCCESS_BG = new Color(228, 250, 226);
+    public static final Color SIDEBAR_BACKGROUND = Color.decode("#2f3c33");
     public static final Color DANGER_TEXT = new Color(185, 28, 28);
     public static final Color DANGER_BG = new Color(254, 226, 226);
     public static final Color EDIT_TEXT = new Color(29, 78, 216);
     public static final Color EDIT_BG = new Color(239, 246, 255);
+    public static final Color SCROLLBAR_THUMB = new Color(160, 200, 170, 185);
+    public static final Color SCROLLBAR_THUMB_HOVER = new Color(190, 230, 200, 230);
 
     // Dimension constants scaled via dimFactor (1920 baseline).
     // Note: the status pill itself no longer uses these for fixed sizing — it
@@ -87,6 +91,68 @@ public final class CrudViewStyle {
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, TOOLBAR_CONTROL_HEIGHT));
     }
 
+    public static void configureScrollPane(JScrollPane scrollPane) {
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        styleScrollBar(scrollPane.getVerticalScrollBar());
+        styleScrollBar(scrollPane.getHorizontalScrollBar());
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, createScrollCorner());
+    }
+
+    public static void styleScrollBar(JScrollBar bar) {
+        int size = UIScale.scale(8);
+        bar.setUnitIncrement(UIScale.scale(16));
+        bar.setBlockIncrement(UIScale.scale(96));
+        bar.setOpaque(true);
+        bar.setBackground(SIDEBAR_BACKGROUND);
+        bar.putClientProperty("JScrollBar.showButtons", false);
+        bar.putClientProperty("ScrollBar.trackColor", SIDEBAR_BACKGROUND);
+        bar.putClientProperty("ScrollBar.thumbColor", SCROLLBAR_THUMB);
+        bar.putClientProperty("ScrollBar.hoverThumbColor", SCROLLBAR_THUMB_HOVER);
+        bar.putClientProperty("ScrollBar.width", size);
+        bar.setPreferredSize(bar.getOrientation() == Adjustable.VERTICAL
+                ? new Dimension(size, 0)
+                : new Dimension(0, size));
+        bar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected void paintTrack(Graphics graphics, JComponent component, Rectangle bounds) {
+                graphics.setColor(SIDEBAR_BACKGROUND);
+                graphics.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
+
+            @Override
+            protected void paintThumb(Graphics graphics, JComponent component, Rectangle bounds) {
+                if (!component.isEnabled() || bounds.width <= 0 || bounds.height <= 0) {
+                    return;
+                }
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(isDragging || isThumbRollover() ? SCROLLBAR_THUMB_HOVER : SCROLLBAR_THUMB);
+                int inset = UIScale.scale(1);
+                int arc = Math.min(bounds.width, bounds.height);
+                g2.fillRoundRect(
+                        bounds.x + inset,
+                        bounds.y + inset,
+                        Math.max(0, bounds.width - 2 * inset),
+                        Math.max(0, bounds.height - 2 * inset),
+                        arc,
+                        arc
+                );
+                g2.dispose();
+            }
+        });
+    }
+
     public static JButton createRefreshButton(ActionListener actionListener) {
         int size = TOOLBAR_CONTROL_HEIGHT;
         JButton button = new JButton(loadToolbarIcon("/icon/reload.png", 18, 18)) {
@@ -123,6 +189,24 @@ public final class CrudViewStyle {
             return UIManager.getIcon("FileView.fileIcon");
         }
         return UIScale.scaleIcon(url, baseWidth, baseHeight);
+    }
+
+    private static JButton createZeroButton() {
+        JButton button = new JButton();
+        Dimension size = new Dimension(0, 0);
+        button.setPreferredSize(size);
+        button.setMinimumSize(size);
+        button.setMaximumSize(size);
+        button.setFocusable(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setContentAreaFilled(false);
+        return button;
+    }
+
+    private static JComponent createScrollCorner() {
+        JPanel corner = new JPanel();
+        corner.setBackground(SIDEBAR_BACKGROUND);
+        return corner;
     }
 
     public static JPanel createSearchFieldWithIcon(JPanel wrapper, JTextField searchField, Icon icon) {
