@@ -22,7 +22,7 @@ public class AddStaffDialog extends JDialog {
     private final StaffService staffService = new StaffServiceImpl();
     private final StaffPanel parentPanel;
 
-    public AddStaffDialog(JFrame parent, StaffPanel parentPanel, String generatedManv) {
+    public AddStaffDialog(JFrame parent, StaffPanel parentPanel, String generatedManv, boolean isOwner) {
         super(parent, "Thêm nhân viên", ModalityType.APPLICATION_MODAL);
         this.parentPanel = parentPanel;
 
@@ -56,6 +56,7 @@ public class AddStaffDialog extends JDialog {
         JTextField txtPhone   = new JTextField();
         JTextField txtDiaChi  = new JTextField();
         JTextField txtCCCD    = new JTextField();
+        JTextField txtMaCn    = new JTextField();
         JComboBox<String> cbChucVu    = new JComboBox<>(new String[]{"Nhân viên", "Quản lý"});
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE", "ĐÃ NGHỈ"});
 
@@ -75,6 +76,10 @@ public class AddStaffDialog extends JDialog {
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Căn cước công dân", txtCCCD));
         form.add(Box.createVerticalStrut(14));
+        if (isOwner) {
+            form.add(createField("Mã chi nhánh", txtMaCn));
+            form.add(Box.createVerticalStrut(14));
+        }
 
         JPanel splitPanel = new JPanel(new GridLayout(1, 2, 14, 0));
         splitPanel.setOpaque(false);
@@ -108,6 +113,7 @@ public class AddStaffDialog extends JDialog {
                 req.setCccd(txtCCCD.getText().trim());
                 req.setIsQl(cbChucVu.getSelectedIndex());
                 req.setTrangThai(cbTrangThai.getSelectedItem().toString());
+                req.setMaCn(txtMaCn.getText().trim());
 
                 staffService.createStaff(req);
                 JOptionPane.showMessageDialog(this, "Đã thêm nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
