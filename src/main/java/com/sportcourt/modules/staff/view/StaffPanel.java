@@ -118,8 +118,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
@@ -192,7 +191,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 52));
+        header.setPreferredSize(new Dimension(1100, 52));
+        header.setMinimumSize(new Dimension(900, 52));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -228,7 +228,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 72));
+        row.setPreferredSize(new Dimension(1100, 72));
+        row.setMinimumSize(new Dimension(900, 72));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();

@@ -85,8 +85,7 @@ final class CourtEditPanel {
         addField(form, g, 2, "Trạng thái", cbStatus);
         JScrollPane formScroll = new JScrollPane(form);
         formScroll.setBorder(null);
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(DIALOG_BG);
         root.add(formScroll, BorderLayout.CENTER);
 

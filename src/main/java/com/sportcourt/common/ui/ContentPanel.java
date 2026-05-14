@@ -1,5 +1,6 @@
 package com.sportcourt.common.ui;
 
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.common.style.UIScale;
 
 import javax.swing.*;
@@ -47,9 +48,7 @@ public class ContentPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(view);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.decode("#F5F7FA"));
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        CrudViewStyle.configureScrollPane(scrollPane);
 
         int pad = UIScale.scale(20);
         JPanel wrapper = new JPanel(new BorderLayout());
