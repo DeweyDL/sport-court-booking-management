@@ -147,8 +147,7 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tableBodyPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -347,7 +346,8 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, CrudViewStyle.ROW_BORDER),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        rowPanel.setPreferredSize(new Dimension(1000, ROW_HEIGHT));
+        rowPanel.setMinimumSize(new Dimension(800, ROW_HEIGHT));
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
 
         GridBagConstraints gbc = new GridBagConstraints();
