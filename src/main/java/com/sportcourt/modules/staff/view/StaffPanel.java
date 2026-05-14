@@ -314,12 +314,12 @@ public class StaffPanel extends JPanel implements Scrollable {
 
     private JPanel createStatusBadge(StaffResponse staff) {
         if (staff.isDeleted()) {
-            return CrudViewStyle.createStatusPill("DELETED", CrudViewStyle.DANGER_BG, CrudViewStyle.DANGER_TEXT);
+            return CrudViewStyle.createStatusPill("Inactive", CrudViewStyle.DANGER_BG, CrudViewStyle.DANGER_TEXT);
         }
         boolean active = "ACTIVE".equalsIgnoreCase(staff.getTrangThai());
         Color badgeBg  = active ? CrudViewStyle.SUCCESS_BG  : CrudViewStyle.DANGER_BG;
         Color badgeFg  = active ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
-        String text    = active ? "Hoạt động" : (staff.getTrangThai() == null ? "--" : staff.getTrangThai());
+        String text    = active ? "Active" : "Inactive";
         return CrudViewStyle.createStatusPill(text, badgeBg, badgeFg);
     }
 
