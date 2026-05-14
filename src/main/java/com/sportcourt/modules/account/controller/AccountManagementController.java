@@ -28,6 +28,10 @@ public class AccountManagementController {
         return accountManagementService.getRoleGroups();
     }
 
+    public String generateNextAccountId() throws SQLException {
+        return accountManagementService.generateNextAccountId();
+    }
+
     public void assignRoleGroup(String accountId, String groupId) throws SQLException {
         accountManagementService.assignRoleGroup(accountId, groupId);
     }

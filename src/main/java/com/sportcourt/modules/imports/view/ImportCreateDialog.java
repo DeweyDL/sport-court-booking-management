@@ -22,6 +22,7 @@ final class ImportCreateDialog {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
     private static final Color HEADER_BG = new Color(248, 249, 250);
     private static final Color ALTERNATE_ROW_BG = new Color(248, 250, 252);
     private static final int DETAIL_ROW_HEIGHT = 46;
@@ -122,6 +123,7 @@ final class ImportCreateDialog {
         JTextField txtNcc = createSearchableField(java.util.Arrays.asList(MOCK_SUPPLIERS), null);
         JTextField txtNv = createSearchableField(java.util.Arrays.asList(MOCK_EMPLOYEES), null);
         JTextField txtChungTu = new JTextField();
+        JTextField txtMaNh = createReadOnlyField(itemToEdit == null ? generateNextImportId() : itemToEdit.manh());
         
         if (itemToEdit != null) {
             txtNcc.setText(itemToEdit.tenNcc());
@@ -134,6 +136,9 @@ final class ImportCreateDialog {
         formCard.setBackground(CARD_BG);
         formCard.setBorder(new EmptyBorder(18, 18, 18, 18));
         formCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        formCard.add(createField("Mã phiếu nhập", txtMaNh));
+        formCard.add(Box.createVerticalStrut(14));
 
         formCard.add(createField("Nhà cung cấp", txtNcc));
         formCard.add(Box.createVerticalStrut(14));
@@ -301,7 +306,7 @@ final class ImportCreateDialog {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ thông tin phiếu nhập.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            System.out.println("[Import Create] NCC: " + txtNcc.getText() + ", NV: " + txtNv.getText()
+            System.out.println("[Import Create] ID: " + txtMaNh.getText() + ", NCC: " + txtNcc.getText() + ", NV: " + txtNv.getText()
                     + ", CT: " + txtChungTu.getText()
                     + ", SP rows: " + productRows.size() + ", DC rows: " + equipmentRows.size());
             JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock). Phiếu nhập sẽ được lưu khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
@@ -315,6 +320,21 @@ final class ImportCreateDialog {
         dialog.setSize(850, 700);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
+    }
+
+    private static String generateNextImportId() {
+        int max = 0;
+        for (ImportMockData.ImportItem item : ImportMockData.createSampleImports()) {
+            String value = item.manh();
+            if (value == null) {
+                continue;
+            }
+            String digits = value.replaceAll("\\D", "");
+            if (!digits.isEmpty()) {
+                max = Math.max(max, Integer.parseInt(digits));
+            }
+        }
+        return "NH%03d".formatted(max + 1);
     }
 
     // --------- Detail table headers ---------
@@ -595,6 +615,29 @@ final class ImportCreateDialog {
         return field;
     }
 
+    private static JTextField createReadOnlyField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value.trim()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 25, 25);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setOpaque(false);
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        return field;
+    }
+
     private static JPanel createField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -607,13 +650,14 @@ final class ImportCreateDialog {
         label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Lexend", Font.PLAIN, 14));
+        boolean editable = field.isEditable();
+        field.setFont(new Font(editable ? "Lexend" : "Segoe UI", editable ? Font.PLAIN : Font.BOLD, editable ? 14 : 15));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(BORDER_COLOR, 25),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(Color.WHITE);
+        field.setBackground(editable ? Color.WHITE : READONLY_BG);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 

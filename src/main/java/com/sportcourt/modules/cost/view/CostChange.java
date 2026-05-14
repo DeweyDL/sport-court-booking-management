@@ -210,7 +210,7 @@ public class CostChange extends JPanel {
         label.setForeground(new Color(30, 41, 59));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setCursor(Cursor.getDefaultCursor());
         JPanel wrapper = createInputWrapper(true);
         wrapper.add(field, BorderLayout.CENTER);
@@ -423,7 +423,7 @@ public class CostChange extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }
@@ -433,7 +433,7 @@ public class CostChange extends JPanel {
         textField.setEditable(true);
         textField.setBorder(null);
         textField.setOpaque(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

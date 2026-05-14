@@ -8,7 +8,6 @@ import com.sportcourt.modules.equipment.entity.Equipment;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class EquipmentJdbcDAO implements EquipmentDAO {
 
@@ -59,14 +58,29 @@ public class EquipmentJdbcDAO implements EquipmentDAO {
     }
 
     @Override
-    public void createEquipment(EquipmentCreateRequest request) throws SQLException {
-        String generatedMaDc = "DC" + String.format("%04d", new Random().nextInt(10000));
+    public String generateNextMaDc() throws SQLException {
+        String sql = """
+                SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MADC, '\\d+$'))), 0) + 1 AS NEXT_ID
+                FROM DUNG_CU_THE_THAO
+                WHERE REGEXP_LIKE(MADC, '^DC[0-9]+$')
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            if (rs.next()) {
+                return "DC" + String.format("%03d", rs.getInt("NEXT_ID"));
+            }
+        }
+        return "DC001";
+    }
 
+    @Override
+    public void createEquipment(EquipmentCreateRequest request) throws SQLException {
         String sql = "INSERT INTO DUNG_CU_THE_THAO (MADC, TENDC, DVT, GIA, SL_TON, CREATED_AT, IS_DELETED) " +
                 "VALUES (?, ?, ?, ?, ?, SYSDATE, 0)";
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, generatedMaDc);
+            statement.setString(1, request.getMaDc().trim());
             statement.setString(2, request.getTenDc().trim());
             statement.setString(3, request.getDvt() != null ? request.getDvt().trim() : "");
             statement.setBigDecimal(4, request.getGia());

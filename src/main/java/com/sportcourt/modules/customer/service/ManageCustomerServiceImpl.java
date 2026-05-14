@@ -55,6 +55,18 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
     }
 
     @Override
+    public CustomerResult<String> generateNextMaKhachHang() {
+        try {
+            return CustomerResult.ok(
+                    "Sinh mã khách hàng thành công.",
+                    generateCustomerId("KHACH_HANG", "MAKH", CUSTOMER_ID_PREFIX)
+            );
+        } catch (SQLException e) {
+            return CustomerResult.fail("Không thể sinh mã khách hàng: " + e.getMessage());
+        }
+    }
+
+    @Override
     public CustomerResult<CustomerProfile> createCustomer(CreateCustomerRequest request) {
         if (request == null) {
             return CustomerResult.fail("Chưa điền thông tin khách hàng.");
@@ -72,9 +84,12 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
         try {
             String userId = generateCustomerId("USERS", "USER_ID", CUSTOMER_USER_PREFIX);
             String accountId = generateCustomerId("ACCOUNT", "ACCOUNT_ID", CUSTOMER_ACCOUNT_PREFIX);
-            String maKhachHang = generateCustomerId("KHACH_HANG", "MAKH", CUSTOMER_ID_PREFIX);
+            String maKhachHang = isBlank(request.maKhachHang())
+                    ? generateCustomerId("KHACH_HANG", "MAKH", CUSTOMER_ID_PREFIX)
+                    : request.maKhachHang().trim();
             String accountRoleGroupId = generateCustomerId("ACCOUNT_ROLE_GROUP", "ACCOUNT_ROLE_GROUP_ID", CUSTOMER_ACCOUNT_ROLE_GROUP_PREFIX);
             CreateCustomerRequest normalized = new CreateCustomerRequest(
+                    maKhachHang,
                     request.hoTen().trim(),
                     username
             );

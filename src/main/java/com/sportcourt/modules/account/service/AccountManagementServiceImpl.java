@@ -13,7 +13,6 @@ import com.sportcourt.modules.auth.util.Sha256Password;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 public class AccountManagementServiceImpl implements AccountManagementService {
     private static final String FUNCTION_ID = FunctionId.ACCOUNT_MANAGEMENT;
@@ -43,6 +42,12 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     }
 
     @Override
+    public String generateNextAccountId() throws SQLException {
+        permissionService.requirePermission(FUNCTION_ID, PermissionAction.ADD);
+        return accountManagementDAO.generatedNextId();
+    }
+
+    @Override
     public void assignRoleGroup(String accountId, String groupId) throws SQLException {
         permissionService.requirePermission(FUNCTION_ID, PermissionAction.EDIT);
         if (accountId == null || accountId.isBlank()) {
@@ -58,11 +63,12 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     public void createAccount(AccountUpsertRequest request) throws SQLException {
         permissionService.requirePermission(FUNCTION_ID, PermissionAction.ADD);
         validateRequest(request, true);
-        String userId = "USR_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
-        String accountId = "ACC_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
-        String accountRoleGroupId = "ARG_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        String userId = request.getPhone();
+        String accountId = request.getAccountId() == null || request.getAccountId().isBlank()
+                ? accountManagementDAO.generatedNextId()
+                : request.getAccountId().trim();
         String passwordHash = Sha256Password.hash(request.getPassword().trim());
-        accountManagementDAO.createAccount(userId, accountId, accountRoleGroupId, request, passwordHash);
+        accountManagementDAO.createAccount(userId, accountId, request, passwordHash);
     }
 
     @Override

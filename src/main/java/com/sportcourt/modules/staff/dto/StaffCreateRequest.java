@@ -3,11 +3,13 @@ package com.sportcourt.modules.staff.dto;
 public class StaffCreateRequest {
     private String manv;
     private String hoten;
+    private String sdt;
+    private String diaChi;
     private String cccd;
     private int    isQl;
     private String trangThai;
-    private String maCn;      // Mã chi nhánh — bắt buộc (FK_NHAN_VIEN_CHI_NHANH)
-    private String maLoaiNv;  // Mã loại nhân viên — bắt buộc (FK_NHAN_VIEN_LOAI)
+    private String maCn;
+    private String maLoaiNv;
 
     public StaffCreateRequest() {}
 
@@ -16,6 +18,12 @@ public class StaffCreateRequest {
 
     public String getHoten()     { return hoten; }
     public void   setHoten(String hoten) { this.hoten = hoten; }
+
+    public String getSdt()       { return sdt; }
+    public void   setSdt(String sdt) { this.sdt = sdt; }
+
+    public String getDiaChi()    { return diaChi; }
+    public void   setDiaChi(String diaChi) { this.diaChi = diaChi; }
 
     public String getCccd()      { return cccd; }
     public void   setCccd(String cccd) { this.cccd = cccd; }

@@ -165,9 +165,11 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> refreshCustomers());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -256,26 +258,29 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
         actionGroup.setOpaque(false);
 
         boolean inactive = "INACTIVE".equalsIgnoreCase(customer.getTrangThai());
-        JButton statusBtn = inactive
-                ? createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0))
-                : createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        statusBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            if (inactive) {
+        if (inactive) {
+            JButton restoreBtn = createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0));
+            restoreBtn.addActionListener(event -> {
+                selectedCustomer = customer;
                 restoreSelectedCustomer();
-            } else {
+            });
+            actionGroup.add(restoreBtn);
+        } else {
+            JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+            deleteBtn.addActionListener(event -> {
+                selectedCustomer = customer;
                 deleteSelectedCustomer();
-            }
-        });
-        actionGroup.add(statusBtn);
-        actionGroup.add(Box.createHorizontalStrut(10));
+            });
+            actionGroup.add(deleteBtn);
+            actionGroup.add(Box.createHorizontalStrut(10));
 
-        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editBtn.addActionListener(event -> {
-            selectedCustomer = customer;
-            openEditForSelectedCustomer();
-        });
-        actionGroup.add(editBtn);
+            JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+            editBtn.addActionListener(event -> {
+                selectedCustomer = customer;
+                openEditForSelectedCustomer();
+            });
+            actionGroup.add(editBtn);
+        }
 
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
@@ -611,7 +616,13 @@ public class ManageCustomerScreen extends JPanel implements Scrollable {
     }
 
     private void openCreateDialog() {
-        CreateCustomerRequest request = CustomerCreateDialog.show(this);
+        CustomerResult<String> generatedId = controller.generateNextMaKhachHang();
+        if (!generatedId.success() || generatedId.data() == null || generatedId.data().isBlank()) {
+            AppDialog.showError(this, normalizeError("Không thể sinh mã khách hàng.", generatedId.message()));
+            return;
+        }
+
+        CreateCustomerRequest request = CustomerCreateDialog.show(this, generatedId.data());
         if (request == null) {
             return;
         }
