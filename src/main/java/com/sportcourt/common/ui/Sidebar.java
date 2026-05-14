@@ -15,6 +15,7 @@ import com.sportcourt.modules.cost.view.CostManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
 import com.sportcourt.modules.customer_rank.view.CustomerRankManagement;
+import com.sportcourt.modules.dashboard.view.TestDashboard;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
 import com.sportcourt.modules.imports.view.ImportManagement;
 import com.sportcourt.modules.product.view.ProductPanel;
@@ -23,6 +24,7 @@ import com.sportcourt.modules.staff.view.StaffPanel;
 import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
 import com.sportcourt.modules.user_profile.view.UserProfileEditPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
+import com.sportcourt.modules.dashboard.view.TestDashboard;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -333,7 +335,9 @@ public class Sidebar extends JFrame {
     }
 
     private void registerModuleViews() {
-        contentPanel.registerView("TRANG CHỦ", () -> createPage("TRANG CHỦ"));
+        // Dashboard already contains its own JScrollPane and custom scrollbar UI.
+        // Wrapping it again causes nested scrollbars and can lead to horizontal overflow.
+        contentPanel.registerView("TRANG CHỦ", TestDashboard::new, false);
         if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", () -> createPage("ĐẶT SÂN KHÁCH HÀNG"));
         if (canView(FunctionId.BRANCH_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView(FunctionId.AREA_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);

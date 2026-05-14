@@ -23,7 +23,7 @@ public final class OracleConnection {
         Properties properties = new Properties();
 
         try (InputStream input = OracleConnection.class.getClassLoader()
-                .getResourceAsStream("db/db.properties")) {
+                .getResourceAsStream("db/db.properties.example")) {
 
             if (input == null) {
                 throw new IllegalStateException("Cannot find db.properties in src/main/resources");
