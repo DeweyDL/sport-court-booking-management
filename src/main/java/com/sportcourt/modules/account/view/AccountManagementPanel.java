@@ -202,6 +202,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
         return CrudViewStyle.createSortWrapper(cbSort, btnSortDir);
     }
 
+
     private JPanel createTableHeader() {
         JPanel header = new JPanel(new GridBagLayout());
         header.setBackground(CrudViewStyle.TABLE_HEADER_BACKGROUND);
@@ -349,6 +350,7 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     private String sortKey(String value) {
         return value == null ? "" : value.trim().toLowerCase();
     }
+
 
     private void renderErrorState(Exception exception) {
         tableBodyPanel.removeAll();
