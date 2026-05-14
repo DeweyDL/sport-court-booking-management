@@ -153,6 +153,12 @@ public final class CrudViewStyle {
         });
     }
 
+    private static JComponent createScrollCorner() {
+        JPanel corner = new JPanel();
+        corner.setBackground(SIDEBAR_BACKGROUND);
+        return corner;
+    }
+
     public static JButton createRefreshButton(ActionListener actionListener) {
         int size = TOOLBAR_CONTROL_HEIGHT;
         JButton button = new JButton(loadToolbarIcon("/icon/reload.png", 18, 18)) {
@@ -203,11 +209,6 @@ public final class CrudViewStyle {
         return button;
     }
 
-    private static JComponent createScrollCorner() {
-        JPanel corner = new JPanel();
-        corner.setBackground(SIDEBAR_BACKGROUND);
-        return corner;
-    }
 
     public static JPanel createSearchFieldWithIcon(JPanel wrapper, JTextField searchField, Icon icon) {
         wrapper.removeAll();
