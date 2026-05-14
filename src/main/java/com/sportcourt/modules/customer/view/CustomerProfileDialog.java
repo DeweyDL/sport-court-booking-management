@@ -137,7 +137,7 @@ final class CustomerProfileDialog {
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(

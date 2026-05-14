@@ -29,6 +29,10 @@ public class ManageCustomerController {
         return manageCustomerService.getProfile(maKhachHang);
     }
 
+    public CustomerResult<String> generateNextMaKhachHang() {
+        return manageCustomerService.generateNextMaKhachHang();
+    }
+
     public CustomerResult<CustomerProfile> create(CreateCustomerRequest request) {
         return manageCustomerService.createCustomer(request);
     }

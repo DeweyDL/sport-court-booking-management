@@ -185,7 +185,7 @@ final class AccountEditPanel {
     }
 
     private static void styleTextField(JTextField textField) {
-        textField.setFont(AppFonts.lexendRegular(14f));
+        textField.setFont(textField.isEditable() ? AppFonts.lexendRegular(14f) : AppFonts.lexendBold(14f));
         textField.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)

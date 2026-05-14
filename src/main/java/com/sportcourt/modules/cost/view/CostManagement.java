@@ -131,9 +131,11 @@ public class CostManagement extends JPanel implements Scrollable {
         addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event -> showCreateView());
+        JButton refreshButton = CrudViewStyle.createRefreshButton(event -> loadBangGiaData(searchField.getText()));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
+        leftToolbar.add(refreshButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();

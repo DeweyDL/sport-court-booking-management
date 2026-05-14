@@ -19,6 +19,8 @@ final class CourtEditPanel {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
+    private static final Color INPUT_BORDER = new Color(203, 213, 225);
     private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_]{1,20}$");
 
     private CourtEditPanel() {
@@ -157,17 +159,27 @@ final class CourtEditPanel {
     }
 
     private static JTextField readonlyField(String value) {
-        JTextField field = new JTextField(value);
-        field.setFont(AppFonts.lexendBold(14f));
+        JTextField field = new JTextField(value) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, INPUT_CORNER_RADIUS, INPUT_CORNER_RADIUS);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setFont(AppFonts.lexendRegular(14f));
         field.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                new RoundedLineBorder(INPUT_BORDER, INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
         field.setEditable(false);
         field.setFocusable(false);
-        field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setBackground(new Color(241, 245, 249));
+        field.setOpaque(false);
+        field.setBackground(READONLY_BG);
         return field;
     }
 
@@ -175,7 +187,7 @@ final class CourtEditPanel {
         comboBox.setFont(AppFonts.lexendRegular(14f));
         comboBox.setFocusable(false);
         comboBox.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(new Color(203, 213, 225), INPUT_CORNER_RADIUS),
+                new RoundedLineBorder(INPUT_BORDER, INPUT_CORNER_RADIUS),
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)
         ));
         comboBox.setBackground(Color.WHITE);
