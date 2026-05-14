@@ -2,6 +2,8 @@ package com.sportcourt.modules.revenue.view;
 
 import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.modules.auth.dto.UserSession;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.branch.controller.BranchController;
 import com.sportcourt.modules.branch.entity.Branch;
 import com.sportcourt.modules.revenue.controller.RevenueController;
@@ -14,7 +16,6 @@ import com.sportcourt.modules.revenue.dto.RevenueRow;
 import com.sportcourt.modules.revenue.dto.RevenueSearchCriteria;
 import com.sportcourt.modules.revenue.dto.RevenueSummary;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 
@@ -29,6 +30,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -57,7 +59,8 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    // ── controller ───────────────────────────────────────────────────────────
+    // ── session / controller ────────────────────────────────────────────────
+    private final UserSession       session          = SessionManager.requireSession();
     private final RevenueController controller       = new RevenueController();
     private final BranchController  branchController = new BranchController();
 
@@ -71,6 +74,10 @@ public class RevenuePanel extends JPanel implements Scrollable {
     private final JComboBox<String> cbBranch = new JComboBox<>(new String[]{
             "Tất cả chi nhánh"
     });
+    private final JTextField txtSearch = new JTextField(18);
+    private final JComboBox<String> cbLoai = new JComboBox<>(new String[]{
+            "Tất cả", "Ngày", "Tuần", "Tháng", "Năm"
+    });
 
     // ── summary labels ───────────────────────────────────────────────────────
     private final JLabel lblTotalRevenue = new JLabel("--");
@@ -78,7 +85,7 @@ public class RevenuePanel extends JPanel implements Scrollable {
     private final JLabel lblProfit       = new JLabel("--");
 
     // ── chart ────────────────────────────────────────────────────────────────
-    private ChartPanel chartPanel;
+    private RevenueChartPanel chartPanel;
 
     // ── branch performance lists (populated dynamically) ─────────────────────
     private final JPanel branchCourtListPanel = new JPanel();
@@ -152,6 +159,7 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
         wrap.add(titleBlock, BorderLayout.WEST);
         wrap.add(filterBar, BorderLayout.EAST);
+        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, wrap.getPreferredSize().height));
         return wrap;
     }
 
@@ -167,6 +175,7 @@ public class RevenuePanel extends JPanel implements Scrollable {
         row.add(buildStatCard("TỔNG DOANH THU",             lblTotalRevenue, GREEN_BG,                GREEN_TEXT,              "💰"));
         row.add(buildStatCard("DOANH THU DỊCH VỤ ĐA DỤNG", lblTotalOrders,  new Color(255, 237, 213), new Color(194, 65,  12), "🛎"));
         row.add(buildStatCard("DOANH THU THUÊ SÂN",         lblProfit,       new Color(239, 246, 255), BLUE_TEXT,               "🏟"));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
         return row;
     }
 
@@ -212,6 +221,10 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
         row.add(buildBarChartCard());
         row.add(buildBranchChartsPanel());
+
+        // Cố định chiều cao tối đa — ngăn BoxLayout kéo dãn vô hạn gây artifact
+        int h = row.getPreferredSize().height;
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
         return row;
     }
 
@@ -250,24 +263,12 @@ public class RevenuePanel extends JPanel implements Scrollable {
         cardHeader.add(titleBlock, BorderLayout.WEST);
         cardHeader.add(legend,    BorderLayout.EAST);
 
-        chartPanel = new ChartPanel(buildBarChart()) {
-            @Override public void paintComponent(Graphics g) {
-                // Luôn fill nền trắng trước — ngăn JFreeChart vẽ thiếu background
-                g.setColor(WHITE);
-                g.fillRect(0, 0, getWidth(), getHeight());
-                super.paintComponent(g);
-            }
-        };
+        chartPanel = new RevenueChartPanel(buildBarChart());
         chartPanel.setOpaque(true);
         chartPanel.setBackground(WHITE);
         chartPanel.setPreferredSize(new Dimension(0, 220));
-        chartPanel.setMouseWheelEnabled(false);
-        chartPanel.setPopupMenu(null);
+        chartPanel.setMinimumSize(new Dimension(0, 220));
         chartPanel.setDoubleBuffered(true);
-        chartPanel.setMinimumDrawWidth(0);
-        chartPanel.setMinimumDrawHeight(0);
-        chartPanel.setMaximumDrawWidth(2000);
-        chartPanel.setMaximumDrawHeight(1000);
 
         card.add(cardHeader,  BorderLayout.NORTH);
         card.add(chartPanel,  BorderLayout.CENTER);
@@ -550,9 +551,24 @@ public class RevenuePanel extends JPanel implements Scrollable {
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         right.setOpaque(false);
 
-        JButton addBtn = createPillButton("+ Thêm báo cáo", GREEN_MAIN, WHITE, true);
+        // Search field
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm mã DT, nội dung...");
+        txtSearch.addActionListener(e -> refreshData());
+
+        // Loại kỳ filter
+        styleComboBox(cbLoai);
+        cbLoai.addActionListener(e -> refreshData());
+
+        JButton addBtn = createPillButton("+ Thêm báo cáo", new Color(59, 130, 246), WHITE, true);
         addBtn.addActionListener(e -> openCreateDialog());
 
+        right.add(txtSearch);
+        right.add(cbLoai);
         right.add(addBtn);
 
         bar.add(title, BorderLayout.WEST);
@@ -562,8 +578,16 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
     private void openCreateDialog() {
         try {
+            Branch selectedBranch;
+            if (session.isOwner()) {
+                int branchIdx = cbBranch.getSelectedIndex();
+                selectedBranch = (branchIdx > 0 && branchIdx < branchItems.size())
+                        ? branchItems.get(branchIdx) : null;
+            } else {
+                selectedBranch = branchItems.isEmpty() ? null : branchItems.get(0);
+            }
             String nextId = controller.generateNextId();
-                RevenueCreateRequest req = RevenueCreateDialog.show(this, nextId, branchItems);
+            RevenueCreateRequest req = RevenueCreateDialog.show(this, nextId, branchItems, selectedBranch);
             if (req != null) {
                 controller.create(req);
                 loadData();
@@ -600,16 +624,16 @@ public class RevenuePanel extends JPanel implements Scrollable {
         g.weighty = 1.0;
         g.insets = new Insets(0, 0, 0, 8);
 
-        String[] cols    = {"MÃ BÁO CÁO", "CHI NHÁNH", "NỘI DUNG", "NGÀY", "TỔNG DOANH THU"};
-        double[] weights = {0.15,           0.20,         0.35,        0.15,   0.15};
-        int[] aligns     = {SwingConstants.CENTER, SwingConstants.LEFT, SwingConstants.LEFT,
-                            SwingConstants.CENTER, SwingConstants.RIGHT};
+        String[] cols    = {"MÃ", "LOẠI", "CHI NHÁNH", "KỲ BÁO CÁO", "NỘI DUNG", "DOANH THU THUÊ SÂN", "DOANH THU DỊCH VỤ", "TỔNG DOANH THU"};
+        double[] weights = {0.07,  0.07,   0.14,        0.16,          0.16,       0.14,           0.13,          0.13};
+        int[] aligns     = {SwingConstants.CENTER, SwingConstants.CENTER, SwingConstants.LEFT,
+                            SwingConstants.CENTER, SwingConstants.LEFT, SwingConstants.RIGHT,  SwingConstants.RIGHT, SwingConstants.RIGHT};
 
         for (int i = 0; i < cols.length; i++) {
             g.weightx = weights[i];
             if (i == cols.length - 1) g.insets = new Insets(0, 0, 0, 0);
             JLabel lbl = new JLabel(cols[i]);
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lbl.setForeground(MUTED);
             header.add(createCell(lbl, aligns[i], HEADER_BG, 48), g);
         }
@@ -652,17 +676,21 @@ public class RevenuePanel extends JPanel implements Scrollable {
         g.weighty = 1.0;
         g.insets = new Insets(0, 0, 0, 8);
 
-        double[] weights = {0.15, 0.20, 0.35, 0.15, 0.15};
+        double[] weights = {0.07, 0.07, 0.14, 0.16, 0.16, 0.14, 0.13, 0.13};
 
-        String maDt        = nullSafe(data.getMaDt());
-        String tenCn       = data.getTenChiNhanh() != null ? data.getTenChiNhanh() : nullSafe(data.getMaCn());
-        String noiDung     = nullSafe(data.getNoiDung());
-        String ngay        = data.getNgay() != null ? data.getNgay().format(DATE_FMT) : "--";
-        String tongDt      = formatCurrency(data.getTongDoanhThu());
+        String maDt    = nullSafe(data.getMaDt());
+        String loai    = formatLoai(data.getLoai());
+        String tenCn   = data.getTenChiNhanh() != null ? data.getTenChiNhanh()
+                       : data.getMaCn() != null ? data.getMaCn() : "Tất cả chi nhánh";
+        String kyBc    = formatKyBaoCao(data);
+        String noiDung = nullSafe(data.getNoiDung());
+        String dtSan   = formatCurrency(data.getDtThueSan());
+        String dtDv    = formatCurrency(data.getDtDichVu());
+        String tongDt  = formatCurrency(data.getTongDoanhThu());
 
-        String[] values = {maDt, tenCn, noiDung, ngay, tongDt};
-        int[] aligns    = {SwingConstants.CENTER, SwingConstants.LEFT, SwingConstants.LEFT,
-                           SwingConstants.CENTER, SwingConstants.RIGHT};
+        String[] values = {maDt, loai, tenCn, kyBc, noiDung, dtSan, dtDv, tongDt};
+        int[] aligns    = {SwingConstants.CENTER, SwingConstants.CENTER, SwingConstants.LEFT,
+                           SwingConstants.CENTER, SwingConstants.LEFT, SwingConstants.RIGHT,  SwingConstants.RIGHT, SwingConstants.RIGHT};
 
         for (int i = 0; i < values.length; i++) {
             g.weightx = weights[i];
@@ -670,13 +698,22 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
             JLabel lbl = new JLabel(values[i]);
             if (i == 0) {
-                lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 lbl.setForeground(GREEN_TEXT);
-            } else if (i == 4) {
-                lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            } else if (i == 5) {
+                // Doanh thu thuê sân — xanh biển
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 lbl.setForeground(BLUE_TEXT);
+            } else if (i == 6) {
+                // Doanh thu dịch vụ — cam
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                lbl.setForeground(new Color(234, 88, 12));
+            } else if (i == 7) {
+                // Tổng doanh thu — xanh lá
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                lbl.setForeground(GREEN_TEXT);
             } else {
-                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
                 lbl.setForeground(new Color(17, 24, 39));
             }
             row.add(createCell(lbl, aligns[i], rowBg, 62), g);
@@ -687,6 +724,26 @@ public class RevenuePanel extends JPanel implements Scrollable {
             @Override public void mouseExited(java.awt.event.MouseEvent e)  { row.setBackground(rowBg); }
         });
         return row;
+    }
+
+    private static String formatLoai(String loai) {
+        if (loai == null) return "--";
+        return switch (loai) {
+            case "NGAY"  -> "Ngày";
+            case "TUAN"  -> "Tuần";
+            case "THANG" -> "Tháng";
+            case "NAM"   -> "Năm";
+            default      -> loai;
+        };
+    }
+
+    private static String formatKyBaoCao(RevenueRow data) {
+        if (data.getNgayBatDau() != null && data.getNgayKetThuc() != null) {
+            String from = data.getNgayBatDau().format(DATE_FMT);
+            String to   = data.getNgayKetThuc().format(DATE_FMT);
+            return from.equals(to) ? from : from + " → " + to;
+        }
+        return data.getNgay() != null ? data.getNgay().format(DATE_FMT) : "--";
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -703,13 +760,38 @@ public class RevenuePanel extends JPanel implements Scrollable {
             case "Hôm nay"     -> { c.setFromDate(today);               c.setToDate(today); }
             case "Tháng này"   -> { c.setFromDate(today.withDayOfMonth(1)); c.setToDate(today); }
             case "Năm nay"     -> { c.setFromDate(today.withDayOfYear(1));  c.setToDate(today); }
-            default            -> { c.setFromDate(today.minusDays(29)); c.setToDate(today); } // 30 ngày qua
+            default            -> { c.setFromDate(today.minusDays(29)); c.setToDate(today); }
         }
 
-        // Branch (index 0 = tất cả, index i → branchItems.get(i).maCn())
-        int idx = cbBranch.getSelectedIndex();
-        if (idx > 0 && idx < branchItems.size() && branchItems.get(idx) != null) {
-            c.setMaCn(branchItems.get(idx).maCn());
+        // Branch
+        if (session.isOwner()) {
+            int idx = cbBranch.getSelectedIndex();
+            if (idx > 0 && idx < branchItems.size() && branchItems.get(idx) != null) {
+                c.setMaCn(branchItems.get(idx).maCn());
+            } else {
+                c.setFilterNullBranch(true);
+            }
+        } else {
+            // Non-owner: luôn lọc theo chi nhánh của mình
+            c.setMaCn(session.getBranchId());
+        }
+
+        // Keyword search (từ ô tìm kiếm trong toolbar bảng)
+        String search = txtSearch.getText().trim();
+        if (!search.isEmpty()) {
+            c.setKeyword(search);
+        }
+
+        // Loại báo cáo filter
+        String loaiSel = (String) cbLoai.getSelectedItem();
+        if (loaiSel != null && !"Tất cả".equals(loaiSel)) {
+            c.setLoai(switch (loaiSel) {
+                case "Ngày"  -> "NGAY";
+                case "Tuần"  -> "TUAN";
+                case "Tháng" -> "THANG";
+                case "Năm"   -> "NAM";
+                default      -> null;
+            });
         }
         return c;
     }
@@ -750,10 +832,25 @@ public class RevenuePanel extends JPanel implements Scrollable {
                 }
                 // Populate branch dropdown (only on first load)
                 if (allBranches != null && branchItems.isEmpty()) {
-                    branchItems.add(null); // index 0 = "Tất cả chi nhánh"
-                    for (Branch b : allBranches) {
-                        branchItems.add(b);
-                        cbBranch.addItem(b.tenChiNhanh());
+                    if (session.isOwner()) {
+                        // Owner: xem tất cả chi nhánh
+                        branchItems.add(null); // index 0 = "Tất cả chi nhánh"
+                        for (Branch b : allBranches) {
+                            branchItems.add(b);
+                            cbBranch.addItem(b.tenChiNhanh());
+                        }
+                    } else {
+                        // Quản lý / Thu ngân: chỉ xem chi nhánh của mình
+                        String myBranch = session.getBranchId();
+                        for (Branch b : allBranches) {
+                            if (b.maCn().equals(myBranch)) {
+                                branchItems.add(b);
+                                cbBranch.removeAllItems();
+                                cbBranch.addItem(b.tenChiNhanh());
+                                cbBranch.setEnabled(false);
+                                break;
+                            }
+                        }
                     }
                 }
                 // Stats
@@ -834,6 +931,35 @@ public class RevenuePanel extends JPanel implements Scrollable {
 
     private static String nullSafe(String value) {
         return value == null || value.isBlank() ? "--" : value;
+    }
+
+    private static final class RevenueChartPanel extends JPanel {
+        private JFreeChart chart;
+
+        RevenueChartPanel(JFreeChart chart) {
+            this.chart = chart;
+        }
+
+        void setChart(JFreeChart chart) {
+            this.chart = chart;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (chart == null || getWidth() <= 0 || getHeight() <= 0) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setClip(0, 0, getWidth(), getHeight());
+                chart.draw(g2, new Rectangle2D.Double(0, 0, getWidth(), getHeight()));
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     private static void styleComboBox(JComboBox<String> cb) {

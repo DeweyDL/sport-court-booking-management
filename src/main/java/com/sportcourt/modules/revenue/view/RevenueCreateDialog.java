@@ -1,56 +1,63 @@
 package com.sportcourt.modules.revenue.view;
 
 import com.sportcourt.modules.branch.entity.Branch;
+import com.sportcourt.modules.revenue.controller.RevenueController;
 import com.sportcourt.modules.revenue.dto.RevenueCreateRequest;
+import com.sportcourt.modules.revenue.dto.RevenueSearchCriteria;
+import com.sportcourt.modules.revenue.dto.RevenueSummary;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 
 final class RevenueCreateDialog {
 
     private static final Color DIALOG_BG   = new Color(248, 249, 252);
     private static final Color CARD_BG     = Color.WHITE;
     private static final Color BRAND_GREEN = new Color(16, 110, 0);
+    private static final Color GREEN_MAIN  = new Color(34, 197, 94);
     private static final Color TEXT_DARK   = new Color(30, 41, 59);
     private static final Color TEXT_MUTED  = new Color(100, 116, 139);
     private static final Color BORDER_CLR  = new Color(203, 213, 225);
     private static final Color READONLY_BG = new Color(241, 245, 249);
+    private static final Color RESULT_BG   = new Color(240, 253, 244);
+    private static final Color BLUE_TEXT   = new Color(29, 78, 216);
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    private static final String[] LOAI_LABELS = {"Theo ngày", "Theo tuần", "Theo tháng", "Theo năm"};
+    private static final String[] LOAI_CODES  = {"NGAY",      "TUAN",      "THANG",      "NAM"};
+
     private RevenueCreateDialog() {}
 
-    /**
-     * @param parent     parent component
-     * @param nextId     mã báo cáo được sinh tự động
-     * @param branches   danh sách chi nhánh (index 0 có thể là null – bỏ qua)
-     * @return request nếu người dùng nhấn Lưu, null nếu Hủy
-     */
-    static RevenueCreateRequest show(Component parent, String nextId, List<Branch> branches) {
+    static RevenueCreateRequest show(Component parent, String nextId, List<Branch> branches, Branch selectedBranch) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, "Thêm báo cáo doanh thu",
+        JDialog dialog = new JDialog(owner, "Lập báo cáo doanh thu",
                 Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout(0, 16));
+        JPanel root = new JPanel(new BorderLayout(0, 12));
         root.setBackground(DIALOG_BG);
         root.setBorder(new EmptyBorder(20, 20, 20, 20));
         dialog.setContentPane(root);
 
         // ── Header ───────────────────────────────────────────────────────────
-        JLabel title = new JLabel("Thêm báo cáo doanh thu mới");
+        JLabel title = new JLabel("Lập báo cáo doanh thu");
         title.setFont(new Font("Lexend", Font.BOLD, 22));
         title.setForeground(TEXT_DARK);
 
-        JLabel subtitle = new JLabel("Nhập thông tin báo cáo doanh thu thủ công.");
+        JLabel subtitle = new JLabel("Chọn kỳ báo cáo — hệ thống tự tính toán từ hóa đơn.");
         subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -65,21 +72,45 @@ final class RevenueCreateDialog {
         root.add(header, BorderLayout.NORTH);
 
         // ── Form ─────────────────────────────────────────────────────────────
-        JTextField txtMaDt   = createReadOnlyField(nextId);
-        JTextField txtNgay   = new JTextField(LocalDate.now().format(DATE_FMT));
-        JTextField txtNoiDung = new JTextField();
-        JTextField txtTongDt = new JTextField();
+        JTextField txtMaDt = createReadOnlyField(nextId);
 
-        // Chi nhánh dropdown
-        JComboBox<String> cbBranch = new JComboBox<>();
-        cbBranch.setFont(new Font("Lexend", Font.PLAIN, 14));
-        cbBranch.setBackground(CARD_BG);
-        for (Branch b : branches) {
-            if (b != null) cbBranch.addItem(b.tenChiNhanh());
-        }
-        // Filter ra branches thực (bỏ null)
         List<Branch> realBranches = branches.stream().filter(b -> b != null).toList();
 
+        // Chi nhánh: hiển thị read-only, lấy từ header
+        String branchDisplay = selectedBranch != null ? selectedBranch.tenChiNhanh() : "Tất cả chi nhánh";
+        JTextField txtBranchLocked = createReadOnlyField(branchDisplay);
+
+        JComboBox<String> cbLoai = new JComboBox<>(LOAI_LABELS);
+        cbLoai.setFont(new Font("Lexend", Font.PLAIN, 14));
+        cbLoai.setBackground(CARD_BG);
+
+        JTextField txtNgay  = createReadOnlyField(LocalDate.now().format(DATE_FMT));
+        JTextField txtThang = createReadOnlyField(String.format("%02d/%d", LocalDate.now().getMonthValue(), LocalDate.now().getYear()));
+        JTextField txtNam   = createReadOnlyField(String.valueOf(LocalDate.now().getYear()));
+
+        JPanel pnlNgay  = createField("Ngày (dd/MM/yyyy)", txtNgay);
+        JPanel pnlThang = createField("Tháng/Năm (MM/yyyy)", txtThang);
+        JPanel pnlNam   = createField("Năm (yyyy)", txtNam);
+
+        JTextField txtNoiDung = new JTextField();
+
+        // Kết quả tính toán (read-only)
+        JLabel lblDtThueSan = new JLabel("--");
+        JLabel lblDtDichVu  = new JLabel("--");
+        JLabel lblTongDt    = new JLabel("--");
+        lblDtThueSan.setFont(new Font("Lexend", Font.BOLD, 16));
+        lblDtThueSan.setForeground(BLUE_TEXT);
+        lblDtDichVu.setFont(new Font("Lexend", Font.BOLD, 16));
+        lblDtDichVu.setForeground(new Color(194, 65, 12));
+        lblTongDt.setFont(new Font("Lexend", Font.BOLD, 18));
+        lblTongDt.setForeground(BRAND_GREEN);
+
+        JPanel resultPanel = buildResultPanel(lblDtThueSan, lblDtDichVu, lblTongDt);
+        resultPanel.setVisible(false);
+
+        final BigDecimal[] calcValues = new BigDecimal[3]; // [thueSan, dichVu, tong]
+
+        // ── Assemble form ───────────────────────────────────────────────────
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBackground(CARD_BG);
@@ -88,22 +119,108 @@ final class RevenueCreateDialog {
 
         form.add(createField("Mã báo cáo", txtMaDt));
         form.add(Box.createVerticalStrut(12));
-        form.add(createComboField("Chi nhánh", cbBranch));
+        form.add(createField("Chi nhánh", txtBranchLocked));
         form.add(Box.createVerticalStrut(12));
-        form.add(createField("Ngày (dd/MM/yyyy)", txtNgay));
+        form.add(createComboField("Loại kỳ", cbLoai));
         form.add(Box.createVerticalStrut(12));
-        form.add(createField("Nội dung", txtNoiDung));
+        form.add(pnlNgay);
+        form.add(pnlThang);
+        form.add(pnlNam);
         form.add(Box.createVerticalStrut(12));
-        form.add(createField("Tổng doanh thu (VNĐ)", txtTongDt));
 
-        root.add(form, BorderLayout.CENTER);
+        JButton calcBtn = createPillButton("Tính toán doanh thu", GREEN_MAIN, Color.WHITE);
+        calcBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        calcBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        form.add(calcBtn);
+        form.add(Box.createVerticalStrut(12));
+        form.add(resultPanel);
+        form.add(Box.createVerticalStrut(12));
+        form.add(createField("Nội dung / Ghi chú", txtNoiDung));
+
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(null);
+        formScroll.getViewport().setBackground(CARD_BG);
+        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        root.add(formScroll, BorderLayout.CENTER);
+
+        // ── Date panel switching ──────────────────────────────────────────────
+        Runnable updateDatePanels = () -> {
+            int idx = cbLoai.getSelectedIndex();
+            pnlNgay.setVisible(idx == 0 || idx == 1);
+            pnlThang.setVisible(idx == 2);
+            pnlNam.setVisible(idx == 3);
+            resultPanel.setVisible(false);
+            calcValues[0] = null; calcValues[1] = null; calcValues[2] = null;
+            form.revalidate();
+        };
+        cbLoai.addActionListener(e -> updateDatePanels.run());
+        updateDatePanels.run();
+
+        // ── Calculate action ──────────────────────────────────────────────────
+        RevenueController calcController = new RevenueController();
+
+        calcBtn.addActionListener(e -> {
+            int loaiIdx = cbLoai.getSelectedIndex();
+            LocalDate from, to;
+            try {
+                switch (loaiIdx) {
+                    case 0 -> { // NGAY
+                        LocalDate d = LocalDate.parse(txtNgay.getText().trim(), DATE_FMT);
+                        from = d; to = d;
+                    }
+                    case 1 -> { // TUAN
+                        LocalDate d = LocalDate.parse(txtNgay.getText().trim(), DATE_FMT);
+                        from = d.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                        to   = d.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                    }
+                    case 2 -> { // THANG
+                        String[] parts = txtThang.getText().trim().split("/");
+                        YearMonth ym = YearMonth.of(Integer.parseInt(parts[1]), Integer.parseInt(parts[0]));
+                        from = ym.atDay(1);
+                        to   = ym.atEndOfMonth();
+                    }
+                    case 3 -> { // NAM
+                        int year = Integer.parseInt(txtNam.getText().trim());
+                        from = LocalDate.of(year, 1, 1);
+                        to   = LocalDate.of(year, 12, 31);
+                    }
+                    default -> { return; }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Ngày/tháng/năm không hợp lệ.", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String maCn = selectedBranch != null ? selectedBranch.maCn() : null;
+            RevenueSearchCriteria criteria = new RevenueSearchCriteria();
+            criteria.setFromDate(from);
+            criteria.setToDate(to);
+            criteria.setMaCn(maCn);
+
+            try {
+                RevenueSummary summary = calcController.getSummary(criteria);
+                calcValues[0] = summary.getDoanhThuThueSan();
+                calcValues[1] = summary.getDoanhThuDichVu();
+                calcValues[2] = summary.getTongDoanhThu();
+                lblDtThueSan.setText(formatCurrency(calcValues[0]));
+                lblDtDichVu.setText(formatCurrency(calcValues[1]));
+                lblTongDt.setText(formatCurrency(calcValues[2]));
+                resultPanel.setVisible(true);
+                form.revalidate();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Lỗi truy vấn: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         // ── Actions ──────────────────────────────────────────────────────────
         JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
         actions.setOpaque(false);
+        actions.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        JButton cancelBtn = createPillButton("Hủy",
-                new Color(226, 232, 240), new Color(30, 41, 59));
+        JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
         JButton saveBtn   = createPillButton("Lưu báo cáo", BRAND_GREEN, Color.WHITE);
         actions.add(cancelBtn);
         actions.add(saveBtn);
@@ -113,61 +230,118 @@ final class RevenueCreateDialog {
 
         cancelBtn.addActionListener(e -> dialog.dispose());
         saveBtn.addActionListener(e -> {
-            // Validate
-            if (realBranches.isEmpty()) {
+            if (calcValues[2] == null) {
                 JOptionPane.showMessageDialog(dialog,
-                        "Không có chi nhánh nào trong hệ thống.",
-                        "Lỗi", JOptionPane.WARNING_MESSAGE);
+                        "Vui lòng bấm \"Tính toán doanh thu\" trước khi lưu.",
+                        "Chưa tính toán", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
+
+            int loaiIdx = cbLoai.getSelectedIndex();
+            String loaiCode = LOAI_CODES[loaiIdx];
+            LocalDate from, to;
+            try {
+                switch (loaiIdx) {
+                    case 0 -> {
+                        LocalDate d = LocalDate.parse(txtNgay.getText().trim(), DATE_FMT);
+                        from = d; to = d;
+                    }
+                    case 1 -> {
+                        LocalDate d = LocalDate.parse(txtNgay.getText().trim(), DATE_FMT);
+                        from = d.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                        to   = d.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                    }
+                    case 2 -> {
+                        String[] parts = txtThang.getText().trim().split("/");
+                        YearMonth ym = YearMonth.of(Integer.parseInt(parts[1]), Integer.parseInt(parts[0]));
+                        from = ym.atDay(1);
+                        to   = ym.atEndOfMonth();
+                    }
+                    case 3 -> {
+                        int year = Integer.parseInt(txtNam.getText().trim());
+                        from = LocalDate.of(year, 1, 1);
+                        to   = LocalDate.of(year, 12, 31);
+                    }
+                    default -> { return; }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Ngày/tháng/năm không hợp lệ.", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                return;
+            }   
+
+            String maCn    = selectedBranch != null ? selectedBranch.maCn() : null;
             String noiDung = txtNoiDung.getText().trim();
-            String rawDt   = txtTongDt.getText().trim();
-            String rawNgay = txtNgay.getText().trim();
-
-            if (noiDung.isEmpty() || rawDt.isEmpty() || rawNgay.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog,
-                        "Vui lòng điền đầy đủ thông tin.",
-                        "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            LocalDate ngay;
-            try {
-                ngay = LocalDate.parse(rawNgay, DATE_FMT);
-            } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(dialog,
-                        "Ngày không hợp lệ. Định dạng: dd/MM/yyyy",
-                        "Lỗi ngày", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            BigDecimal tongDt;
-            try {
-                tongDt = new BigDecimal(rawDt.replace(",", "").replace(".", ""));
-                if (tongDt.compareTo(BigDecimal.ZERO) < 0) throw new NumberFormatException();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(dialog,
-                        "Tổng doanh thu phải là số không âm.",
-                        "Lỗi giá trị", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            int idx     = cbBranch.getSelectedIndex();
-            String maCn = realBranches.get(idx).maCn();
 
             result[0] = new RevenueCreateRequest(
-                    txtMaDt.getText().trim(), maCn, noiDung, ngay, tongDt);
+                    txtMaDt.getText().trim(), maCn, loaiCode, noiDung,
+                    LocalDate.now(), from, to,
+                    calcValues[0], calcValues[1], calcValues[2]);
             dialog.dispose();
         });
 
         dialog.pack();
-        applySize(dialog, 0.38, 0.65, 500, 520);
+        applySize(dialog, 0.38, 0.75, 520, 620);
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
     }
 
+    // ── Result panel ─────────────────────────────────────────────────────────
+
+    private static JPanel buildResultPanel(JLabel lblThueSan, JLabel lblDichVu, JLabel lblTong) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(RESULT_BG);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedLineBorder(new Color(187, 247, 208), 12),
+                new EmptyBorder(14, 16, 14, 16)));
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel header = new JLabel("KẾT QUẢ TÍNH TOÁN");
+        header.setFont(new Font("Lexend", Font.BOLD, 12));
+        header.setForeground(new Color(22, 101, 52));
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(header);
+        panel.add(Box.createVerticalStrut(10));
+
+        panel.add(buildResultRow("Doanh thu thuê sân:", lblThueSan));
+        panel.add(Box.createVerticalStrut(6));
+        panel.add(buildResultRow("Doanh thu dịch vụ:", lblDichVu));
+        panel.add(Box.createVerticalStrut(8));
+
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sep.setForeground(new Color(187, 247, 208));
+        panel.add(sep);
+        panel.add(Box.createVerticalStrut(8));
+
+        panel.add(buildResultRow("TỔNG DOANH THU:", lblTong));
+        return panel;
+    }
+
+    private static JPanel buildResultRow(String label, JLabel valueLabel) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Lexend", Font.PLAIN, 13));
+        lbl.setForeground(TEXT_DARK);
+
+        row.add(lbl, BorderLayout.WEST);
+        row.add(valueLabel, BorderLayout.EAST);
+        return row;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static String formatCurrency(BigDecimal value) {
+        if (value == null) return "0đ";
+        return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + "đ";
+    }
 
     private static void applySize(JDialog d, double wr, double hr, int minW, int minH) {
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
