@@ -207,7 +207,7 @@ final class ImportUpdateDialog {
 
         JScrollPane mainScroll = new JScrollPane(centerPanel);
         mainScroll.setBorder(BorderFactory.createEmptyBorder());
-        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(mainScroll);
         root.add(mainScroll, BorderLayout.CENTER);
 
         // Footer
@@ -283,6 +283,7 @@ final class ImportUpdateDialog {
         JScrollPane scroll = new JScrollPane(tablePanel);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.setPreferredSize(new Dimension(0, 200));
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(scroll);
         panel.add(scroll, BorderLayout.CENTER);
         DetailTableView view = new DetailTableView(panel, tablePanel, columns, new ArrayList<>(rows), emptyMessage, equipmentTable);
         renderDetailTable(view);

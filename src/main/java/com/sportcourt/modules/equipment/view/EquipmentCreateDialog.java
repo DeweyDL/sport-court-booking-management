@@ -101,8 +101,7 @@ final class EquipmentCreateDialog {
 
         JScrollPane formScroll = new JScrollPane(form);
         formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(DIALOG_BG);
         root.add(formScroll, BorderLayout.CENTER);
 
