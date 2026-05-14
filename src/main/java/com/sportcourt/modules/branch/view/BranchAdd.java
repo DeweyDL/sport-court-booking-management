@@ -81,8 +81,7 @@ public class BranchAdd extends JPanel {
 
         JScrollPane formScroll = new JScrollPane(createForm());
         formScroll.setBorder(null);
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(new Color(248, 249, 252));
         content.add(formScroll, BorderLayout.CENTER);
 

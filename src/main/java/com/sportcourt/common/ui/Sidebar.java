@@ -1,6 +1,7 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.account.view.AccountManagementPanel;
 import com.sportcourt.modules.area.view.AreaManagement;
@@ -22,7 +23,6 @@ import com.sportcourt.modules.revenue.view.RevenuePanel;
 import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
 import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
-import com.sportcourt.modules.user_profile.view.UserProfileEditPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
 
 import javax.swing.*;
@@ -32,20 +32,17 @@ import java.net.URL;
 
 public class Sidebar extends JFrame {
     private static final String PROFILE_VIEW_KEY = "TRANG CÁ NHÂN";
-    private static final String PROFILE_EDIT_VIEW_KEY = "CẬP NHẬT THÔNG TIN CÁ NHÂN";
 
     private static final int SIDEBAR_MIN_WIDTH = UIScale.scale(220);
     private static final int SIDEBAR_MAX_WIDTH = UIScale.scale(320);
     private static final double SIDEBAR_WIDTH_RATIO = 0.22;
 
     private ContentPanel contentPanel;
-    private JLabel currentTitleLabel;
     private JPanel menuPanel;
-    private JPanel bottomPanel;
     private JPanel sidebarContainer;
     private boolean sidebarVisible = true;
 
-    private final Color SIDEBAR_BG = Color.decode("#2f3c33");
+    private final Color SIDEBAR_BG = CrudViewStyle.SIDEBAR_BACKGROUND;
     private final Color SIDEBAR_HOVER_BG = Color.decode("#43464A");
     private final Color TEXT_NORMAL = Color.decode("#B0B3B8");
     private final Color NEON_GREEN = Color.decode("#6af514");
@@ -76,7 +73,6 @@ public class Sidebar extends JFrame {
             }
         });
 
-        // Mặc định chọn Trang Chủ
         SwingUtilities.invokeLater(() -> {
             updateSidebarWidth();
             if (menuPanel.getComponentCount() > 0) {
@@ -105,7 +101,6 @@ public class Sidebar extends JFrame {
                 "; font-size: " + UIScale.scaleFontInt(20f) + "px; font-weight: 800; font-style: italic;'>" +
                 "RENTSTA</div></html>");
 
-        // Load Logo Icon
         try {
             URL imgURL = getClass().getResource("/icon/logo.png");
             if (imgURL != null) {
@@ -149,25 +144,13 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.REVENUE_MANAGEMENT)) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI THỂ THAO", "/icon/tools.1.png"));
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
+
         JScrollPane menuScrollPane = new JScrollPane(menuPanel);
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
         menuScrollPane.getViewport().setOpaque(false);
         menuScrollPane.setOpaque(false);
-        menuScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        menuScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        styleMenuScrollBar(menuScrollPane.getVerticalScrollBar());
+        CrudViewStyle.configureScrollPane(menuScrollPane);
         sidebar.add(menuScrollPane, BorderLayout.CENTER);
-
-        // --- Bottom Menu ---
-        bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
-        bottomPanel.setOpaque(false);
-        bottomPanel.setBorder(new EmptyBorder(0, 0, UIScale.scale(20), 0));
-
-        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) bottomPanel.add(createMenuButton("TRANG CÁ NHÂN", "/icon/user.1.png"));
-        bottomPanel.add(createMenuButton("ĐĂNG XUẤT", "/icon/logout.png"));
-
-        sidebar.add(bottomPanel, BorderLayout.SOUTH);
 
         return sidebar;
     }
@@ -186,25 +169,79 @@ public class Sidebar extends JFrame {
         topBar.setBorder(new EmptyBorder(
                 UIScale.scale(10), UIScale.scale(14), UIScale.scale(10), UIScale.scale(14)));
 
-        JButton toggleSidebarButton = new JButton("\u2630");
-        toggleSidebarButton.setToolTipText("Ẩn/hiện sidebar");
-        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scaleFontInt(16f)));
-        toggleSidebarButton.setFocusPainted(false);
-        toggleSidebarButton.setContentAreaFilled(false);
-        toggleSidebarButton.setBorderPainted(false);
-        toggleSidebarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        toggleSidebarButton.addActionListener(event -> toggleSidebar());
+        // Left: sidebar toggle
+        JButton toggleBtn = new JButton("☰");
+        toggleBtn.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scaleFontInt(16f)));
+        toggleBtn.setFocusPainted(false);
+        toggleBtn.setContentAreaFilled(false);
+        toggleBtn.setBorderPainted(false);
+        toggleBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        toggleBtn.setToolTipText("Toggle sidebar");
+        toggleBtn.addActionListener(e -> toggleSidebar());
 
-        currentTitleLabel = new JLabel("TRANG CHỦ");
-        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, UIScale.scaleFontInt(15f)));
-        currentTitleLabel.setForeground(new Color(39, 44, 52));
-
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         left.setOpaque(false);
-        left.add(toggleSidebarButton);
-        left.add(currentTitleLabel);
+        left.add(toggleBtn);
+
+        // Right: user profile button with dropdown
+        String displayName = session.getDisplayName() != null && !session.getDisplayName().isBlank()
+                ? session.getDisplayName() : session.getUsername();
+        JButton profileBtn = new JButton(displayName);
+        profileBtn.setHorizontalAlignment(SwingConstants.LEFT);
+        profileBtn.setHorizontalTextPosition(SwingConstants.RIGHT);
+        profileBtn.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scaleFontInt(13f)));
+        profileBtn.setForeground(new Color(39, 44, 52));
+        profileBtn.setContentAreaFilled(false);
+        profileBtn.setBorderPainted(false);
+        profileBtn.setFocusPainted(false);
+        profileBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        profileBtn.setIconTextGap(UIScale.scale(8));
+
+        try {
+            URL url = getClass().getResource("/icon/user_2.png");
+            if (url != null) {
+                int sz = UIScale.scale(28);
+                profileBtn.setIcon(new ImageIcon(new ImageIcon(url).getImage()
+                        .getScaledInstance(sz, sz, Image.SCALE_SMOOTH)));
+            }
+        } catch (Exception ignored) {}
+
+        JPopupMenu popup = new JPopupMenu();
+
+        JMenuItem profileItem = new JMenuItem("Profile");
+        profileItem.setFont(new Font("Plus Jakarta Sans", Font.PLAIN, UIScale.scaleFontInt(13f)));
+        profileItem.addActionListener(e -> {
+            if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
+                openView(PROFILE_VIEW_KEY);
+            }
+        });
+
+        JMenuItem signOutItem = new JMenuItem("Sign out");
+        signOutItem.setFont(new Font("Plus Jakarta Sans", Font.PLAIN, UIScale.scaleFontInt(13f)));
+        signOutItem.setForeground(LOGOUT_RED);
+        signOutItem.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(Sidebar.this,
+                    "Bạn có chắc chắn muốn đăng xuất?",
+                    "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                SessionManager.clear();
+                dispose();
+                new LoginScreen().setVisible(true);
+            }
+        });
+
+        popup.add(profileItem);
+        popup.add(signOutItem);
+
+        profileBtn.addActionListener(e ->
+                popup.show(profileBtn, 0, profileBtn.getHeight()));
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        right.setOpaque(false);
+        right.add(profileBtn);
 
         topBar.add(left, BorderLayout.WEST);
+        topBar.add(right, BorderLayout.EAST);
         return topBar;
     }
 
@@ -219,15 +256,8 @@ public class Sidebar extends JFrame {
         button.setBorder(new EmptyBorder(0, UIScale.scale(30), 0, UIScale.scale(10)));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setForeground(TEXT_NORMAL);
 
-        // Màu sắc mặc định
-        if (text.equals("ĐĂNG XUẤT")) {
-            button.setForeground(LOGOUT_RED);
-        } else {
-            button.setForeground(TEXT_NORMAL);
-        }
-
-        // Icon
         try {
             URL url = getClass().getResource(iconPath);
             if (url != null) {
@@ -246,8 +276,6 @@ public class Sidebar extends JFrame {
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
-                if (text.equals("ĐĂNG XUẤT")) return;
-
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -267,32 +295,20 @@ public class Sidebar extends JFrame {
         };
 
         wrapper.setOpaque(false);
-        // All three sizes must match so BoxLayout honours the fixed height
         wrapper.setMinimumSize(new Dimension(0, btnH));
         wrapper.setPreferredSize(new Dimension(UIScale.scale(220), btnH));
         wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnH));
         wrapper.add(button, BorderLayout.CENTER);
 
         button.addActionListener(e -> {
-            if (text.equals("ĐĂNG XUẤT")) {
-                int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    SessionManager.clear();
-                    dispose();
-                    new LoginScreen().setVisible(true);
-                }
-            } else {
-                setActiveButton(wrapper, button);
-                openView(text);
-            }
+            setActiveButton(wrapper, button);
+            openView(text);
         });
 
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                if (!text.equals("ĐĂNG XUẤT")) {
-                    wrapper.putClientProperty("isHover", true);
-                    wrapper.repaint();
-                }
+                wrapper.putClientProperty("isHover", true);
+                wrapper.repaint();
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
@@ -305,26 +321,19 @@ public class Sidebar extends JFrame {
     }
 
     private void setActiveButton(JPanel activeWrapper, JButton activeButton) {
-        Component[][] sections = {menuPanel.getComponents(), bottomPanel.getComponents()};
-        for (Component[] section : sections) {
-            for (Component comp : section) {
-                if (comp instanceof JPanel) {
-                    JPanel w = (JPanel) comp;
-                    JButton b = (JButton) w.getComponent(0);
-                    w.putClientProperty("isActive", false);
-                    w.repaint();
-                    // Reset màu chữ (trừ nút Đăng xuất)
-                    if (!b.getText().equals("ĐĂNG XUẤT")) {
-                        b.setForeground(TEXT_NORMAL);
-                    }
-                }
+        for (Component comp : menuPanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                JPanel w = (JPanel) comp;
+                JButton b = (JButton) w.getComponent(0);
+                w.putClientProperty("isActive", false);
+                w.repaint();
+                b.setForeground(TEXT_NORMAL);
             }
         }
         activeWrapper.putClientProperty("isActive", true);
         activeWrapper.repaint();
         activeButton.setForeground(TEXT_ACTIVE);
     }
-
 
     private JPanel createPage(String title) {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -356,37 +365,12 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
         if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
-            contentPanel.registerView(PROFILE_VIEW_KEY, this::createUserProfilePanel);
-            contentPanel.registerView(PROFILE_EDIT_VIEW_KEY, this::createUserProfileEditPanel);
+            contentPanel.registerView(PROFILE_VIEW_KEY, UserProfilePanel::new);
         }
-    }
-
-    private UserProfilePanel createUserProfilePanel() {
-        UserProfilePanel panel = new UserProfilePanel();
-        panel.setEditProfileAction(event -> openView(PROFILE_EDIT_VIEW_KEY));
-        return panel;
-    }
-
-    private UserProfileEditPanel createUserProfileEditPanel() {
-        UserProfileEditPanel panel = new UserProfileEditPanel();
-        panel.setCancelAction(event -> openView(PROFILE_VIEW_KEY));
-        panel.setSaveAction(event -> {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Đã nhận thông tin cập nhật. Kết nối service để lưu xuống database.",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            openView(PROFILE_VIEW_KEY);
-        });
-        return panel;
     }
 
     private void openView(String key) {
         contentPanel.showView(key);
-        if (currentTitleLabel != null) {
-            currentTitleLabel.setText(key);
-        }
     }
 
     private void toggleSidebar() {
@@ -418,15 +402,6 @@ public class Sidebar extends JFrame {
         sidebarContainer.revalidate();
     }
 
-    private static void styleMenuScrollBar(JScrollBar bar) {
-        bar.setUnitIncrement(UIScale.scale(16));
-        // Use FlatLaf client properties to style the scrollbar on the dark sidebar
-        bar.putClientProperty("ScrollBar.thumbColor", new Color(160, 200, 170, 180));
-        bar.putClientProperty("ScrollBar.hoverThumbColor", new Color(190, 230, 200, 220));
-        bar.putClientProperty("ScrollBar.trackColor", new Color(0, 0, 0, 0));
-        bar.putClientProperty("ScrollBar.width", UIScale.scale(6));
-    }
-
     private boolean canView(String functionId) {
         return session.hasPermission(functionId, PermissionAction.VIEW);
     }
@@ -438,6 +413,5 @@ public class Sidebar extends JFrame {
     public static void main(String[] args) {
         FlatLightLaf.setup();
         SwingUtilities.invokeLater(() -> new Sidebar().setVisible(true));
-
     }
 }

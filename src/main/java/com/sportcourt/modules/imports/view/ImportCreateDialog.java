@@ -189,6 +189,7 @@ final class ImportCreateDialog {
         JScrollPane equipScroll = new JScrollPane(equipTablePanel);
         equipScroll.setBorder(BorderFactory.createEmptyBorder());
         equipScroll.setPreferredSize(new Dimension(0, 200));
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(equipScroll);
         equipPanel.add(equipScroll, BorderLayout.CENTER);
 
         // Product detail panel
@@ -202,6 +203,7 @@ final class ImportCreateDialog {
         JScrollPane prodScroll = new JScrollPane(prodTablePanel);
         prodScroll.setBorder(BorderFactory.createEmptyBorder());
         prodScroll.setPreferredSize(new Dimension(0, 200));
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(prodScroll);
         prodPanel.add(prodScroll, BorderLayout.CENTER);
 
         if (itemToEdit != null) {
@@ -285,7 +287,7 @@ final class ImportCreateDialog {
 
         JScrollPane mainScroll = new JScrollPane(centerPanel);
         mainScroll.setBorder(BorderFactory.createEmptyBorder());
-        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(mainScroll);
         root.add(mainScroll, BorderLayout.CENTER);
 
         // Actions

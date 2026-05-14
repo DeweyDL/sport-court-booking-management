@@ -14,6 +14,10 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class ForgotPassword extends JPanel {
+    private static final int FORM_SIDE_INSET = UIScale.scale(48);
+    private static final int OTP_ROW_GAP = UIScale.scale(12);
+    private static final Dimension OTP_BUTTON_SIZE = new Dimension(UIScale.scale(140), UIScale.scale(44));
+
     private final AuthController authController = new AuthController();
     private CardLayout cardLayout;
     private JPanel parentPanel;
@@ -35,7 +39,7 @@ public class ForgotPassword extends JPanel {
         rightPanel.setLayout(new GridBagLayout());
 
         GridBagConstraints r = new GridBagConstraints();
-        r.insets = new Insets(UIScale.scale(10), UIScale.scale(180), UIScale.scale(10), UIScale.scale(180));
+        r.insets = new Insets(UIScale.scale(8), FORM_SIDE_INSET, UIScale.scale(8), FORM_SIDE_INSET);
         r.gridx = 0;
         r.weightx = 1;
         r.weighty = 0;
@@ -71,7 +75,7 @@ public class ForgotPassword extends JPanel {
 
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
-        userPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        userPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         userPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
@@ -89,23 +93,23 @@ public class ForgotPassword extends JPanel {
 
         JPanel emailPanel = new JPanel(new BorderLayout());
         emailPanel.setBackground(new Color(242, 242, 242));
-        emailPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        emailPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         emailPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", UIScale.scale(18), UIScale.scale(18)));
         emailIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         JButton sendOtp = new JButton("Gửi mã OTP");
-        sendOtp.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(20)));
+        sendOtp.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         sendOtp.setBackground(new Color(187, 220, 182));
         sendOtp.setForeground(new Color(16, 110, 0));
         sendOtp.setBorderPainted(false);
-        sendOtp.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        sendOtp.setPreferredSize(OTP_BUTTON_SIZE);
 
         emailPanel.add(emailIcon, BorderLayout.WEST);
         emailPanel.add(emailField, BorderLayout.CENTER);
 
-        JPanel contactRow = new JPanel(new BorderLayout(UIScale.scale(20), 0));
+        JPanel contactRow = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         contactRow.setBackground(new Color(242, 242, 242));
         contactRow.add(emailPanel, BorderLayout.CENTER);
         contactRow.add(sendOtp, BorderLayout.EAST);
@@ -120,7 +124,7 @@ public class ForgotPassword extends JPanel {
 
         JPanel otpPanel = new JPanel(new BorderLayout());
         otpPanel.setBackground(new Color(242, 242, 242));
-        otpPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        otpPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
 
         JLabel otpIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
         otpIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
@@ -129,13 +133,13 @@ public class ForgotPassword extends JPanel {
         otpPanel.add(otp, BorderLayout.CENTER);
 
         JButton checkOtp = new JButton("Xác nhận OTP");
-        checkOtp.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(20)));
+        checkOtp.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         checkOtp.setBackground(new Color(187, 220, 182));
         checkOtp.setForeground(new Color(16, 110, 0));
         checkOtp.setBorderPainted(false);
-        checkOtp.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        checkOtp.setPreferredSize(OTP_BUTTON_SIZE);
 
-        JPanel contactRow1 = new JPanel(new BorderLayout(UIScale.scale(20), 0));
+        JPanel contactRow1 = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         contactRow1.setBackground(new Color(242, 242, 242));
         contactRow1.add(otpPanel, BorderLayout.CENTER);
         contactRow1.setPreferredSize(new Dimension(2, UIScale.scale(45)));
@@ -151,7 +155,7 @@ public class ForgotPassword extends JPanel {
 
         JPanel passPanel = new JPanel(new BorderLayout());
         passPanel.setBackground(new Color(242, 242, 242));
-        passPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        passPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         passPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
@@ -169,7 +173,7 @@ public class ForgotPassword extends JPanel {
 
         JPanel checkpassPanel = new JPanel(new BorderLayout());
         checkpassPanel.setBackground(new Color(242, 242, 242));
-        checkpassPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        checkpassPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         checkpassPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));

@@ -22,8 +22,9 @@ public class LoginScreen extends JFrame {
     private static final double WINDOW_HEIGHT_RATIO = 0.9;
     private static final int MIN_WINDOW_WIDTH = UIScale.scale(1100);
     private static final int MIN_WINDOW_HEIGHT = UIScale.scale(680);
-    private static final double LEFT_PANEL_WEIGHT = 1.8;
-    private static final double RIGHT_PANEL_WEIGHT = 0.9;
+    private static final double LEFT_PANEL_WEIGHT = 1.0;
+    private static final double RIGHT_PANEL_WEIGHT = 1.0;
+    private static final Dimension LOGIN_FIELD_SIZE = new Dimension(UIScale.scale(300), UIScale.scale(44));
 
     private final AuthController authController = new AuthController();
 
@@ -82,8 +83,8 @@ public class LoginScreen extends JFrame {
 
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
-        userPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        userPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        userPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        userPanel.setPreferredSize(LOGIN_FIELD_SIZE);
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
         userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
@@ -98,8 +99,8 @@ public class LoginScreen extends JFrame {
 
         JPanel passPanel = new JPanel(new BorderLayout());
         passPanel.setBackground(new Color(242, 242, 242));
-        passPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        passPanel.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        passPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        passPanel.setPreferredSize(LOGIN_FIELD_SIZE);
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
         passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
