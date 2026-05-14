@@ -151,9 +151,7 @@ public class CostManagement extends JPanel implements Scrollable {
 
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
 
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -273,7 +271,8 @@ public class CostManagement extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 52));
+        header.setPreferredSize(new Dimension(1000, 52));
+        header.setMinimumSize(new Dimension(800, 52));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -309,7 +308,8 @@ public class CostManagement extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 72));
+        row.setPreferredSize(new Dimension(1000, 72));
+        row.setMinimumSize(new Dimension(800, 72));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();

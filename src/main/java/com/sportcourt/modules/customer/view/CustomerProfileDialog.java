@@ -87,8 +87,7 @@ final class CustomerProfileDialog {
 
         JScrollPane scrollPane = new JScrollPane(form);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.getViewport().setBackground(DIALOG_BG);
         root.add(scrollPane, BorderLayout.CENTER);
 
