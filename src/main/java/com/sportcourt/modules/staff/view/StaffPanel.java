@@ -24,6 +24,7 @@ public class StaffPanel extends JPanel implements Scrollable {
 
     private final StaffService staffService       = new StaffServiceImpl();
     private final boolean      isOwner            = SessionManager.requireSession().isOwner();
+    private final String       sessionBranchId    = SessionManager.requireSession().getBranchId();
     private final JPanel       tablePanel         = new JPanel();
     private final JLabel       infoLabel          = new JLabel("Đang tải dữ liệu...");
     private final JTextField   searchField        = new JTextField(30);
@@ -150,7 +151,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
-        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv(), isOwner).setVisible(true));
+        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv(), isOwner, sessionBranchId).setVisible(true));
         JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> loadData());
 
         leftToolbar.add(tableTitle);
@@ -203,12 +204,15 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ NV"),         SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.LEFT,   new Color(248, 249, 250), 8, 0), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("CĂN CƯỚC CD"),   SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY VÀO LÀM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.LEFT,   new Color(248, 249, 250), 8, 0), gbc);
+        if (isOwner) {
+            gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        }
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("CĂN CƯỚC CD"),   SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("NGÀY VÀO LÀM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("CHỨC VỤ"),       SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"),    SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"),      SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.14; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"),      SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         return header;
     }
 
@@ -246,18 +250,23 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 2: Họ tên
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 0), gbc);
+        gbc.weightx = 0.18; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 0), gbc);
 
-        // Cột 3: CCCD
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(staff.getCccd(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        // Cột 3: Mã chi nhánh (owner only)
+        if (isOwner) {
+            gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(staff.getMaCn(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        }
 
-        // Cột 4: Ngày vào làm
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(staff.getNgayVaoLamFormatted(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        // Cột 4: CCCD
+        gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(staff.getCccd(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
-        // Cột 5: Chức vụ
+        // Cột 5: Ngày vào làm
+        gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(staff.getNgayVaoLamFormatted(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+
+        // Cột 6: Chức vụ
         gbc.weightx = 0.10; row.add(createFlexibleCell(createRoleBadge(staff.getIsQl()), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
-        // Cột 6: Trạng thái
+        // Cột 7: Trạng thái
         gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusBadge(staff), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 7: Thao tác
@@ -274,7 +283,7 @@ public class StaffPanel extends JPanel implements Scrollable {
             actionGroup.add(deleteBtn);
 
             JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff, isOwner).setVisible(true));
+            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff, isOwner, sessionBranchId).setVisible(true));
             actionGroup.add(editBtn);
         }
 
@@ -283,7 +292,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         actionCell.setOpaque(true);
         actionCell.add(actionGroup);
 
-        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) { row.setBackground(new Color(249, 250, 251)); }
