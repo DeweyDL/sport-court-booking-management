@@ -141,7 +141,7 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
     }
 
     @Override
-    public void createAccount(String userId, String accountId, String accountRoleGroupId, AccountUpsertRequest request, String passwordHash) throws SQLException {
+    public void createAccount(String userId, String accountId, AccountUpsertRequest request, String passwordHash) throws SQLException {
         String insertUserSql = """
                 INSERT INTO USERS (USER_ID, HOTEN, SDT, EMAIL, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, SYSDATE, 0)
@@ -175,8 +175,9 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
                     accountStatement.executeUpdate();
                 }
 
+                String nextArgId = generateNextAccountRoleGroupId(connection);
                 try (PreparedStatement roleStatement = connection.prepareStatement(insertAccountRoleGroupSql)) {
-                    roleStatement.setString(1, accountRoleGroupId);
+                    roleStatement.setString(1, nextArgId);
                     roleStatement.setString(2, accountId);
                     roleStatement.setString(3, request.getRoleGroupId().trim());
                     roleStatement.executeUpdate();
@@ -327,6 +328,24 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
                 throw exception;
             } finally {
                 connection.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    @Override
+    public String generatedNextId() throws SQLException {
+        String sql = """
+                SELECT NVL(MAX(TO_NUMBER(SUBSTR(ACCOUNT_ID, 5))), 0) + 1
+                FROM ACCOUNT
+                WHERE REGEXP_LIKE(ACCOUNT_ID, '^ACC-[0-9]+$')
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return "ACC-" + rs.getInt(1);
+                }
+                return "ACC-1";
             }
         }
     }

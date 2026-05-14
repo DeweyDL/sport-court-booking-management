@@ -137,9 +137,11 @@ public class BranchManagement extends JPanel implements Scrollable {
         addButton.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addButton);
         addButton.addActionListener(event -> showCreateView());
+        JButton refreshButton = CrudViewStyle.createRefreshButton(event -> loadChiNhanhData(searchField.getText()));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addButton);
+        leftToolbar.add(refreshButton);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
@@ -156,9 +158,7 @@ public class BranchManagement extends JPanel implements Scrollable {
 
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 

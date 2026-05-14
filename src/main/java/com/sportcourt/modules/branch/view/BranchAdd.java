@@ -55,7 +55,7 @@ public class BranchAdd extends JPanel {
         maCnField.setText(generatedMaCn);
         tenChiNhanhField.setText("");
         diaChiField.setText("");
-        hotlineField.setFont(new Font("Lexend", Font.BOLD, 16));
+        hotlineField.setFont(new Font("Lexend", Font.PLAIN, 14));
     }
 
     private JDialog ensureDialog(Component parent) {
@@ -81,8 +81,7 @@ public class BranchAdd extends JPanel {
 
         JScrollPane formScroll = new JScrollPane(createForm());
         formScroll.setBorder(null);
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(new Color(248, 249, 252));
         content.add(formScroll, BorderLayout.CENTER);
 
@@ -119,6 +118,9 @@ public class BranchAdd extends JPanel {
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
+
+        form.add(createReadOnlyField("Mã chi nhánh", maCnField));
+        form.add(Box.createVerticalStrut(17));
 
         form.add(createEditableField("Tên chi nhánh", tenChiNhanhField));
         form.add(Box.createVerticalStrut(17));
@@ -211,7 +213,7 @@ public class BranchAdd extends JPanel {
         field.setBorder(null);
         field.setOpaque(false);
         field.setFocusable(editable);
-        field.setFont(new Font("Segoe UI", editable ? Font.PLAIN : Font.BOLD, 15));
+        field.setFont(new Font("Lexend", editable ? Font.PLAIN : Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setPreferredSize(new Dimension(480, 40));
 
@@ -220,7 +222,7 @@ public class BranchAdd extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
+                g2.setColor(editable ? Color.WHITE : new Color(241, 245, 249));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
                 g2.setColor(new Color(203, 213, 225));
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 25, 25);
@@ -297,7 +299,7 @@ public class BranchAdd extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }
@@ -306,7 +308,7 @@ public class BranchAdd extends JPanel {
         JTextField textField = new JTextField();
         textField.setBorder(null);
         textField.setOpaque(false);
-        textField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        textField.setFont(new Font("Lexend", Font.PLAIN, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

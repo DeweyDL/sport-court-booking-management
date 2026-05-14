@@ -61,7 +61,24 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
+    public void restoreStaff(String manv) throws Exception {
+        if (manv == null || manv.trim().isEmpty()) {
+            throw new Exception("Không xác định được nhân viên để khôi phục.");
+        }
+
+        boolean isSuccess = staffDao.restore(manv);
+        if (!isSuccess) {
+            throw new Exception("Lỗi hệ thống: Không thể khôi phục nhân viên.");
+        }
+    }
+
+    @Override
     public String generateNextManv() throws Exception {
         return staffDao.generateNextManv();
+    }
+
+    @Override
+    public List<String> loadBranchIds() throws Exception {
+        return staffDao.loadBranchIds();
     }
 }

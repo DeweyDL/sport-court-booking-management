@@ -28,6 +28,14 @@ public class SportTypeController {
         }
     }
 
+    public String generateNextId() {
+        try {
+            return service.generateNextId();
+        } catch (SQLException e) {
+            return "LTT-1";
+        }
+    }
+
     /** @return null on success, error message on failure */
     public String create(SportTypeForm form) {
         try {

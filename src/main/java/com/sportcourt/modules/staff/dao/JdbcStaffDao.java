@@ -15,21 +15,20 @@ import java.util.UUID;
 
 public class JdbcStaffDao {
 
-    // 1. Tìm kiếm và hiển thị danh sách
+    // 1. Tìm kiếm và hiển thị danh sách (bao gồm cả đã xóa)
     public List<StaffResponse> search(String keyword) {
         List<StaffResponse> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT nv.MANV, u.HOTEN, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL " +
+                "SELECT nv.MANV, u.HOTEN, u.SDT, u.DIACHI, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL, nv.MACN, nv.IS_DELETED " +
                         "FROM NHAN_VIEN nv " +
-                        "JOIN USERS u ON nv.USER_ID = u.USER_ID " +
-                        "WHERE nv.IS_DELETED = 0 "
+                        "JOIN USERS u ON nv.USER_ID = u.USER_ID AND u.IS_DELETED = 0 "
         );
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (LOWER(nv.MANV) LIKE ? OR LOWER(u.HOTEN) LIKE ? OR nv.CCCD LIKE ?) ");
+            sql.append("WHERE (LOWER(nv.MANV) LIKE ? OR LOWER(u.HOTEN) LIKE ? OR nv.CCCD LIKE ?) ");
         }
 
-        sql.append("ORDER BY nv.MANV ASC");
+        sql.append("ORDER BY nv.IS_DELETED ASC, nv.MANV ASC");
 
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -46,10 +45,14 @@ public class JdbcStaffDao {
                     StaffResponse dto = new StaffResponse();
                     dto.setManv(rs.getString("MANV"));
                     dto.setHoten(rs.getString("HOTEN"));
+                    dto.setSdt(rs.getString("SDT"));
+                    dto.setDiaChi(rs.getString("DIACHI"));
                     dto.setCccd(rs.getString("CCCD"));
                     dto.setIsQl(rs.getInt("IS_QL"));
                     dto.setChucVu(rs.getInt("IS_QL") == 1 ? "Quản lý" : "Nhân viên");
                     dto.setTrangThai(rs.getString("TRANG_THAI"));
+                    dto.setMaCn(rs.getString("MACN"));
+                    dto.setDeleted(rs.getInt("IS_DELETED") == 1);
                     if (rs.getDate("NVL") != null) {
                         dto.setNgayVaoLam(rs.getDate("NVL").toLocalDate());
                     }
@@ -75,21 +78,29 @@ public class JdbcStaffDao {
             // Sinh mã USER_ID ngẫu nhiên
             String userId = "USR_" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
 
-            // Insert bảng USERS (SDT là bắt buộc, gán giá trị thỏa mãn regex ^0[0-9]{9}$)
-            String sqlUser = "INSERT INTO USERS (USER_ID, HOTEN, SDT) VALUES (?, ?, '0999999999')";
+            String sdt = (req.getSdt() != null && !req.getSdt().trim().isEmpty()) ? req.getSdt().trim() : "0999999999";
+            String diaChi = (req.getDiaChi() != null && !req.getDiaChi().trim().isEmpty()) ? req.getDiaChi().trim() : null;
+
+            // Insert bảng USERS
+            String sqlUser = "INSERT INTO USERS (USER_ID, HOTEN, SDT, DIACHI) VALUES (?, ?, ?, ?)";
             psUser = conn.prepareStatement(sqlUser);
             psUser.setString(1, userId);
             psUser.setString(2, req.getHoten());
+            psUser.setString(3, sdt);
+            psUser.setString(4, diaChi);
             psUser.executeUpdate();
 
-            // --- TỰ ĐỘNG TÌM MACN TRONG DB ---
-            String defaultMacn = null;
-            try(PreparedStatement ps1 = conn.prepareStatement("SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 AND ROWNUM = 1");
-                ResultSet rs1 = ps1.executeQuery()) {
-                if(rs1.next()) defaultMacn = rs1.getString("MACN");
+            // Use provided maCn if given; otherwise auto-detect first available branch
+            String defaultMacn = (req.getMaCn() != null && !req.getMaCn().trim().isEmpty())
+                    ? req.getMaCn().trim() : null;
+
+            if (defaultMacn == null) {
+                try (PreparedStatement ps1 = conn.prepareStatement("SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 AND ROWNUM = 1");
+                     ResultSet rs1 = ps1.executeQuery()) {
+                    if (rs1.next()) defaultMacn = rs1.getString("MACN");
+                }
             }
 
-            // NẾU DB TRỐNG CHI NHÁNH -> TỰ INSERT ĐÚNG CẤU TRÚC (Có đủ MACN, TEN_CHI_NHANH, DIACHI)
             if (defaultMacn == null) {
                 defaultMacn = "CN01";
                 try (PreparedStatement psCN = conn.prepareStatement("INSERT INTO CHI_NHANH (MACN, TEN_CHI_NHANH, DIACHI) VALUES (?, ?, ?)")) {
@@ -155,14 +166,15 @@ public class JdbcStaffDao {
     // 3. Sửa thông tin nhân viên
     public boolean update(String manv, StaffUpdateRequest req) throws SQLException {
         String sqlFindUserId = "SELECT USER_ID FROM NHAN_VIEN WHERE MANV = ?";
-        String sqlUpdateUser = "UPDATE USERS SET HOTEN = ? WHERE USER_ID = ?";
-        String sqlUpdateStaff = "UPDATE NHAN_VIEN SET CCCD = ?, IS_QL = ?, TRANG_THAI = ? WHERE MANV = ?";
+        String sqlUpdateUser = "UPDATE USERS SET HOTEN = ?, SDT = ?, DIACHI = ? WHERE USER_ID = ?";
+        String sqlUpdateStaff = "UPDATE NHAN_VIEN SET CCCD = ?, IS_QL = ?, TRANG_THAI = ?, MACN = ? WHERE MANV = ?";
 
-        // Xử lý CCCD rỗng thành NULL
         String cccd = req.getCccd();
         if (cccd != null && cccd.trim().isEmpty()) {
             cccd = null;
         }
+        String sdt = (req.getSdt() != null && !req.getSdt().trim().isEmpty()) ? req.getSdt().trim() : null;
+        String diaChi = (req.getDiaChi() != null && !req.getDiaChi().trim().isEmpty()) ? req.getDiaChi().trim() : null;
 
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement psFind = conn.prepareStatement(sqlFindUserId);
@@ -175,17 +187,33 @@ public class JdbcStaffDao {
                 String userId = rs.getString("USER_ID");
 
                 psUser.setString(1, req.getHoten());
-                psUser.setString(2, userId);
+                psUser.setString(2, sdt);
+                psUser.setString(3, diaChi);
+                psUser.setString(4, userId);
                 psUser.executeUpdate();
 
                 psStaff.setString(1, cccd);
                 psStaff.setInt(2, req.getIsQl());
                 psStaff.setString(3, req.getTrangThai());
-                psStaff.setString(4, manv);
+                psStaff.setString(4, req.getMaCn() != null && !req.getMaCn().trim().isEmpty() ? req.getMaCn().trim() : null);
+                psStaff.setString(5, manv);
                 return psStaff.executeUpdate() > 0;
             }
             return false;
         }
+    }
+
+    public List<String> loadBranchIds() {
+        List<String> ids = new ArrayList<>();
+        String sql = "SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 ORDER BY MACN ASC";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) ids.add(rs.getString("MACN"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ids;
     }
 
     public String generateNextManv() throws SQLException {
@@ -204,6 +232,16 @@ public class JdbcStaffDao {
     // 4. Xóa mềm nhân viên
     public boolean delete(String manv) throws SQLException {
         String sql = "UPDATE NHAN_VIEN SET IS_DELETED = 1, TRANG_THAI = 'ĐÃ NGHỈ' WHERE MANV = ?";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, manv);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    // 5. Khôi phục nhân viên đã xóa
+    public boolean restore(String manv) throws SQLException {
+        String sql = "UPDATE NHAN_VIEN SET IS_DELETED = 0, TRANG_THAI = 'ACTIVE' WHERE MANV = ?";
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, manv);

@@ -87,8 +87,7 @@ final class CustomerProfileDialog {
 
         JScrollPane scrollPane = new JScrollPane(form);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.getViewport().setBackground(DIALOG_BG);
         root.add(scrollPane, BorderLayout.CENTER);
 
@@ -137,7 +136,7 @@ final class CustomerProfileDialog {
         field.setFocusable(false);
         field.setRequestFocusEnabled(false);
         field.setCursor(Cursor.getDefaultCursor());
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         field.setBorder(BorderFactory.createCompoundBorder(

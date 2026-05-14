@@ -1,6 +1,7 @@
 package com.sportcourt.modules.staff.view;
 
 import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.service.StaffService;
@@ -22,6 +23,8 @@ public class StaffPanel extends JPanel implements Scrollable {
     private static final Color ALTERNATE_ROW_BG = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final StaffService staffService       = new StaffServiceImpl();
+    private final boolean      isOwner            = SessionManager.requireSession().isOwner();
+    private final String       sessionBranchId    = SessionManager.requireSession().getBranchId();
     private final JPanel       tablePanel         = new JPanel();
     private final JLabel       infoLabel          = new JLabel("Đang tải dữ liệu...");
     private final JTextField   searchField        = new JTextField(30);
@@ -118,8 +121,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         container.add(scrollPane, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout());
@@ -149,10 +151,12 @@ public class StaffPanel extends JPanel implements Scrollable {
         addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
-        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv()).setVisible(true));
+        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv(), isOwner, sessionBranchId).setVisible(true));
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> loadData());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
@@ -190,7 +194,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, 52));
+        header.setPreferredSize(new Dimension(1100, 52));
+        header.setMinimumSize(new Dimension(900, 52));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -199,12 +204,15 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("MÃ NV"),         SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.20; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.LEFT,   new Color(248, 249, 250), 8, 0), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("CĂN CƯỚC CD"),   SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.15; header.add(createFlexibleCell(createHeaderLabel("NGÀY VÀO LÀM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.18; header.add(createFlexibleCell(createHeaderLabel("HỌ TÊN"),        SwingConstants.LEFT,   new Color(248, 249, 250), 8, 0), gbc);
+        if (isOwner) {
+            gbc.weightx = 0.12; header.add(createFlexibleCell(createHeaderLabel("MÃ CHI NHÁNH"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        }
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("CĂN CƯỚC CD"),   SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.13; header.add(createFlexibleCell(createHeaderLabel("NGÀY VÀO LÀM"), SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("CHỨC VỤ"),       SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("TRẠNG THÁI"),    SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
-        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"),      SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
+        gbc.weightx = 0.14; gbc.insets = new Insets(0, 0, 0, 0); header.add(createFlexibleCell(createHeaderLabel("THAO TÁC"),      SwingConstants.CENTER, new Color(248, 249, 250), 0, 0), gbc);
         return header;
     }
 
@@ -226,7 +234,8 @@ public class StaffPanel extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        row.setPreferredSize(new Dimension(0, 72));
+        row.setPreferredSize(new Dimension(1100, 72));
+        row.setMinimumSize(new Dimension(900, 72));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 72));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -241,38 +250,49 @@ public class StaffPanel extends JPanel implements Scrollable {
         gbc.weightx = 0.10; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 2: Họ tên
-        gbc.weightx = 0.20; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 0), gbc);
+        gbc.weightx = 0.18; row.add(createFlexibleCell(createCellLabel(staff.getHoten(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 0), gbc);
 
-        // Cột 3: CCCD
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(staff.getCccd(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        // Cột 3: Mã chi nhánh (owner only)
+        if (isOwner) {
+            gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(staff.getMaCn(), new Color(37, 99, 235)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        }
 
-        // Cột 4: Ngày vào làm
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(staff.getNgayVaoLamFormatted(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        // Cột 4: CCCD
+        gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(staff.getCccd(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
-        // Cột 5: Chức vụ
+        // Cột 5: Ngày vào làm
+        gbc.weightx = 0.13; row.add(createFlexibleCell(createCellLabel(staff.getNgayVaoLamFormatted(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+
+        // Cột 6: Chức vụ
         gbc.weightx = 0.10; row.add(createFlexibleCell(createRoleBadge(staff.getIsQl()), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
-        // Cột 6: Trạng thái
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusBadge(staff.getTrangThai()), SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        // Cột 7: Trạng thái
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createStatusBadge(staff), SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         // Cột 7: Thao tác
         JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         actionGroup.setOpaque(false);
 
-        JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
-        deleteBtn.addActionListener(e -> confirmDelete(staff));
-        actionGroup.add(deleteBtn);
+        if (staff.isDeleted()) {
+            JButton restoreBtn = createMiniActionButton("Khôi phục", new Color(228, 250, 226), new Color(16, 110, 0));
+            restoreBtn.addActionListener(e -> confirmRestore(staff));
+            actionGroup.add(restoreBtn);
+        } else {
+            JButton deleteBtn = createMiniActionButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
+            deleteBtn.addActionListener(e -> confirmDelete(staff));
+            actionGroup.add(deleteBtn);
 
-        JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-        editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
-        actionGroup.add(editBtn);
+            JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
+            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff, isOwner, sessionBranchId).setVisible(true));
+            actionGroup.add(editBtn);
+        }
 
         JPanel actionCell = new JPanel(new GridBagLayout());
         actionCell.setBackground(rowBg);
         actionCell.setOpaque(true);
         actionCell.add(actionGroup);
 
-        gbc.weightx = 0.20; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
+        gbc.weightx = 0.14; gbc.insets = new Insets(0, 0, 0, 0); row.add(createFlexibleCell(actionCell, SwingConstants.CENTER, rowBg, 0, 0), gbc);
 
         row.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) { row.setBackground(new Color(249, 250, 251)); }
@@ -292,11 +312,14 @@ public class StaffPanel extends JPanel implements Scrollable {
         return makeBadge(text, badgeBg, badgeFg);
     }
 
-    private JPanel createStatusBadge(String trangThai) {
-        boolean active = "ACTIVE".equalsIgnoreCase(trangThai);
+    private JPanel createStatusBadge(StaffResponse staff) {
+        if (staff.isDeleted()) {
+            return CrudViewStyle.createStatusPill("DELETED", CrudViewStyle.DANGER_BG, CrudViewStyle.DANGER_TEXT);
+        }
+        boolean active = "ACTIVE".equalsIgnoreCase(staff.getTrangThai());
         Color badgeBg  = active ? CrudViewStyle.SUCCESS_BG  : CrudViewStyle.DANGER_BG;
         Color badgeFg  = active ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
-        String text    = active ? "Hoạt động" : (trangThai == null ? "--" : trangThai);
+        String text    = active ? "Hoạt động" : (staff.getTrangThai() == null ? "--" : staff.getTrangThai());
         return CrudViewStyle.createStatusPill(text, badgeBg, badgeFg);
     }
 
@@ -413,7 +436,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         });
     }
 
-    // --------- DELETE ---------
+    // --------- DELETE / RESTORE ---------
 
     private void confirmDelete(StaffResponse staff) {
         int confirm = JOptionPane.showConfirmDialog(
@@ -430,6 +453,25 @@ public class StaffPanel extends JPanel implements Scrollable {
                 loadData();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Lỗi xóa nhân viên: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void confirmRestore(StaffResponse staff) {
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn khôi phục nhân viên \"" + staff.getHoten() + "\" (Mã: " + staff.getManv() + ")?",
+                "Xác nhận khôi phục",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                staffService.restoreStaff(staff.getManv());
+                JOptionPane.showMessageDialog(this, "Đã khôi phục nhân viên thành công.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                loadData();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi khôi phục nhân viên: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

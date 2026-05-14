@@ -10,6 +10,8 @@ import java.util.List;
 public interface SupplierManagementService {
     List<Supplier> searchSuppliers(String keyword) throws SQLException;
 
+    String generateNextId() throws SQLException;
+
     void createSupplier(SupplierCreateRequest request) throws SQLException;
 
     void updateSupplier(SupplierUpdateRequest request) throws SQLException;

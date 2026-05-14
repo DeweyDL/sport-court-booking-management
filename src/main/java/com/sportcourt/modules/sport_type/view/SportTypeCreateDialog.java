@@ -16,11 +16,12 @@ final class SportTypeCreateDialog {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private SportTypeCreateDialog() {
     }
 
-    static SportTypeForm show(Component parent) {
+    static SportTypeForm show(Component parent, String generatedSportTypeId) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm loại thể thao", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -49,6 +50,7 @@ final class SportTypeCreateDialog {
         header.add(subtitle);
         root.add(header, BorderLayout.NORTH);
 
+        JTextField txtId = createReadOnlyField(generatedSportTypeId);
         JTextField txtName = new JTextField();
         JTextArea txtDescription = new JTextArea(3, 20);
         txtDescription.setFont(new Font("Lexend", Font.PLAIN, 14));
@@ -69,6 +71,9 @@ final class SportTypeCreateDialog {
         form.setBackground(CARD_BG);
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        form.add(createTextField("Mã loại thể thao", txtId));
+        form.add(Box.createVerticalStrut(14));
 
         form.add(createTextField("Tên loại thể thao", txtName));
         form.add(Box.createVerticalStrut(14));
@@ -95,7 +100,7 @@ final class SportTypeCreateDialog {
                 return;
             }
             String description = txtDescription.getText().trim();
-            result[0] = new SportTypeForm(null, name, description.isEmpty() ? null : description);
+            result[0] = new SportTypeForm(txtId.getText().trim(), name, description.isEmpty() ? null : description);
             dialog.dispose();
         });
 
@@ -104,6 +109,29 @@ final class SportTypeCreateDialog {
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
         return result[0];
+    }
+
+    private static JTextField createReadOnlyField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value.trim()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 25, 25);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setOpaque(false);
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        return field;
     }
 
     private static JPanel createTextField(String labelText, JTextField field) {
@@ -118,13 +146,14 @@ final class SportTypeCreateDialog {
         label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Lexend", Font.PLAIN, 14));
+        boolean editable = field.isEditable();
+        field.setFont(new Font(editable ? "Lexend" : "Segoe UI", editable ? Font.PLAIN : Font.BOLD, editable ? 14 : 15));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(BORDER_COLOR, 25),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(Color.WHITE);
+        field.setBackground(editable ? Color.WHITE : READONLY_BG);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 

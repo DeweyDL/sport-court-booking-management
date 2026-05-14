@@ -40,10 +40,17 @@ public class SupplierManagementServiceImpl implements SupplierManagementService 
     }
 
     @Override
+    public String generateNextId() throws SQLException {
+        return supplierManagementDAO.generateNextId();
+    }
+
+    @Override
     public void createSupplier(SupplierCreateRequest request) throws SQLException {
         permissionService.requirePermission(FUNCTION_ID, PermissionAction.ADD);
+        String mancc = supplierManagementDAO.generateNextId();
+        request.setMancc(mancc);
         validateCreate(request);
-        supplierManagementDAO.createSupplier(request.getMancc().trim(), request);
+        supplierManagementDAO.createSupplier(mancc, request);
     }
 
     @Override
@@ -83,10 +90,6 @@ public class SupplierManagementServiceImpl implements SupplierManagementService 
     // ── Validation helpers ────────────────────────────────────────────────────
 
     private void validateCreate(SupplierCreateRequest r) {
-        if (r.getMancc() == null || r.getMancc().isBlank())
-            throw new IllegalArgumentException("Mã nhà cung cấp không được để trống.");
-        if (r.getMancc().trim().length() > 20)
-            throw new IllegalArgumentException("Mã nhà cung cấp không được vượt quá 20 ký tự.");
         if (r.getTenncc() == null || r.getTenncc().isBlank())
             throw new IllegalArgumentException("Tên nhà cung cấp không được để trống.");
         if (r.getSdt() == null || r.getSdt().isBlank())

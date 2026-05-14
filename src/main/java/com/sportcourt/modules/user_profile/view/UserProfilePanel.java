@@ -2,6 +2,13 @@ package com.sportcourt.modules.user_profile.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.common.style.UIScale;
+import com.sportcourt.modules.user_profile.controller.UserProfileController;
+import com.sportcourt.modules.user_profile.dto.ChangePasswordRequest;
+import com.sportcourt.modules.user_profile.dto.UpdateUserProfileRequest;
+import com.sportcourt.modules.user_profile.dto.UserProfileDto;
+import com.sportcourt.modules.user_profile.dto.UserProfileResult;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -10,9 +17,17 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 public class UserProfilePanel extends JPanel implements Scrollable {
+    private static final String PROFILE_CARD = "PROFILE";
+    private static final String EDIT_CARD = "EDIT";
+    private static final String CHANGE_PASSWORD_CARD = "CHANGE_PASSWORD";
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private static final Color PAGE_BACKGROUND = new Color(249, 249, 252);
     private static final Color CARD_BACKGROUND = Color.WHITE;
     private static final Color FIELD_BACKGROUND = new Color(248, 250, 252);
@@ -35,18 +50,32 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     private final AvatarView avatarView = new AvatarView();
     private final JButton editProfileButton;
     private final JButton changePasswordButton;
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel cards = new JPanel(cardLayout);
+    private final UserProfileController controller = new UserProfileController();
+    private final UserProfileEditPanel editPanel = new UserProfileEditPanel();
+    private final ChangePasswordPanel changePasswordPanel = new ChangePasswordPanel();
 
     public UserProfilePanel() {
         AppFonts.register();
         setLayout(new BorderLayout());
-        setBackground(PAGE_BACKGROUND);
-        setBorder(new EmptyBorder(0, 0, 0, 0));
+        CrudViewStyle.applyPageDefaults(this);
 
-        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", 16));
-        changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", 16));
+        editProfileButton = createActionButton("Chỉnh sửa hồ sơ", loadIcon("/icon/pencil.png", UIScale.scale(16)));
+        changePasswordButton = createActionButton("Đổi mật khẩu", loadIcon("/icon/padlock.png", UIScale.scale(16)));
 
-        add(createPage(), BorderLayout.CENTER);
+        cards.setOpaque(false);
+        editPanel.setBorder(BorderFactory.createEmptyBorder());
+        changePasswordPanel.setBorder(BorderFactory.createEmptyBorder());
+        cards.add(createPage(), PROFILE_CARD);
+        cards.add(editPanel, EDIT_CARD);
+        cards.add(changePasswordPanel, CHANGE_PASSWORD_CARD);
+        add(cards, BorderLayout.CENTER);
+
+        installActions();
         bindProfile(UserProfileData.sample());
+        loadCurrentProfile();
+        CrudViewStyle.installResponsiveTypography(this);
     }
 
     public void bindProfile(UserProfileData profile) {
@@ -69,26 +98,167 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         replaceAction(changePasswordButton, listener);
     }
 
+    private void installActions() {
+        setEditProfileAction(event -> showEditPanel());
+        setChangePasswordAction(event -> showChangePasswordPanel());
+        editPanel.setCancelAction(event -> showProfilePanel());
+        editPanel.setSaveAction(event -> saveProfile());
+        changePasswordPanel.setCancelAction(event -> showProfilePanel());
+        changePasswordPanel.setSaveAction(event -> savePassword());
+    }
+
+    private void loadCurrentProfile() {
+        UserProfileResult<UserProfileDto> result = controller.getCurrentProfile();
+        if (result.success()) {
+            applyProfile(result.data());
+        } else {
+            showProfileMessage(result);
+        }
+    }
+
+    private void showProfilePanel() {
+        cardLayout.show(cards, PROFILE_CARD);
+    }
+
+    private void showEditPanel() {
+        UserProfileResult<UserProfileDto> result = controller.getCurrentProfile();
+        if (result.success()) {
+            editPanel.bindProfile(toEditData(result.data()));
+            cardLayout.show(cards, EDIT_CARD);
+        } else {
+            showProfileMessage(result);
+        }
+    }
+
+    private void showChangePasswordPanel() {
+        cardLayout.show(cards, CHANGE_PASSWORD_CARD);
+    }
+
+    private void saveProfile() {
+        UserProfileResult<UserProfileDto> result = controller.updateCurrentProfile(
+                toUpdateRequest(editPanel.getProfileInput())
+        );
+        showProfileMessage(result);
+        if (result.success()) {
+            applyProfile(result.data());
+            cardLayout.show(cards, PROFILE_CARD);
+        }
+    }
+
+    private void savePassword() {
+        ChangePasswordPanel.ChangePasswordInput input = changePasswordPanel.getPasswordInput();
+        UserProfileResult<Void> result = controller.changePassword(new ChangePasswordRequest(
+                input.currentPassword(),
+                input.newPassword(),
+                input.confirmNewPassword()
+        ));
+        showProfileMessage(result);
+        if (result.success()) {
+            changePasswordPanel.clearForm();
+            cardLayout.show(cards, PROFILE_CARD);
+        }
+    }
+
+    private void applyProfile(UserProfileDto profile) {
+        bindProfile(toPanelData(profile));
+        editPanel.bindProfile(toEditData(profile));
+    }
+
+    private UserProfileData toPanelData(UserProfileDto profile) {
+        return new UserProfileData(
+                emptyIfNull(profile.fullName()),
+                emptyIfNull(profile.roleName()),
+                emptyIfNull(profile.phoneNumber()),
+                emptyIfNull(profile.email()),
+                formatDate(profile.birthDate()),
+                emptyIfNull(profile.address()),
+                emptyIfNull(profile.customerRank())
+        );
+    }
+
+    private UserProfileEditPanel.UserProfileEditData toEditData(UserProfileDto profile) {
+        return new UserProfileEditPanel.UserProfileEditData(
+                emptyIfNull(profile.fullName()),
+                emptyIfNull(profile.phoneNumber()),
+                emptyIfNull(profile.email()),
+                formatDate(profile.birthDate()),
+                emptyIfNull(profile.address())
+        );
+    }
+
+    private UpdateUserProfileRequest toUpdateRequest(UserProfileEditPanel.UserProfileEditData input) {
+        return new UpdateUserProfileRequest(
+                input.fullName(),
+                input.phoneNumber(),
+                input.email(),
+                parseDate(input.birthDate()),
+                input.address()
+        );
+    }
+
+    private static String formatDate(LocalDate value) {
+        return value == null ? "" : DATE_FORMATTER.format(value);
+    }
+
+    private static LocalDate parseDate(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value.trim(), DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
+    private static String emptyIfNull(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void showProfileMessage(UserProfileResult<?> result) {
+        JOptionPane.showMessageDialog(
+                this,
+                result.message(),
+                "Thông báo",
+                result.success() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE
+        );
+    }
+
     private JPanel createPage() {
-        JPanel page = new JPanel();
+        JPanel page = new JPanel(new GridBagLayout());
         page.setOpaque(false);
-        page.setLayout(new BoxLayout(page, BoxLayout.Y_AXIS));
-        page.add(createHeroSection());
-        page.add(Box.createVerticalStrut(30));
-        page.add(createInfoCard());
-        page.add(Box.createVerticalGlue());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+
+        gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, UIScale.scale(24), 0);
+        page.add(createHeroSection(), gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        page.add(createInfoCard(), gbc);
+
+        // Push content to top when viewport is taller than content
+        gbc.gridy = 2;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        JPanel filler = new JPanel();
+        filler.setOpaque(false);
+        page.add(filler, gbc);
+
         return page;
     }
 
     private JPanel createHeroSection() {
         JPanel hero = new JPanel(new GridBagLayout());
         hero.setOpaque(false);
-        hero.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hero.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 0, 28);
+        gbc.insets = new Insets(0, 0, 0, UIScale.scale(28));
         gbc.anchor = GridBagConstraints.WEST;
 
         gbc.gridx = 0;
@@ -104,16 +274,18 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     }
 
     private JComponent createAvatarBlock() {
+        int layerSz = UIScale.scale(176);
         JLayeredPane layeredPane = new JLayeredPane();
-        layeredPane.setPreferredSize(new Dimension(176, 176));
-        layeredPane.setMinimumSize(new Dimension(176, 176));
-        layeredPane.setMaximumSize(new Dimension(176, 176));
+        layeredPane.setPreferredSize(new Dimension(layerSz, layerSz));
+        layeredPane.setMinimumSize(new Dimension(layerSz, layerSz));
+        layeredPane.setMaximumSize(new Dimension(layerSz, layerSz));
 
-        avatarView.setBounds(16, 6, 144, 144);
+        avatarView.setBounds(UIScale.scale(16), UIScale.scale(6), UIScale.scale(144), UIScale.scale(144));
         layeredPane.add(avatarView, JLayeredPane.DEFAULT_LAYER);
 
-        CircleIconButton cameraButton = new CircleIconButton(new LineIcon(Symbol.CAMERA, 15, LIME));
-        cameraButton.setBounds(130, 130, 30, 30);
+        int camSz = UIScale.scale(30);
+        CircleIconButton cameraButton = new CircleIconButton(new LineIcon(Symbol.CAMERA, UIScale.scale(15), LIME));
+        cameraButton.setBounds(UIScale.scale(130), UIScale.scale(130), camSz, camSz);
         cameraButton.setToolTipText("Đổi ảnh đại diện");
         layeredPane.add(cameraButton, JLayeredPane.PALETTE_LAYER);
 
@@ -129,32 +301,31 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         displayNameLabel.setForeground(TEXT_DARK);
         displayNameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel roleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 0));
+        JPanel roleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(7), 0));
         roleRow.setOpaque(false);
         roleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel roleIcon = new JLabel(new LineIcon(Symbol.SHIELD_CHECK, 18, LIME_DARK));
+        JLabel roleIcon = new JLabel(new LineIcon(Symbol.SHIELD_CHECK, UIScale.scale(18), LIME_DARK));
         roleLabel.setFont(AppFonts.lexendRegular(14f));
         roleLabel.setForeground(TEXT_MUTED);
         roleRow.add(roleIcon);
         roleRow.add(roleLabel);
 
         nameBlock.add(displayNameLabel);
-        nameBlock.add(Box.createVerticalStrut(6));
+        nameBlock.add(Box.createVerticalStrut(UIScale.scale(6)));
         nameBlock.add(roleRow);
         return nameBlock;
     }
 
     private JPanel createInfoCard() {
         InfoCardPanel card = new InfoCardPanel();
-        card.setLayout(new BorderLayout(0, 24));
-        card.setBorder(new EmptyBorder(28, 32, 38, 32));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setLayout(new BorderLayout(0, UIScale.scale(24)));
+        card.setBorder(new EmptyBorder(UIScale.scale(28), UIScale.scale(24), UIScale.scale(38), UIScale.scale(24)));
 
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setOpaque(false);
 
-        JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
         heading.setOpaque(false);
         heading.add(new AccentBar());
         JLabel title = new JLabel("Thông tin cá nhân");
@@ -163,7 +334,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         heading.add(title);
         northPanel.add(heading, BorderLayout.WEST);
 
-        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(12), 0));
         buttonRow.setOpaque(false);
         buttonRow.add(editProfileButton);
         buttonRow.add(changePasswordButton);
@@ -176,34 +347,34 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.5;
-        gbc.insets = new Insets(0, 0, 18, 22);
+        gbc.insets = new Insets(0, 0, UIScale.scale(18), UIScale.scale(22));
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        fields.add(createInfoField("Họ và tên", fullNameValue, 38), gbc);
+        fields.add(createInfoField("Họ và tên", fullNameValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 18, 0);
-        fields.add(createInfoField("Số điện thoại", phoneValue, 38), gbc);
+        gbc.insets = new Insets(0, UIScale.scale(22), UIScale.scale(18), 0);
+        fields.add(createInfoField("Số điện thoại", phoneValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 18, 22);
-        fields.add(createInfoField("Địa chỉ email", emailValue, 38), gbc);
+        gbc.insets = new Insets(0, 0, UIScale.scale(18), UIScale.scale(22));
+        fields.add(createInfoField("Địa chỉ email", emailValue, UIScale.scale(38)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 18, 0);
-        fields.add(createInfoField("Ngày sinh", birthDateValue, 38), gbc);
+        gbc.insets = new Insets(0, UIScale.scale(22), UIScale.scale(18), 0);
+        fields.add(createInfoField("Ngày sinh", birthDateValue, UIScale.scale(42)), gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
-        gbc.insets = new Insets(0, 0, 0, 22);
-        fields.add(createInfoField("Địa chỉ thường trú", addressValue, 78), gbc);
+        gbc.insets = new Insets(0, 0, 0, UIScale.scale(22));
+        fields.add(createInfoField("Địa chỉ thường trú", addressValue, UIScale.scale(78)), gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(0, 22, 0, 0);
+        gbc.insets = new Insets(0, UIScale.scale(22), 0, 0);
         gbc.anchor = GridBagConstraints.NORTH;
-        fields.add(createInfoField("Hạng khách hàng", rankValue, 38), gbc);
+        fields.add(createInfoField("Hạng khách hàng", rankValue, UIScale.scale(38)), gbc);
 
         card.add(fields, BorderLayout.CENTER);
         return card;
@@ -217,21 +388,23 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         JLabel label = new JLabel(labelText.toUpperCase(Locale.forLanguageTag("vi-VN")));
         label.setFont(AppFonts.lexendBold(11f));
         label.setForeground(TEXT_MUTED);
-        label.setBorder(new EmptyBorder(0, 8, 4, 8));
+        label.setBorder(new EmptyBorder(0, UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        RoundedPanel valueBox = new RoundedPanel(25, FIELD_BACKGROUND);
+        int arc = UIScale.scale(25);
+        RoundedPanel valueBox = new RoundedPanel(arc, FIELD_BACKGROUND);
         valueBox.setLayout(new BorderLayout());
         valueBox.setBorder(BorderFactory.createCompoundBorder(
-                new RoundedLineBorder(FIELD_BORDER, 25),
-                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                new RoundedLineBorder(FIELD_BORDER, arc),
+                BorderFactory.createEmptyBorder(UIScale.scale(10), UIScale.scale(12), UIScale.scale(10), UIScale.scale(12))
         ));
         valueBox.setPreferredSize(new Dimension(10, valueHeight));
         valueBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, valueHeight));
         valueBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         if (valueComponent instanceof JLabel labelValue) {
-            labelValue.setFont(AppFonts.lexendRegular(14f));
+            float fontSize = labelValue == fullNameValue || labelValue == emailValue ? 13.5f : 14f;
+            labelValue.setFont(AppFonts.lexendRegular(fontSize));
             labelValue.setForeground(TEXT_DARK);
             valueBox.add(labelValue, BorderLayout.CENTER);
         } else if (valueComponent instanceof JTextArea textArea) {
@@ -269,12 +442,12 @@ public class UserProfilePanel extends JPanel implements Scrollable {
                 super.paintComponent(graphics);
             }
         };
-        button.setBorder(new EmptyBorder(10, 20, 10, 20));
+        button.setBorder(new EmptyBorder(UIScale.scale(10), UIScale.scale(20), UIScale.scale(10), UIScale.scale(20)));
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
         button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setIconTextGap(14);
+        button.setIconTextGap(UIScale.scale(14));
         button.setForeground(Color.BLACK);
         button.setFont(AppFonts.lexendBold(16f));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -319,18 +492,6 @@ public class UserProfilePanel extends JPanel implements Scrollable {
         return false;
     }
 
-    public static void main(String[] args) {
-        FlatLightLaf.setup();
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Trang cá nhân");
-            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            frame.setContentPane(new UserProfilePanel());
-            frame.setSize(1024, 768);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
-
     public record UserProfileData(
             String fullName,
             String roleName,
@@ -346,7 +507,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
                     "Khách hàng",
                     "+84 901 234 567",
                     "marcus.thorne@rentsta.vn",
-                    "15 tháng 05, 1990",
+                    "15/05/1990",
                     "Tầng 42, Tòa nhà Landmark 81, 720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. Hồ Chí Minh",
                     "Thân thiết"
             );
@@ -403,7 +564,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
 
     private static class AccentBar extends JComponent {
         private AccentBar() {
-            setPreferredSize(new Dimension(7, 28));
+            setPreferredSize(new Dimension(UIScale.scale(7), UIScale.scale(28)));
         }
 
         @Override

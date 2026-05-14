@@ -12,6 +12,8 @@ public interface AccountManagementService {
 
     List<RoleGroupOption> getRoleGroups() throws SQLException;
 
+    String generateNextAccountId() throws SQLException;
+
     void assignRoleGroup(String accountId, String groupId) throws SQLException;
 
     void createAccount(AccountUpsertRequest request) throws SQLException;
