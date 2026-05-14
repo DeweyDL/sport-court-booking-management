@@ -92,54 +92,24 @@ public final class CrudViewStyle {
     }
 
     public static void configureScrollPane(JScrollPane scrollPane) {
-        configureScrollPane(scrollPane, SIDEBAR_BACKGROUND);
-    }
-
-    public static void configureSidebarScrollPane(JScrollPane scrollPane) {
-        configureScrollPane(scrollPane, SIDEBAR_BACKGROUND, SIDEBAR_BACKGROUND, SIDEBAR_BACKGROUND);
-    }
-
-    public static void configureScrollPane(JScrollPane scrollPane, Color trackColor) {
-        configureScrollPane(scrollPane, trackColor, SCROLLBAR_THUMB, SCROLLBAR_THUMB_HOVER);
-    }
-
-    public static void configureScrollPane(JScrollPane scrollPane, Color trackColor,
-                                           Color thumbColor, Color hoverThumbColor) {
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setBackground(trackColor);
-        scrollPane.setOpaque(true);
-        scrollPane.setViewportBorder(BorderFactory.createEmptyBorder());
-        JViewport viewport = scrollPane.getViewport();
-        if (viewport != null) {
-            viewport.setBackground(trackColor);
-            viewport.setOpaque(true);
-        }
-        styleScrollBar(scrollPane.getVerticalScrollBar(), trackColor, thumbColor, hoverThumbColor);
-        styleScrollBar(scrollPane.getHorizontalScrollBar(), trackColor, thumbColor, hoverThumbColor);
-        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, createScrollCorner(trackColor));
-        scrollPane.setCorner(JScrollPane.UPPER_RIGHT_CORNER, createScrollCorner(trackColor));
-        scrollPane.setCorner(JScrollPane.LOWER_LEFT_CORNER, createScrollCorner(trackColor));
+        styleScrollBar(scrollPane.getVerticalScrollBar());
+        styleScrollBar(scrollPane.getHorizontalScrollBar());
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, createScrollCorner());
     }
 
     public static void styleScrollBar(JScrollBar bar) {
-        styleScrollBar(bar, SIDEBAR_BACKGROUND);
-    }
-
-    public static void styleScrollBar(JScrollBar bar, Color trackColor) {
-        styleScrollBar(bar, trackColor, SCROLLBAR_THUMB, SCROLLBAR_THUMB_HOVER);
-    }
-
-    public static void styleScrollBar(JScrollBar bar, Color trackColor, Color thumbColor, Color hoverThumbColor) {
         int size = UIScale.scale(8);
         bar.setUnitIncrement(UIScale.scale(16));
         bar.setBlockIncrement(UIScale.scale(96));
+        bar.setOpaque(true);
+        bar.setBackground(SIDEBAR_BACKGROUND);
         bar.putClientProperty("JScrollBar.showButtons", false);
-        bar.putClientProperty("ScrollBar.trackColor", trackColor);
-        bar.putClientProperty("ScrollBar.thumbColor", thumbColor);
-        bar.putClientProperty("ScrollBar.hoverThumbColor", hoverThumbColor);
+        bar.putClientProperty("ScrollBar.trackColor", SIDEBAR_BACKGROUND);
+        bar.putClientProperty("ScrollBar.thumbColor", SCROLLBAR_THUMB);
+        bar.putClientProperty("ScrollBar.hoverThumbColor", SCROLLBAR_THUMB_HOVER);
         bar.putClientProperty("ScrollBar.width", size);
-        bar.setBorder(BorderFactory.createEmptyBorder());
         bar.setPreferredSize(bar.getOrientation() == Adjustable.VERTICAL
                 ? new Dimension(size, 0)
                 : new Dimension(0, size));
@@ -156,7 +126,7 @@ public final class CrudViewStyle {
 
             @Override
             protected void paintTrack(Graphics graphics, JComponent component, Rectangle bounds) {
-                graphics.setColor(trackColor);
+                graphics.setColor(SIDEBAR_BACKGROUND);
                 graphics.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
             }
 
@@ -167,7 +137,7 @@ public final class CrudViewStyle {
                 }
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isDragging || isThumbRollover() ? hoverThumbColor : thumbColor);
+                g2.setColor(isDragging || isThumbRollover() ? SCROLLBAR_THUMB_HOVER : SCROLLBAR_THUMB);
                 int inset = UIScale.scale(1);
                 int arc = Math.min(bounds.width, bounds.height);
                 g2.fillRoundRect(
@@ -181,9 +151,12 @@ public final class CrudViewStyle {
                 g2.dispose();
             }
         });
-        bar.setOpaque(true);
-        bar.setBackground(trackColor);
-        bar.setBorder(BorderFactory.createEmptyBorder());
+    }
+
+    private static JComponent createScrollCorner() {
+        JPanel corner = new JPanel();
+        corner.setBackground(SIDEBAR_BACKGROUND);
+        return corner;
     }
 
     public static JButton createRefreshButton(ActionListener actionListener) {
@@ -236,12 +209,6 @@ public final class CrudViewStyle {
         return button;
     }
 
-    private static JComponent createScrollCorner(Color background) {
-        JPanel corner = new JPanel();
-        corner.setOpaque(true);
-        corner.setBackground(background);
-        return corner;
-    }
 
     public static JPanel createSearchFieldWithIcon(JPanel wrapper, JTextField searchField, Icon icon) {
         wrapper.removeAll();
