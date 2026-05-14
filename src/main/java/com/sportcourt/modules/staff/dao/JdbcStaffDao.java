@@ -19,7 +19,7 @@ public class JdbcStaffDao {
     public List<StaffResponse> search(String keyword) {
         List<StaffResponse> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
-                "SELECT nv.MANV, u.HOTEN, u.SDT, u.DIACHI, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL, nv.IS_DELETED " +
+                "SELECT nv.MANV, u.HOTEN, u.SDT, u.DIACHI, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL, nv.MACN, nv.IS_DELETED " +
                         "FROM NHAN_VIEN nv " +
                         "JOIN USERS u ON nv.USER_ID = u.USER_ID AND u.IS_DELETED = 0 "
         );
@@ -51,6 +51,7 @@ public class JdbcStaffDao {
                     dto.setIsQl(rs.getInt("IS_QL"));
                     dto.setChucVu(rs.getInt("IS_QL") == 1 ? "Quản lý" : "Nhân viên");
                     dto.setTrangThai(rs.getString("TRANG_THAI"));
+                    dto.setMaCn(rs.getString("MACN"));
                     dto.setDeleted(rs.getInt("IS_DELETED") == 1);
                     if (rs.getDate("NVL") != null) {
                         dto.setNgayVaoLam(rs.getDate("NVL").toLocalDate());
@@ -89,14 +90,17 @@ public class JdbcStaffDao {
             psUser.setString(4, diaChi);
             psUser.executeUpdate();
 
-            // --- TỰ ĐỘNG TÌM MACN TRONG DB ---
-            String defaultMacn = null;
-            try(PreparedStatement ps1 = conn.prepareStatement("SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 AND ROWNUM = 1");
-                ResultSet rs1 = ps1.executeQuery()) {
-                if(rs1.next()) defaultMacn = rs1.getString("MACN");
+            // Use provided maCn if given; otherwise auto-detect first available branch
+            String defaultMacn = (req.getMaCn() != null && !req.getMaCn().trim().isEmpty())
+                    ? req.getMaCn().trim() : null;
+
+            if (defaultMacn == null) {
+                try (PreparedStatement ps1 = conn.prepareStatement("SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 AND ROWNUM = 1");
+                     ResultSet rs1 = ps1.executeQuery()) {
+                    if (rs1.next()) defaultMacn = rs1.getString("MACN");
+                }
             }
 
-            // NẾU DB TRỐNG CHI NHÁNH -> TỰ INSERT ĐÚNG CẤU TRÚC (Có đủ MACN, TEN_CHI_NHANH, DIACHI)
             if (defaultMacn == null) {
                 defaultMacn = "CN01";
                 try (PreparedStatement psCN = conn.prepareStatement("INSERT INTO CHI_NHANH (MACN, TEN_CHI_NHANH, DIACHI) VALUES (?, ?, ?)")) {
@@ -163,7 +167,7 @@ public class JdbcStaffDao {
     public boolean update(String manv, StaffUpdateRequest req) throws SQLException {
         String sqlFindUserId = "SELECT USER_ID FROM NHAN_VIEN WHERE MANV = ?";
         String sqlUpdateUser = "UPDATE USERS SET HOTEN = ?, SDT = ?, DIACHI = ? WHERE USER_ID = ?";
-        String sqlUpdateStaff = "UPDATE NHAN_VIEN SET CCCD = ?, IS_QL = ?, TRANG_THAI = ? WHERE MANV = ?";
+        String sqlUpdateStaff = "UPDATE NHAN_VIEN SET CCCD = ?, IS_QL = ?, TRANG_THAI = ?, MACN = ? WHERE MANV = ?";
 
         String cccd = req.getCccd();
         if (cccd != null && cccd.trim().isEmpty()) {
@@ -191,7 +195,8 @@ public class JdbcStaffDao {
                 psStaff.setString(1, cccd);
                 psStaff.setInt(2, req.getIsQl());
                 psStaff.setString(3, req.getTrangThai());
-                psStaff.setString(4, manv);
+                psStaff.setString(4, req.getMaCn() != null && !req.getMaCn().trim().isEmpty() ? req.getMaCn().trim() : null);
+                psStaff.setString(5, manv);
                 return psStaff.executeUpdate() > 0;
             }
             return false;
