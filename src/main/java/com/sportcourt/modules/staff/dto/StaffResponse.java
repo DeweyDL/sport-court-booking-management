@@ -14,6 +14,7 @@ public class StaffResponse {
     private String    trangThai;
     private LocalDate ngayVaoLam;
     private boolean   isDeleted;
+    private String    maCn;
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -48,6 +49,9 @@ public class StaffResponse {
 
     public boolean   isDeleted()     { return isDeleted; }
     public void      setDeleted(boolean isDeleted) { this.isDeleted = isDeleted; }
+
+    public String    getMaCn()       { return maCn; }
+    public void      setMaCn(String maCn) { this.maCn = maCn; }
 
     public String    getNgayVaoLamFormatted() {
         return ngayVaoLam == null ? "--" : ngayVaoLam.format(FMT);
