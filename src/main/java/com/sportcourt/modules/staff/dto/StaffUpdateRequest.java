@@ -7,6 +7,7 @@ public class StaffUpdateRequest {
     private String cccd;
     private int isQl;
     private String trangThai;
+    private String maCn;
 
     public StaffUpdateRequest() {}
 
@@ -27,4 +28,7 @@ public class StaffUpdateRequest {
 
     public String getTrangThai() { return trangThai; }
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+
+    public String getMaCn() { return maCn; }
+    public void setMaCn(String maCn) { this.maCn = maCn; }
 }

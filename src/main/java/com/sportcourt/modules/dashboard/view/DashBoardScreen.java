@@ -18,7 +18,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
-public class TestDashboard extends JPanel {
+public class DashBoardScreen extends JPanel {
 
     private static final String HERO_IMAGE_PATH = "src/main/resources/image/BgDashboard.png";
     private static final String CARD_IMAGE_PATH = "src/main/resources/image/BgcardDashboard.png";
@@ -37,7 +37,7 @@ public class TestDashboard extends JPanel {
     private JPanel filterSection;
     private List<DashboardSportTypeOption> availableSportTypes = java.util.Collections.emptyList();
 
-    public TestDashboard() {
+    public DashBoardScreen() {
         // Cố định: Thiết lập layout cho chính JPanel này để có thể chứa ScrollPane
         setLayout(new BorderLayout());
 
@@ -235,16 +235,16 @@ public class TestDashboard extends JPanel {
         List<RoundedButton> buttons = new java.util.ArrayList<>();
 
         RoundedButton all = new RoundedButton("Tất cả", greenPrimary, new Color(16, 113, 0), 40);
-        all.setFont(new Font("Lexend", Font.BOLD, 20));
+        all.setFont(new Font("Lexend", Font.BOLD, 16));
         Dimension prefAll = all.getPreferredSize();
         all.setPreferredSize(new Dimension(Math.max(prefAll.width + 26, 120), 50));
         buttons.add(all);
         container.add(all);
-
+        
         for (DashboardSportTypeOption opt : availableSportTypes) {
             RoundedButton b = new RoundedButton(opt.sportTypeName(), grayUI, darkText, 40);
             b.putClientProperty("sportTypeId", opt.sportTypeId());
-            b.setFont(new Font("Lexend", Font.BOLD, 20));
+            b.setFont(new Font("Lexend", Font.BOLD, 16));
             Dimension pref = b.getPreferredSize();
             b.setPreferredSize(new Dimension(Math.max(pref.width + 26, 120), 50));
             buttons.add(b);
@@ -461,7 +461,7 @@ public class TestDashboard extends JPanel {
             gbc.anchor = GridBagConstraints.WEST;
             gbc.insets = new Insets(0, 0, 5, 0); // Khoảng cách nhỏ bên dưới
             JLabel name = new JLabel(safeText(data == null ? null : data.courtName()));
-            name.setFont(new Font("Lexend", Font.BOLD, 19));
+            name.setFont(new Font("Segoe UI", Font.BOLD, 16));
             info.add(name, gbc);
 
 // --- PHẦN LOCATION ---
@@ -469,14 +469,14 @@ public class TestDashboard extends JPanel {
             gbc.insets = new Insets(0, 0, 10, 0); // Khoảng cách dưới địa chỉ
             JLabel loc = new JLabel(safeText(data == null ? null : data.branchAddress()));
             loc.setForeground(Color.GRAY);
-            loc.setFont(new Font("Lexend", Font.PLAIN, 14));
+            loc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             info.add(loc, gbc);
 
 // --- PHẦN PRICE ---
             gbc.gridy = 2;
             gbc.insets = new Insets(5, 0, 15, 0); // Reset và set lề mới cho price
             JLabel price = new JLabel(formatPrice(data == null ? null : data.price()));
-            price.setFont(new Font("Lexend", Font.BOLD, 16));
+            price.setFont(new Font("Segoe UI", Font.BOLD, 16));
             info.add(price, gbc);
 
 // --- PHẦN BUTTON ---
@@ -484,7 +484,7 @@ public class TestDashboard extends JPanel {
             gbc.anchor = GridBagConstraints.CENTER; // Reset về giữa
             gbc.insets = new Insets(0, 0, 5, 0);
             RoundedButton btnDetail = new RoundedButton("Chi tiết", grayUI, darkText, 30);
-            btnDetail.setFont(new Font("Lexend", Font.BOLD, 14));
+            btnDetail.setFont(new Font("Segoe UI", Font.BOLD, 16));
 // Thay vì (0, 45), hãy dùng chiều rộng tối thiểu hoặc để Layout tự tính
             btnDetail.setPreferredSize(new Dimension(150, 45));
             info.add(btnDetail, gbc);

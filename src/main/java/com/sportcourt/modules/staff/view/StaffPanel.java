@@ -1,6 +1,7 @@
 package com.sportcourt.modules.staff.view;
 
 import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffSearchCriteria;
 import com.sportcourt.modules.staff.service.StaffService;
@@ -22,6 +23,7 @@ public class StaffPanel extends JPanel implements Scrollable {
     private static final Color ALTERNATE_ROW_BG = CrudViewStyle.ALTERNATE_ROW_BACKGROUND;
 
     private final StaffService staffService       = new StaffServiceImpl();
+    private final boolean      isOwner            = SessionManager.requireSession().isOwner();
     private final JPanel       tablePanel         = new JPanel();
     private final JLabel       infoLabel          = new JLabel("Đang tải dữ liệu...");
     private final JTextField   searchField        = new JTextField(30);
@@ -148,7 +150,7 @@ public class StaffPanel extends JPanel implements Scrollable {
         addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
-        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv()).setVisible(true));
+        addBtn.addActionListener(e -> new AddStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, generateNextManv(), isOwner).setVisible(true));
         JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> loadData());
 
         leftToolbar.add(tableTitle);
@@ -272,7 +274,7 @@ public class StaffPanel extends JPanel implements Scrollable {
             actionGroup.add(deleteBtn);
 
             JButton editBtn = createMiniActionButton("Chỉnh sửa", new Color(239, 246, 255), new Color(29, 78, 216));
-            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff).setVisible(true));
+            editBtn.addActionListener(e -> new EditStaffDialog((JFrame) SwingUtilities.getWindowAncestor(this), this, staff, isOwner).setVisible(true));
             actionGroup.add(editBtn);
         }
 
