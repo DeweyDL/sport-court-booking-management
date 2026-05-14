@@ -5,6 +5,7 @@ import com.sportcourt.modules.auth.dto.AuthResult;
 import com.sportcourt.modules.auth.dto.RegisterRequest;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.common.style.UIScale;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -12,6 +13,11 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class Register extends JPanel {
+    private static final int FORM_SIDE_INSET = UIScale.scale(48);
+    private static final int OTP_ROW_GAP = UIScale.scale(8);
+    private static final Insets OTP_BUTTON_MARGIN = new Insets(0, UIScale.scale(8), 0, UIScale.scale(8));
+    private static final Dimension OTP_BUTTON_SIZE = new Dimension(UIScale.scale(150), UIScale.scale(44));
+
     private final AuthController authController = new AuthController();
     private CardLayout cardLayout;
     private JPanel parentPanel;
@@ -31,10 +37,11 @@ public class Register extends JPanel {
         rightPanel.setBackground(new Color(250, 249, 250));
         rightPanel.setLayout(new GridBagLayout());
         rightPanel.setBackground(new Color(250, 249, 250));
-        rightPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(
+                UIScale.scale(40), UIScale.scale(40), UIScale.scale(40), UIScale.scale(40)));
 
         GridBagConstraints r = new GridBagConstraints();
-        r.insets = new Insets(10, 180, 10, 180);
+        r.insets = new Insets(UIScale.scale(8), FORM_SIDE_INSET, UIScale.scale(8), FORM_SIDE_INSET);
         r.gridx = 0;
         r.weightx = 1;
         r.weighty = 0;
@@ -65,131 +72,133 @@ public class Register extends JPanel {
 
         // ===== NAME =====
         JTextField username = new JTextField();
-        username.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        username.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         username.setBackground(new Color(242, 242, 242));
         username.setBorder(null);
         username.putClientProperty("JTextField.placeholderText", "Họ và tên");
 
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
-        userPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        userPanel.setPreferredSize(new Dimension(200, 45));
+        userPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        userPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
-        JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", 18, 18));
-        userIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
+        userIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         userPanel.add(userIcon, BorderLayout.WEST);
         userPanel.add(username, BorderLayout.CENTER);
 
         // ---- PHONE ----
         JTextField phonenum = new JTextField();
-        phonenum.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        phonenum.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         phonenum.setBackground(new Color(242, 242, 242));
         phonenum.setBorder(null);
         phonenum.putClientProperty("JTextField.placeholderText", "Số điện thoại");
 
         JPanel phonePanel = new JPanel(new BorderLayout());
         phonePanel.setBackground(new Color(242, 242, 242));
-        phonePanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        phonePanel.setPreferredSize(new Dimension(200, 45));
+        phonePanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        phonePanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
-        JLabel phoneIcon = new JLabel(scaleIcon("/icon/phone.png", 18, 18));
-        phoneIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel phoneIcon = new JLabel(scaleIcon("/icon/phone.png", UIScale.scale(18), UIScale.scale(18)));
+        phoneIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         phonePanel.add(phoneIcon, BorderLayout.WEST);
         phonePanel.add(phonenum, BorderLayout.CENTER);
 
         // ---- EMAIL ----
         JTextField email = new JTextField();
-        email.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        email.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         email.setBackground(new Color(242, 242, 242));
         email.setBorder(null);
         email.putClientProperty("JTextField.placeholderText", "Email");
 
         JPanel emailPanel = new JPanel(new BorderLayout());
         emailPanel.setBackground(new Color(242, 242, 242));
-        emailPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        emailPanel.setPreferredSize(new Dimension(200, 45));
+        emailPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        emailPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
-        JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", 18, 18));
-        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", UIScale.scale(18), UIScale.scale(18)));
+        emailIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         emailPanel.add(emailIcon, BorderLayout.WEST);
         emailPanel.add(email, BorderLayout.CENTER);
 
-        JButton sendOtpBtn = new JButton("Gửi OTP");
-        sendOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        JButton sendOtpBtn = new JButton("Gửi mã OTP");
+        sendOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         sendOtpBtn.setBackground(new Color(187, 220, 182));
         sendOtpBtn.setForeground(new Color(16, 110, 0));
         sendOtpBtn.setBorderPainted(false);
-        sendOtpBtn.setPreferredSize(new Dimension(200, 50));
+        sendOtpBtn.setMargin(OTP_BUTTON_MARGIN);
+        sendOtpBtn.setPreferredSize(OTP_BUTTON_SIZE);
         // ---- ROW chứa 2 field ----
-        JPanel contactRow = new JPanel(new BorderLayout(20, 0));
+        JPanel contactRow = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         contactRow.setBackground(new Color(242, 242, 242));
 
         contactRow.add(emailPanel, BorderLayout.CENTER);
         contactRow.add(sendOtpBtn, BorderLayout.EAST);
 
         JTextField otpField = new JTextField();
-        otpField.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        otpField.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         otpField.setBackground(new Color(242, 242, 242));
         otpField.setBorder(null);
         otpField.putClientProperty("JTextField.placeholderText", "Nhập OTP email");
 
-        JLabel otpIcon = new JLabel(scaleIcon("/icon/otp.png", 18, 18));
-        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel otpIcon = new JLabel(scaleIcon("/icon/otp.png", UIScale.scale(18), UIScale.scale(18)));
+        otpIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         JPanel otpPanel = new JPanel(new BorderLayout());
         otpPanel.setBackground(new Color(242, 242, 242));
-        otpPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        otpPanel.setPreferredSize(new Dimension(200, 45));
+        otpPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        otpPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
         otpPanel.add(otpField, BorderLayout.CENTER);
         otpPanel.add(otpIcon, BorderLayout.WEST);
 
-        JButton verifyOtpBtn = new JButton("Xác thực");
-        verifyOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        JButton verifyOtpBtn = new JButton("Xác thực OTP");
+        verifyOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         verifyOtpBtn.setBackground(new Color(187, 220, 182));
         verifyOtpBtn.setForeground(new Color(16, 110, 0));
         verifyOtpBtn.setBorderPainted(false);
-        verifyOtpBtn.setPreferredSize(new Dimension(200, 50));
+        verifyOtpBtn.setMargin(OTP_BUTTON_MARGIN);
+        verifyOtpBtn.setPreferredSize(OTP_BUTTON_SIZE);
 
-        JPanel otpRow = new JPanel(new BorderLayout(20, 0));
+        JPanel otpRow = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         otpRow.setBackground(new Color(242, 242, 242));
         otpRow.add(otpPanel, BorderLayout.CENTER);
         otpRow.add(verifyOtpBtn, BorderLayout.EAST);
 
         // ===== PASSWORD =====
         JPasswordField password = new JPasswordField();
-        password.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        password.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         password.setBackground(new Color(242, 242, 242));
         password.setBorder(null);
         password.putClientProperty("JTextField.placeholderText", "Mật khẩu");
 
         JPanel passPanel = new JPanel(new BorderLayout());
         passPanel.setBackground(new Color(242, 242, 242));
-        passPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        passPanel.setPreferredSize(new Dimension(200, 45));
+        passPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        passPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
-        JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", 18, 18));
-        passIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
+        passIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         passPanel.add(passIcon, BorderLayout.WEST);
         passPanel.add(password, BorderLayout.CENTER);
 
         // ===== XÁC NHẬN PASSWORD =====
         JPasswordField checkPassword = new JPasswordField();
-        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        checkPassword.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(20)));
         checkPassword.setBackground(new Color(242, 242, 242));
         checkPassword.setBorder(null);
         checkPassword.putClientProperty("JTextField.placeholderText", "Xác nhận mật khẩu");
 
         JPanel checkpassPanel = new JPanel(new BorderLayout());
         checkpassPanel.setBackground(new Color(242, 242, 242));
-        checkpassPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
-        checkpassPanel.setPreferredSize(new Dimension(200, 45));
+        checkpassPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
+        checkpassPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
-        JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", 18, 18));
-        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
+        checkpassIcon.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(5), 0, UIScale.scale(5)));
 
         checkpassPanel.add(checkpassIcon, BorderLayout.WEST);
         checkpassPanel.add(checkPassword, BorderLayout.CENTER);
@@ -212,7 +221,7 @@ public class Register extends JPanel {
         registerBtn.setFocusPainted(false);
         registerBtn.setContentAreaFilled(false);
         registerBtn.setBorderPainted(false);
-        registerBtn.setPreferredSize(new Dimension(200, 50));
+        registerBtn.setPreferredSize(new Dimension(200, UIScale.scale(50)));
         registerBtn.setEnabled(true);
         final boolean[] registerOtpVerified = {false};
 

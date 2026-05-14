@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface SportTypeService {
     public List<SportTypeTableRow> getAll() throws SQLException;
+    public String generateNextId() throws SQLException;
     public void create(SportTypeForm form) throws SQLException;
     public void update(SportTypeForm form) throws SQLException;
     public void delete(SportTypeForm form) throws SQLException;

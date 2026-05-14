@@ -6,31 +6,31 @@ import java.time.format.DateTimeFormatter;
 public class StaffResponse {
     private String    manv;
     private String    hoten;
+    private String    sdt;
+    private String    diaChi;
     private String    cccd;
     private int       isQl;
     private String    chucVu;
     private String    trangThai;
     private LocalDate ngayVaoLam;
+    private boolean   isDeleted;
+    private String    maCn;
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public StaffResponse() {}
-
-    public StaffResponse(String manv, String hoten, String cccd, int isQl, String chucVu, String trangThai, LocalDate ngayVaoLam) {
-        this.manv       = manv;
-        this.hoten      = hoten;
-        this.cccd       = cccd;
-        this.isQl       = isQl;
-        this.chucVu     = chucVu;
-        this.trangThai  = trangThai;
-        this.ngayVaoLam = ngayVaoLam;
-    }
 
     public String    getManv()       { return manv; }
     public void      setManv(String manv) { this.manv = manv; }
 
     public String    getHoten()      { return hoten; }
     public void      setHoten(String hoten) { this.hoten = hoten; }
+
+    public String    getSdt()        { return sdt; }
+    public void      setSdt(String sdt) { this.sdt = sdt; }
+
+    public String    getDiaChi()     { return diaChi; }
+    public void      setDiaChi(String diaChi) { this.diaChi = diaChi; }
 
     public String    getCccd()       { return cccd; }
     public void      setCccd(String cccd) { this.cccd = cccd; }
@@ -46,6 +46,12 @@ public class StaffResponse {
 
     public LocalDate getNgayVaoLam() { return ngayVaoLam; }
     public void      setNgayVaoLam(LocalDate ngayVaoLam) { this.ngayVaoLam = ngayVaoLam; }
+
+    public boolean   isDeleted()     { return isDeleted; }
+    public void      setDeleted(boolean isDeleted) { this.isDeleted = isDeleted; }
+
+    public String    getMaCn()       { return maCn; }
+    public void      setMaCn(String maCn) { this.maCn = maCn; }
 
     public String    getNgayVaoLamFormatted() {
         return ngayVaoLam == null ? "--" : ngayVaoLam.format(FMT);

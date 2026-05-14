@@ -18,6 +18,7 @@ final class EquipmentCreateDialog {
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
+    private static final Color READONLY_BG = new Color(241, 245, 249);
 
     private EquipmentCreateDialog() {
     }
@@ -35,6 +36,15 @@ final class EquipmentCreateDialog {
     }
 
     static void show(Component parent) {
+        com.sportcourt.modules.equipment.controller.EquipmentController controller =
+                new com.sportcourt.modules.equipment.controller.EquipmentController();
+        String generatedMaDc;
+        try {
+            generatedMaDc = controller.generateNextMaDc();
+        } catch (Exception ex) {
+            generatedMaDc = "DC001";
+        }
+
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm dụng cụ", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -66,6 +76,7 @@ final class EquipmentCreateDialog {
         root.add(header, BorderLayout.NORTH);
 
         // Form fields
+        JTextField txtMaDc = createReadOnlyField(generatedMaDc);
         JTextField txtTenDc = new JTextField();
         JTextField txtDvt = new JTextField();
         JTextField txtGia = new JTextField();
@@ -77,6 +88,9 @@ final class EquipmentCreateDialog {
         form.setBorder(new EmptyBorder(18, 18, 18, 18));
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        form.add(createField("Mã dụng cụ", txtMaDc));
+        form.add(Box.createVerticalStrut(14));
+
         form.add(createField("Tên dụng cụ", txtTenDc));
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Đơn vị tính", txtDvt));
@@ -87,8 +101,7 @@ final class EquipmentCreateDialog {
 
         JScrollPane formScroll = new JScrollPane(form);
         formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(DIALOG_BG);
         root.add(formScroll, BorderLayout.CENTER);
 
@@ -124,12 +137,13 @@ final class EquipmentCreateDialog {
                 }
 
                 com.sportcourt.modules.equipment.dto.EquipmentCreateRequest req = new com.sportcourt.modules.equipment.dto.EquipmentCreateRequest();
+                req.setMaDc(txtMaDc.getText().trim());
                 req.setTenDc(tenDc);
                 req.setDvt(dvt);
                 req.setGia(java.math.BigDecimal.valueOf(gia));
                 req.setSlTon(slTon);
                 
-                new com.sportcourt.modules.equipment.controller.EquipmentController().createEquipment(req);
+                controller.createEquipment(req);
                 
                 JOptionPane.showMessageDialog(dialog, "Thêm dụng cụ thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 if (parent instanceof EquipmentManagement) {
@@ -154,6 +168,29 @@ final class EquipmentCreateDialog {
         dialog.setVisible(true);
     }
 
+    private static JTextField createReadOnlyField(String value) {
+        JTextField field = new JTextField(value == null ? "" : value.trim()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 25, 25);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        field.setEditable(false);
+        field.setFocusable(false);
+        field.setRequestFocusEnabled(false);
+        field.setCursor(Cursor.getDefaultCursor());
+        field.setOpaque(false);
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
+        field.setForeground(new Color(31, 41, 55));
+        field.setBackground(READONLY_BG);
+        return field;
+    }
+
     private static JPanel createField(String labelText, JTextField field) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -166,13 +203,14 @@ final class EquipmentCreateDialog {
         label.setForeground(TEXT_DARK);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        field.setFont(new Font("Lexend", Font.PLAIN, 14));
+        boolean editable = field.isEditable();
+        field.setFont(new Font("Lexend", editable ? Font.PLAIN : Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBorder(BorderFactory.createCompoundBorder(
                 new RoundedLineBorder(BORDER_COLOR, 25),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
-        field.setBackground(Color.WHITE);
+        field.setBackground(editable ? Color.WHITE : READONLY_BG);
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 

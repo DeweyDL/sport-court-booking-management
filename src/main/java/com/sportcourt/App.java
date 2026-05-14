@@ -2,6 +2,7 @@ package com.sportcourt;
 
 
 import com.formdev.flatlaf.FlatLightLaf;
+import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.auth.view.*;
 
 import javax.swing.*;
@@ -9,6 +10,8 @@ import javax.swing.*;
 
 public class App {
     public static void main(String[] args) {
+        // Must be first: computes global scale factor from screen resolution
+        UIScale.init();
         try {
             UIManager.setLookAndFeel(new FlatLightLaf());
         } catch (Exception e) {

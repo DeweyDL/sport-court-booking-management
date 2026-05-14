@@ -41,8 +41,8 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
     private final JTextField txtSearch = new JTextField();
     private final JPanel searchWrapper = new JPanel(new BorderLayout());
     private final JComboBox<String> cbSort = new JComboBox<>(new String[]{
-            "Mã NCC",
-            "Tên NCC",
+            "Mã nhà cung cấp",
+            "Tên nhà cung cấp",
             "Website",
             "Địa chỉ"
     });
@@ -147,8 +147,7 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tableBodyPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -167,14 +166,16 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
         JLabel tableTitle = new JLabel("DANH SÁCH NHÀ CUNG CẤP");
         tableTitle.setFont(new Font("Lexend", Font.BOLD, 22));
 
-        JButton addBtn = createPillButton("+ Thêm NCC", new Color(228, 250, 226), new Color(16, 110, 0), true);
+        JButton addBtn = createPillButton("+ Thêm nhà cung cấp", new Color(228, 250, 226), new Color(16, 110, 0), true);
         addBtn.setFont(new Font("Lexend", Font.BOLD, 16));
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> showCreateView());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> loadSuppliers(txtSearch.getText()));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = CrudViewStyle.createToolbarActionsPanel();
@@ -218,7 +219,7 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, 8);
 
         gbc.weightx = 0.09; header.add(createFlexibleCell(createHeaderLabel("MÃ NCC", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
-        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("TÊN NCC", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
+        gbc.weightx = 0.17; header.add(createFlexibleCell(createHeaderLabel("TÊN NHÀ CUNG CẤP", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.10; header.add(createFlexibleCell(createHeaderLabel("SĐT", SwingConstants.CENTER), SwingConstants.CENTER, new Color(248, 249, 250), 0, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("EMAIL", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
         gbc.weightx = 0.14; header.add(createFlexibleCell(createHeaderLabel("WEBSITE", SwingConstants.LEFT), SwingConstants.LEFT, new Color(248, 249, 250), 8, 8), gbc);
@@ -302,7 +303,7 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
     private void sortSuppliers(List<Supplier> rows) {
         String sortType = (String) cbSort.getSelectedItem();
         Comparator<Supplier> comparator;
-        if ("Tên NCC".equals(sortType)) {
+        if ("Tên nhà cung cấp".equals(sortType)) {
             comparator = Comparator.comparing(row -> sortKey(row.getTenncc()));
         } else if ("Website".equals(sortType)) {
             comparator = Comparator.comparing(row -> sortKey(row.getWebsite()));
@@ -345,7 +346,8 @@ public class SupplierManagementPanel extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, CrudViewStyle.ROW_BORDER),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        rowPanel.setPreferredSize(new Dimension(1000, ROW_HEIGHT));
+        rowPanel.setMinimumSize(new Dimension(800, ROW_HEIGHT));
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
 
         GridBagConstraints gbc = new GridBagConstraints();

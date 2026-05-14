@@ -120,9 +120,7 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -153,9 +151,11 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(e -> openCreateDialog());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> loadData());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -183,7 +183,8 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
                 new MatteBorder(1, 0, 1, 0, new Color(229, 231, 235)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        header.setPreferredSize(new Dimension(0, HEADER_HEIGHT));
+        header.setPreferredSize(new Dimension(760, HEADER_HEIGHT));
+        header.setMinimumSize(new Dimension(620, HEADER_HEIGHT));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, HEADER_HEIGHT));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -214,7 +215,8 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
                 new MatteBorder(0, 0, 1, 0, new Color(243, 244, 246)),
                 new EmptyBorder(0, 24, 0, 24)
         ));
-        rowPanel.setPreferredSize(new Dimension(0, ROW_HEIGHT));
+        rowPanel.setPreferredSize(new Dimension(760, ROW_HEIGHT));
+        rowPanel.setMinimumSize(new Dimension(620, ROW_HEIGHT));
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ROW_HEIGHT));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -418,7 +420,7 @@ public class ManageSportTypeScreen extends JPanel implements Scrollable {
     }
 
     private void openCreateDialog() {
-        SportTypeForm form = SportTypeCreateDialog.show(this);
+        SportTypeForm form = SportTypeCreateDialog.show(this, controller.generateNextId());
         if (form == null) {
             return;
         }

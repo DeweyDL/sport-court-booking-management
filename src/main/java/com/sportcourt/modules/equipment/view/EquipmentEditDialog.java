@@ -92,8 +92,7 @@ final class EquipmentEditDialog {
 
         JScrollPane formScroll = new JScrollPane(form);
         formScroll.setBorder(BorderFactory.createEmptyBorder());
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(DIALOG_BG);
         root.add(formScroll, BorderLayout.CENTER);
 
@@ -164,7 +163,7 @@ final class EquipmentEditDialog {
         JTextField field = new JTextField(value);
         field.setEditable(false);
         field.setFocusable(false);
-        field.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        field.setFont(new Font("Lexend", Font.BOLD, 14));
         field.setForeground(new Color(31, 41, 55));
         field.setBackground(READONLY_BG);
         return field;

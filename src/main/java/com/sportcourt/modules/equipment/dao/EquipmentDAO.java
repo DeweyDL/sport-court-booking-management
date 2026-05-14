@@ -10,6 +10,7 @@ import java.util.List;
 public interface EquipmentDAO {
     List<Equipment> findEquipments(String keyword) throws SQLException;
     Equipment getEquipmentById(String maDc) throws SQLException;
+    String generateNextMaDc() throws SQLException;
     void createEquipment(EquipmentCreateRequest request) throws SQLException;
     boolean updateEquipment(EquipmentUpdateRequest request) throws SQLException;
     boolean softDeleteEquipment(String maDc) throws SQLException;

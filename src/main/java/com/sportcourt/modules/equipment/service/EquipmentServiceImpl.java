@@ -28,7 +28,15 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
     @Override
+    public String generateNextMaDc() throws SQLException {
+        return equipmentDAO.generateNextMaDc();
+    }
+
+    @Override
     public void createEquipment(EquipmentCreateRequest request) throws SQLException {
+        if (request.getMaDc() == null || request.getMaDc().isBlank()) {
+            request.setMaDc(equipmentDAO.generateNextMaDc());
+        }
         equipmentDAO.createEquipment(request);
     }
 

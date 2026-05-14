@@ -3,6 +3,7 @@ package com.sportcourt.modules.court.view;
 import com.sportcourt.common.style.AppDialog;
 import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.common.style.CrudViewStyle;
+import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.court.controller.CourtManagementController;
 import com.sportcourt.modules.court.dto.CourtSearchCriteria;
@@ -128,8 +129,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -160,9 +160,11 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> refreshCourts());
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();
@@ -289,7 +291,27 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         Color foreground = isActive ? CrudViewStyle.SUCCESS_TEXT : CrudViewStyle.DANGER_TEXT;
         String displayText = isActive ? "Hoạt động" : "Bảo trì";
 
-        JPanel wrapper = new JPanel(new GridBagLayout()) {
+        JLabel textLabel = new JLabel(displayText);
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        textLabel.setForeground(foreground);
+
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setOpaque(false);
+
+        GridBagConstraints dotConstraints = new GridBagConstraints();
+        dotConstraints.gridx = 0;
+        dotConstraints.gridy = 0;
+        dotConstraints.insets = new Insets(UIScale.scale(2), 0, 0, UIScale.scale(6));
+        content.add(createStatusDot(foreground), dotConstraints);
+
+        GridBagConstraints textConstraints = new GridBagConstraints();
+        textConstraints.gridx = 1;
+        textConstraints.gridy = 0;
+        content.add(textLabel, textConstraints);
+
+        int hPad = UIScale.scale(10);
+        int vPad = UIScale.scale(5);
+        JPanel pill = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -299,36 +321,13 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
                 g2.dispose();
             }
         };
-        wrapper.setOpaque(false);
-        Dimension size = new Dimension(CrudViewStyle.STATUS_PILL_WIDTH, CrudViewStyle.STATUS_PILL_HEIGHT);
-        wrapper.setPreferredSize(size);
-        wrapper.setMinimumSize(size);
-        wrapper.setMaximumSize(size);
-
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
-
-        JPanel dot = createStatusDot(foreground);
-        JLabel textLabel = new JLabel(displayText);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        textLabel.setForeground(foreground);
-
-        GridBagConstraints dotConstraints = new GridBagConstraints();
-        dotConstraints.gridx = 0;
-        dotConstraints.gridy = 0;
-        dotConstraints.insets = new Insets(2, 0, 0, 7);
-        content.add(dot, dotConstraints);
-
-        GridBagConstraints textConstraints = new GridBagConstraints();
-        textConstraints.gridx = 1;
-        textConstraints.gridy = 0;
-        content.add(textLabel, textConstraints);
-
-        wrapper.add(content);
+        pill.setOpaque(false);
+        pill.setBorder(new EmptyBorder(vPad, hPad, vPad, hPad));
+        pill.add(content);
 
         JPanel container = new JPanel(new GridBagLayout());
         container.setOpaque(false);
-        container.add(wrapper);
+        container.add(pill);
         return container;
     }
 
@@ -343,7 +342,8 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
                 g2.dispose();
             }
         };
-        Dimension size = new Dimension(5, 5);
+        int dotSize = UIScale.scaleFontInt(6f);
+        Dimension size = new Dimension(dotSize, dotSize);
         dot.setOpaque(false);
         dot.setPreferredSize(size);
         dot.setMinimumSize(size);

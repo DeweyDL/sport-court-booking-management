@@ -75,8 +75,7 @@ public class BranchChange extends JPanel {
 
         JScrollPane formScroll = new JScrollPane(createForm());
         formScroll.setBorder(null);
-        formScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        formScroll.getVerticalScrollBar().setUnitIncrement(16);
+        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
         formScroll.getViewport().setBackground(new Color(248, 249, 252));
         content.add(formScroll, BorderLayout.CENTER);
 
@@ -280,7 +279,7 @@ public class BranchChange extends JPanel {
         textField.setBorder(null);
         textField.setOpaque(false);
         textField.setFocusable(false);
-        textField.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        textField.setFont(new Font("Lexend", Font.BOLD, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }
@@ -289,7 +288,7 @@ public class BranchChange extends JPanel {
         JTextField textField = new JTextField();
         textField.setBorder(null);
         textField.setOpaque(false);
-        textField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        textField.setFont(new Font("Lexend", Font.PLAIN, 14));
         textField.setForeground(new Color(31, 41, 55));
         return textField;
     }

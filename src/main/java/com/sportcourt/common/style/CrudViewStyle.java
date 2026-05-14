@@ -2,11 +2,14 @@ package com.sportcourt.common.style;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
+import java.net.URL;
 
 public final class CrudViewStyle {
     public static final Color PAGE_BACKGROUND = new Color(245, 247, 250);
@@ -19,15 +22,24 @@ public final class CrudViewStyle {
     public static final Color MUTED = new Color(107, 114, 128);
     public static final Color SUCCESS_TEXT = new Color(16, 110, 0);
     public static final Color SUCCESS_BG = new Color(228, 250, 226);
+    public static final Color SIDEBAR_BACKGROUND = Color.decode("#2f3c33");
     public static final Color DANGER_TEXT = new Color(185, 28, 28);
     public static final Color DANGER_BG = new Color(254, 226, 226);
     public static final Color EDIT_TEXT = new Color(29, 78, 216);
     public static final Color EDIT_BG = new Color(239, 246, 255);
-    public static final int STATUS_PILL_WIDTH = 112;
-    public static final int STATUS_PILL_HEIGHT = 24;
-    public static final int TOOLBAR_CONTROL_HEIGHT = 41;
-    public static final int TOOLBAR_SEARCH_WIDTH = 270;
-    public static final int TOOLBAR_SORT_WIDTH = 214;
+    public static final Color SCROLLBAR_THUMB = new Color(160, 200, 170, 185);
+    public static final Color SCROLLBAR_THUMB_HOVER = new Color(190, 230, 200, 230);
+
+    // Dimension constants scaled via dimFactor (1920 baseline).
+    // Note: the status pill itself no longer uses these for fixed sizing — it
+    // auto-sizes to its content. These values remain as layout hints for panels
+    // that need a minimum column width for status columns.
+    public static final int STATUS_PILL_WIDTH  = UIScale.scaleFontInt(120f);
+    public static final int STATUS_PILL_HEIGHT = UIScale.scaleFontInt(28f);
+    public static final int TOOLBAR_CONTROL_HEIGHT = UIScale.scale(41);
+    public static final int TOOLBAR_SEARCH_WIDTH = UIScale.scale(270);
+    public static final int TOOLBAR_SORT_WIDTH = UIScale.scale(214);
+    public static final int ROW_HEIGHT = UIScale.scale(72);
 
     private static final String BASE_FONT_PROPERTY = "crud.baseFont";
     private static final String TYPOGRAPHY_LISTENER_PROPERTY = "crud.typographyListenerInstalled";
@@ -56,7 +68,7 @@ public final class CrudViewStyle {
     }
 
     public static void applyResponsiveTypography(JComponent root) {
-        int width = root.getWidth() > 0 ? root.getWidth() : Toolkit.getDefaultToolkit().getScreenSize().width;
+        int width = root.getWidth() > 0 ? root.getWidth() : UIScale.getScreenWidth();
         float scale = resolveTextScale(width);
         scaleComponentTree(root, root, scale);
         root.revalidate();
@@ -67,7 +79,7 @@ public final class CrudViewStyle {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(0, 6, 0, 0));
+        panel.setBorder(new EmptyBorder(0, UIScale.scale(6), 0, 0));
         return panel;
     }
 
@@ -79,6 +91,125 @@ public final class CrudViewStyle {
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, TOOLBAR_CONTROL_HEIGHT));
     }
 
+    public static void configureScrollPane(JScrollPane scrollPane) {
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        styleScrollBar(scrollPane.getVerticalScrollBar());
+        styleScrollBar(scrollPane.getHorizontalScrollBar());
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, createScrollCorner());
+    }
+
+    public static void styleScrollBar(JScrollBar bar) {
+        int size = UIScale.scale(8);
+        bar.setUnitIncrement(UIScale.scale(16));
+        bar.setBlockIncrement(UIScale.scale(96));
+        bar.setOpaque(true);
+        bar.setBackground(SIDEBAR_BACKGROUND);
+        bar.putClientProperty("JScrollBar.showButtons", false);
+        bar.putClientProperty("ScrollBar.trackColor", SIDEBAR_BACKGROUND);
+        bar.putClientProperty("ScrollBar.thumbColor", SCROLLBAR_THUMB);
+        bar.putClientProperty("ScrollBar.hoverThumbColor", SCROLLBAR_THUMB_HOVER);
+        bar.putClientProperty("ScrollBar.width", size);
+        bar.setPreferredSize(bar.getOrientation() == Adjustable.VERTICAL
+                ? new Dimension(size, 0)
+                : new Dimension(0, size));
+        bar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected void paintTrack(Graphics graphics, JComponent component, Rectangle bounds) {
+                graphics.setColor(SIDEBAR_BACKGROUND);
+                graphics.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
+
+            @Override
+            protected void paintThumb(Graphics graphics, JComponent component, Rectangle bounds) {
+                if (!component.isEnabled() || bounds.width <= 0 || bounds.height <= 0) {
+                    return;
+                }
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(isDragging || isThumbRollover() ? SCROLLBAR_THUMB_HOVER : SCROLLBAR_THUMB);
+                int inset = UIScale.scale(1);
+                int arc = Math.min(bounds.width, bounds.height);
+                g2.fillRoundRect(
+                        bounds.x + inset,
+                        bounds.y + inset,
+                        Math.max(0, bounds.width - 2 * inset),
+                        Math.max(0, bounds.height - 2 * inset),
+                        arc,
+                        arc
+                );
+                g2.dispose();
+            }
+        });
+    }
+
+    private static JComponent createScrollCorner() {
+        JPanel corner = new JPanel();
+        corner.setBackground(SIDEBAR_BACKGROUND);
+        return corner;
+    }
+
+    public static JButton createRefreshButton(ActionListener actionListener) {
+        int size = TOOLBAR_CONTROL_HEIGHT;
+        JButton button = new JButton(loadToolbarIcon("/icon/reload.png", 18, 18)) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isPressed() ? new Color(196, 232, 193) : SUCCESS_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        button.setToolTipText("Làm mới");
+        button.getAccessibleContext().setAccessibleName("Làm mới");
+        button.setFocusable(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(0, UIScale.scale(11), 0, UIScale.scale(11)));
+        button.setIconTextGap(0);
+        button.setPreferredSize(new Dimension(size, size));
+        button.setMinimumSize(new Dimension(size, size));
+        button.setMaximumSize(new Dimension(size, size));
+        if (actionListener != null) {
+            button.addActionListener(actionListener);
+        }
+        return button;
+    }
+
+    private static Icon loadToolbarIcon(String resourcePath, int baseWidth, int baseHeight) {
+        URL url = CrudViewStyle.class.getResource(resourcePath);
+        if (url == null) {
+            return UIManager.getIcon("FileView.fileIcon");
+        }
+        return UIScale.scaleIcon(url, baseWidth, baseHeight);
+    }
+
+    private static JButton createZeroButton() {
+        JButton button = new JButton();
+        Dimension size = new Dimension(0, 0);
+        button.setPreferredSize(size);
+        button.setMinimumSize(size);
+        button.setMaximumSize(size);
+        button.setFocusable(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setContentAreaFilled(false);
+        return button;
+    }
+
+
     public static JPanel createSearchFieldWithIcon(JPanel wrapper, JTextField searchField, Icon icon) {
         wrapper.removeAll();
         wrapper.setOpaque(false);
@@ -87,7 +218,7 @@ public final class CrudViewStyle {
         wrapper.setMinimumSize(size);
         wrapper.setMaximumSize(size);
 
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(14)));
         searchField.setPreferredSize(size);
         searchField.putClientProperty("JTextField.padding", new Insets(5, 8, 5, 10));
         searchField.putClientProperty("JComponent.roundRect", true);
@@ -95,24 +226,25 @@ public final class CrudViewStyle {
         searchField.setOpaque(false);
 
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 8));
+        iconLabel.setBorder(new EmptyBorder(0, 0, 0, UIScale.scale(8)));
 
+        int arc = UIScale.scale(28);
         JPanel innerPanel = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics graphics) {
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
                 g2.setColor(BORDER);
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
                 g2.dispose();
             }
         };
         innerPanel.setOpaque(false);
         innerPanel.setPreferredSize(size);
         innerPanel.setMaximumSize(size);
-        innerPanel.setBorder(new EmptyBorder(0, 12, 0, 12));
+        innerPanel.setBorder(new EmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
         innerPanel.add(iconLabel, BorderLayout.WEST);
         innerPanel.add(searchField, BorderLayout.CENTER);
 
@@ -121,9 +253,9 @@ public final class CrudViewStyle {
     }
 
     public static JPanel createSortWrapper(JComboBox<String> sortBox, JButton directionButton) {
-        sortBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        sortBox.setFont(new Font("Segoe UI", Font.PLAIN, UIScale.scale(14)));
         sortBox.setFocusable(false);
-        sortBox.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+        sortBox.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
         sortBox.setOpaque(false);
         sortBox.setBackground(Color.WHITE);
         sortBox.putClientProperty("JComponent.roundRect", true);
@@ -135,26 +267,27 @@ public final class CrudViewStyle {
                                                           boolean isSelected, boolean cellHasFocus) {
                 Object display = index < 0 ? "Sắp xếp: " + value : value;
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, display, index, isSelected, cellHasFocus);
-                label.setBorder(new EmptyBorder(6, 10, 6, 10));
+                label.setBorder(new EmptyBorder(UIScale.scale(6), UIScale.scale(10), UIScale.scale(6), UIScale.scale(10)));
                 return label;
             }
         });
 
-        directionButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, 11));
+        directionButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scale(11)));
         directionButton.setForeground(new Color(75, 85, 99));
-        directionButton.setBorder(new EmptyBorder(0, 0, 0, 12));
+        directionButton.setBorder(new EmptyBorder(0, 0, 0, UIScale.scale(12)));
         directionButton.setContentAreaFilled(false);
         directionButton.setBorderPainted(false);
         directionButton.setFocusPainted(false);
         directionButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
+        int sortArc = UIScale.scale(28);
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics graphics) {
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 28, 28);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), sortArc, sortArc);
                 g2.dispose();
             }
 
@@ -164,7 +297,7 @@ public final class CrudViewStyle {
                 Graphics2D g2 = (Graphics2D) graphics.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(BORDER);
-                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 28, 28);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, sortArc, sortArc);
                 g2.dispose();
             }
         };
@@ -186,6 +319,29 @@ public final class CrudViewStyle {
     }
 
     public static JPanel createStatusPill(String text, Color background, Color foreground) {
+        JLabel textLabel = new JLabel(text == null || text.isBlank() ? "--" : text);
+        // Raw size — installResponsiveTypography scales it via fontFactor; no fixed width needed.
+        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        textLabel.setForeground(foreground);
+
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setOpaque(false);
+
+        GridBagConstraints dotConstraints = new GridBagConstraints();
+        dotConstraints.gridx = 0;
+        dotConstraints.gridy = 0;
+        dotConstraints.insets = new Insets(UIScale.scale(2), 0, 0, UIScale.scale(6));
+        content.add(createStatusDot(foreground), dotConstraints);
+
+        GridBagConstraints textConstraints = new GridBagConstraints();
+        textConstraints.gridx = 1;
+        textConstraints.gridy = 0;
+        content.add(textLabel, textConstraints);
+
+        // Pill sizes itself to its content; EmptyBorder provides the visual padding.
+        // No fixed min/max/preferred — the scaled font fits without clipping.
+        int hPad = UIScale.scale(10);
+        int vPad = UIScale.scale(5);
         JPanel pill = new JPanel(new GridBagLayout()) {
             @Override
             protected void paintComponent(Graphics graphics) {
@@ -197,29 +353,7 @@ public final class CrudViewStyle {
             }
         };
         pill.setOpaque(false);
-        Dimension size = new Dimension(STATUS_PILL_WIDTH, STATUS_PILL_HEIGHT);
-        pill.setPreferredSize(size);
-        pill.setMinimumSize(size);
-        pill.setMaximumSize(size);
-
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
-
-        GridBagConstraints dotConstraints = new GridBagConstraints();
-        dotConstraints.gridx = 0;
-        dotConstraints.gridy = 0;
-        dotConstraints.insets = new Insets(2, 0, 0, 7);
-        content.add(createStatusDot(foreground), dotConstraints);
-
-        JLabel textLabel = new JLabel(text == null || text.isBlank() ? "--" : text);
-        textLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        textLabel.setForeground(foreground);
-
-        GridBagConstraints textConstraints = new GridBagConstraints();
-        textConstraints.gridx = 1;
-        textConstraints.gridy = 0;
-        content.add(textLabel, textConstraints);
-
+        pill.setBorder(new EmptyBorder(vPad, hPad, vPad, hPad));
         pill.add(content);
 
         JPanel wrapper = new JPanel(new GridBagLayout());
@@ -239,7 +373,9 @@ public final class CrudViewStyle {
                 g2.dispose();
             }
         };
-        Dimension size = new Dimension(5, 5);
+        // Dot sized to match the scaled font baseline.
+        int dotSize = UIScale.scaleFontInt(6f);
+        Dimension size = new Dimension(dotSize, dotSize);
         dot.setOpaque(false);
         dot.setPreferredSize(size);
         dot.setMinimumSize(size);
@@ -258,10 +394,10 @@ public final class CrudViewStyle {
     }
 
     private static void updatePageBorder(JComponent component) {
-        int width = component.getWidth() > 0 ? component.getWidth() : Toolkit.getDefaultToolkit().getScreenSize().width;
-        int horizontal = clamp(Math.round(width * 0.055f), 24, 70);
-        int top = clamp(Math.round(width * 0.045f), 28, 60);
-        int bottom = clamp(Math.round(width * 0.035f), 28, 46);
+        int width = component.getWidth() > 0 ? component.getWidth() : UIScale.getScreenWidth();
+        int horizontal = clamp(Math.round(width * 0.055f), UIScale.scale(24), UIScale.scale(70));
+        int top = clamp(Math.round(width * 0.045f), UIScale.scale(28), UIScale.scale(60));
+        int bottom = clamp(Math.round(width * 0.035f), UIScale.scale(28), UIScale.scale(46));
         component.setBorder(new EmptyBorder(top, horizontal, bottom, horizontal));
     }
 
@@ -270,7 +406,9 @@ public final class CrudViewStyle {
             rememberBaseFont(swingComponent);
             Font baseFont = (Font) swingComponent.getClientProperty(BASE_FONT_PROPERTY);
             if (baseFont != null) {
-                float scaledSize = clamp(baseFont.getSize2D() * scale, 11f, Math.max(11f, baseFont.getSize2D() + 4f));
+                // Minimum readable size scales with the global factor; no artificial upper cap.
+                float minSize = UIScale.scaleFont(10f);
+                float scaledSize = Math.max(minSize, baseFont.getSize2D() * scale);
                 swingComponent.setFont(baseFont.deriveFont(scaledSize));
                 Object fixedHeight = swingComponent.getClientProperty("crud.toolbarFixedHeight");
                 if (fixedHeight instanceof Integer h) {
@@ -312,17 +450,15 @@ public final class CrudViewStyle {
         });
     }
 
+    /**
+     * Returns the font scale factor for a panel.
+     *
+     * Uses the screen-based font factor only — no width-based reduction.
+     * When a panel's content is too wide for the current window, the layout
+     * scrolls rather than shrinking text.
+     */
     private static float resolveTextScale(int width) {
-        if (width < 900) {
-            return 0.88f;
-        }
-        if (width < 1200) {
-            return 0.94f;
-        }
-        if (width > 1700) {
-            return 1.05f;
-        }
-        return 1.0f;
+        return UIScale.getFactor(); // fontFactor: larger on big screens, no width penalty
     }
 
     private static int clamp(int value, int min, int max) {

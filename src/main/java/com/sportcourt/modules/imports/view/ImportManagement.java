@@ -115,9 +115,7 @@ public class ImportManagement extends JPanel implements Scrollable {
         JScrollPane scrollPane = new JScrollPane(tablePanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        CrudViewStyle.configureScrollPane(scrollPane);
         scrollPane.setColumnHeaderView(createTableHeader());
         container.add(scrollPane, BorderLayout.CENTER);
 
@@ -149,9 +147,11 @@ public class ImportManagement extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(event -> openCreateDialog());
+        JButton refreshBtn = CrudViewStyle.createRefreshButton(event -> loadData(searchField.getText()));
 
         leftToolbar.add(tableTitle);
         leftToolbar.add(addBtn);
+        leftToolbar.add(refreshBtn);
         toolbar.add(leftToolbar, BorderLayout.WEST);
 
         JPanel rightToolbar = new JPanel();

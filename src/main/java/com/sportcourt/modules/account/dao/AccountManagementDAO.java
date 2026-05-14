@@ -14,11 +14,13 @@ public interface AccountManagementDAO {
 
     void assignRoleGroup(String accountId, String groupId) throws SQLException;
 
-    void createAccount(String userId, String accountId, String accountRoleGroupId, AccountUpsertRequest request, String passwordHash) throws SQLException;
+    void createAccount(String userId, String accountId, AccountUpsertRequest request, String passwordHash) throws SQLException;
 
     boolean updateAccount(AccountUpsertRequest request) throws SQLException;
 
     boolean softDeleteAccount(String accountId) throws SQLException;
 
     boolean restoreAccount(String accountId) throws SQLException;
+
+    String generatedNextId() throws SQLException;
 }

@@ -24,6 +24,10 @@ public class SupplierManagementController {
         return supplierManagementService.searchSuppliers(keyword);
     }
 
+    public String generateNextId() throws SQLException {
+        return supplierManagementService.generateNextId();
+    }
+
     public void createSupplier(SupplierCreateRequest request) throws SQLException {
         supplierManagementService.createSupplier(request);
     }
