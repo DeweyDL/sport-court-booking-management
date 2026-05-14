@@ -13,6 +13,11 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 
 public class Register extends JPanel {
+    private static final int FORM_SIDE_INSET = UIScale.scale(48);
+    private static final int OTP_ROW_GAP = UIScale.scale(8);
+    private static final Insets OTP_BUTTON_MARGIN = new Insets(0, UIScale.scale(8), 0, UIScale.scale(8));
+    private static final Dimension OTP_BUTTON_SIZE = new Dimension(UIScale.scale(150), UIScale.scale(44));
+
     private final AuthController authController = new AuthController();
     private CardLayout cardLayout;
     private JPanel parentPanel;
@@ -36,7 +41,7 @@ public class Register extends JPanel {
                 UIScale.scale(40), UIScale.scale(40), UIScale.scale(40), UIScale.scale(40)));
 
         GridBagConstraints r = new GridBagConstraints();
-        r.insets = new Insets(UIScale.scale(10), UIScale.scale(180), UIScale.scale(10), UIScale.scale(180));
+        r.insets = new Insets(UIScale.scale(8), FORM_SIDE_INSET, UIScale.scale(8), FORM_SIDE_INSET);
         r.gridx = 0;
         r.weightx = 1;
         r.weighty = 0;
@@ -74,7 +79,7 @@ public class Register extends JPanel {
 
         JPanel userPanel = new JPanel(new BorderLayout());
         userPanel.setBackground(new Color(242, 242, 242));
-        userPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        userPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         userPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel userIcon = new JLabel(scaleIcon("/icon/user.png", UIScale.scale(18), UIScale.scale(18)));
@@ -92,7 +97,7 @@ public class Register extends JPanel {
 
         JPanel phonePanel = new JPanel(new BorderLayout());
         phonePanel.setBackground(new Color(242, 242, 242));
-        phonePanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        phonePanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         phonePanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel phoneIcon = new JLabel(scaleIcon("/icon/phone.png", UIScale.scale(18), UIScale.scale(18)));
@@ -110,7 +115,7 @@ public class Register extends JPanel {
 
         JPanel emailPanel = new JPanel(new BorderLayout());
         emailPanel.setBackground(new Color(242, 242, 242));
-        emailPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        emailPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         emailPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel emailIcon = new JLabel(scaleIcon("/icon/mail.png", UIScale.scale(18), UIScale.scale(18)));
@@ -119,14 +124,15 @@ public class Register extends JPanel {
         emailPanel.add(emailIcon, BorderLayout.WEST);
         emailPanel.add(email, BorderLayout.CENTER);
 
-        JButton sendOtpBtn = new JButton("Gửi OTP");
-        sendOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(20)));
+        JButton sendOtpBtn = new JButton("Gửi mã OTP");
+        sendOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         sendOtpBtn.setBackground(new Color(187, 220, 182));
         sendOtpBtn.setForeground(new Color(16, 110, 0));
         sendOtpBtn.setBorderPainted(false);
-        sendOtpBtn.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        sendOtpBtn.setMargin(OTP_BUTTON_MARGIN);
+        sendOtpBtn.setPreferredSize(OTP_BUTTON_SIZE);
         // ---- ROW chứa 2 field ----
-        JPanel contactRow = new JPanel(new BorderLayout(UIScale.scale(20), 0));
+        JPanel contactRow = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         contactRow.setBackground(new Color(242, 242, 242));
 
         contactRow.add(emailPanel, BorderLayout.CENTER);
@@ -143,19 +149,20 @@ public class Register extends JPanel {
 
         JPanel otpPanel = new JPanel(new BorderLayout());
         otpPanel.setBackground(new Color(242, 242, 242));
-        otpPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        otpPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         otpPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
         otpPanel.add(otpField, BorderLayout.CENTER);
         otpPanel.add(otpIcon, BorderLayout.WEST);
 
-        JButton verifyOtpBtn = new JButton("Xác thực");
-        verifyOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(20)));
+        JButton verifyOtpBtn = new JButton("Xác thực OTP");
+        verifyOtpBtn.setFont(new Font("Segoe UI", Font.BOLD, UIScale.scale(15)));
         verifyOtpBtn.setBackground(new Color(187, 220, 182));
         verifyOtpBtn.setForeground(new Color(16, 110, 0));
         verifyOtpBtn.setBorderPainted(false);
-        verifyOtpBtn.setPreferredSize(new Dimension(200, UIScale.scale(50)));
+        verifyOtpBtn.setMargin(OTP_BUTTON_MARGIN);
+        verifyOtpBtn.setPreferredSize(OTP_BUTTON_SIZE);
 
-        JPanel otpRow = new JPanel(new BorderLayout(UIScale.scale(20), 0));
+        JPanel otpRow = new JPanel(new BorderLayout(OTP_ROW_GAP, 0));
         otpRow.setBackground(new Color(242, 242, 242));
         otpRow.add(otpPanel, BorderLayout.CENTER);
         otpRow.add(verifyOtpBtn, BorderLayout.EAST);
@@ -169,7 +176,7 @@ public class Register extends JPanel {
 
         JPanel passPanel = new JPanel(new BorderLayout());
         passPanel.setBackground(new Color(242, 242, 242));
-        passPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        passPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         passPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel passIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
@@ -187,7 +194,7 @@ public class Register extends JPanel {
 
         JPanel checkpassPanel = new JPanel(new BorderLayout());
         checkpassPanel.setBackground(new Color(242, 242, 242));
-        checkpassPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 200, 200)));
+        checkpassPanel.setBorder(AuthViewStyle.createInputUnderlineBorder());
         checkpassPanel.setPreferredSize(new Dimension(200, UIScale.scale(45)));
 
         JLabel checkpassIcon = new JLabel(scaleIcon("/icon/pass.png", UIScale.scale(18), UIScale.scale(18)));
