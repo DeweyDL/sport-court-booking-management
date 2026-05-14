@@ -31,7 +31,6 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
                 FROM ACCOUNT a
                 JOIN USERS u
                     ON u.USER_ID = a.USER_ID
-                    AND u.IS_DELETED = 0
                 LEFT JOIN (
                     SELECT account_id, group_id
                     FROM (
@@ -288,9 +287,14 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
     public boolean restoreAccount(String accountId) throws SQLException {
         String restoreAccountSql = """
                 UPDATE ACCOUNT
-                SET IS_DELETED = 0
+                SET IS_DELETED = 0, STATUS = 'ACTIVE'
                 WHERE ACCOUNT_ID = ?
                   AND IS_DELETED = 1
+                """;
+        String restoreUserSql = """
+                UPDATE USERS
+                SET IS_DELETED = 0
+                WHERE USER_ID = (SELECT USER_ID FROM ACCOUNT WHERE ACCOUNT_ID = ?)
                 """;
         String restoreRoleGroupSql = """
                 UPDATE ACCOUNT_ROLE_GROUP
@@ -306,6 +310,21 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
                     WHERE ROWNUM = 1
                 )
                 """;
+        String restoreRoleSql = """
+                UPDATE ACCOUNT_ROLE
+                SET IS_DELETED = 0
+                WHERE ACCOUNT_ID = ?
+                """;
+        String restoreStaffSql = """
+                UPDATE NHAN_VIEN
+                SET IS_DELETED = 0, TRANG_THAI = 'ACTIVE'
+                WHERE USER_ID = (SELECT USER_ID FROM ACCOUNT WHERE ACCOUNT_ID = ?)
+                """;
+        String restoreCustomerSql = """
+                UPDATE KHACH_HANG
+                SET IS_DELETED = 0, TRANGTHAI = 'ACTIVE'
+                WHERE USER_ID = (SELECT USER_ID FROM ACCOUNT WHERE ACCOUNT_ID = ?)
+                """;
         try (Connection connection = ConnectionUtils.getMyConnection()) {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
@@ -316,7 +335,23 @@ public class JdbcAccountManagementDAO implements AccountManagementDAO {
                     affectedRows = statement.executeUpdate();
                 }
                 if (affectedRows > 0) {
+                    try (PreparedStatement statement = connection.prepareStatement(restoreUserSql)) {
+                        statement.setString(1, accountId);
+                        statement.executeUpdate();
+                    }
                     try (PreparedStatement statement = connection.prepareStatement(restoreRoleGroupSql)) {
+                        statement.setString(1, accountId);
+                        statement.executeUpdate();
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement(restoreRoleSql)) {
+                        statement.setString(1, accountId);
+                        statement.executeUpdate();
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement(restoreStaffSql)) {
+                        statement.setString(1, accountId);
+                        statement.executeUpdate();
+                    }
+                    try (PreparedStatement statement = connection.prepareStatement(restoreCustomerSql)) {
                         statement.setString(1, accountId);
                         statement.executeUpdate();
                     }

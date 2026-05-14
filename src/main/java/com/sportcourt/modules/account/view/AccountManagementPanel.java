@@ -578,15 +578,15 @@ public class AccountManagementPanel extends JPanel implements Scrollable {
     }
 
     private String displayStatus(AccountRow row) {
-        return row.isDeleted() ? "DELETED" : row.getStatus();
+        if (row.isDeleted()) return "Inactive";
+        return "ACTIVE".equalsIgnoreCase(row.getStatus()) ? "Active" : "Inactive";
     }
 
     private JPanel createStatusPill(AccountRow row) {
         String status = displayStatus(row);
-        boolean active = "ACTIVE".equalsIgnoreCase(status);
-        boolean inactive = "INACTIVE".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status);
-        Color background = active ? CREATE_BG : inactive ? SOFT_RED_BG : EDIT_BG;
-        Color foreground = active ? CREATE_TEXT : inactive ? SOFT_RED_TEXT : EDIT_TEXT;
+        boolean active = "Active".equals(status);
+        Color background = active ? CREATE_BG : SOFT_RED_BG;
+        Color foreground = active ? CREATE_TEXT : SOFT_RED_TEXT;
         return CrudViewStyle.createStatusPill(status, background, foreground);
     }
 
