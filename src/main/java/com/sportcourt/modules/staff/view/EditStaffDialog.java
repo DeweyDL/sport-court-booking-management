@@ -23,7 +23,7 @@ public class EditStaffDialog extends JDialog {
     private final StaffService staffService = new StaffServiceImpl();
     private final StaffPanel   parentPanel;
 
-    public EditStaffDialog(JFrame parent, StaffPanel parentPanel, StaffResponse staff, boolean isOwner) {
+    public EditStaffDialog(JFrame parent, StaffPanel parentPanel, StaffResponse staff, boolean isOwner, String sessionBranchId) {
         super(parent, "Chỉnh sửa nhân viên", ModalityType.APPLICATION_MODAL);
         this.parentPanel = parentPanel;
 
@@ -57,7 +57,7 @@ public class EditStaffDialog extends JDialog {
         JTextField txtPhone   = new JTextField(staff.getSdt() == null ? "" : staff.getSdt());
         JTextField txtDiaChi  = new JTextField(staff.getDiaChi() == null ? "" : staff.getDiaChi());
         JTextField txtCCCD    = new JTextField(staff.getCccd() == null ? "" : staff.getCccd());
-        JTextField txtMaCn    = new JTextField(staff.getMaCn() == null ? "" : staff.getMaCn());
+        JComboBox<String> cbMaCn = new JComboBox<>();
         JComboBox<String> cbChucVu    = new JComboBox<>(new String[]{"Nhân viên", "Quản lý"});
         JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE", "ĐÃ NGHỈ"});
 
@@ -88,8 +88,29 @@ public class EditStaffDialog extends JDialog {
         form.add(Box.createVerticalStrut(14));
         form.add(createField("Căn cước công dân", txtCCCD));
         form.add(Box.createVerticalStrut(14));
-        if (isOwner) {
-            form.add(createField("Mã chi nhánh", txtMaCn));
+        boolean showBranchField = isOwner || (sessionBranchId != null && !sessionBranchId.isEmpty());
+        if (showBranchField) {
+            String currentMaCn = staff.getMaCn();
+            if (isOwner) {
+                new SwingWorker<java.util.List<String>, Void>() {
+                    @Override
+                    protected java.util.List<String> doInBackground() throws Exception {
+                        return staffService.loadBranchIds();
+                    }
+                    @Override
+                    protected void done() {
+                        try {
+                            for (String id : get()) cbMaCn.addItem(id);
+                            if (currentMaCn != null) cbMaCn.setSelectedItem(currentMaCn);
+                        } catch (Exception ignored) {}
+                    }
+                }.execute();
+            } else {
+                cbMaCn.addItem(sessionBranchId);
+                cbMaCn.setEnabled(false);
+                cbMaCn.setBackground(READONLY_BG);
+            }
+            form.add(createField("Mã chi nhánh", cbMaCn));
             form.add(Box.createVerticalStrut(14));
         }
 
@@ -124,7 +145,7 @@ public class EditStaffDialog extends JDialog {
                 req.setCccd(txtCCCD.getText().trim());
                 req.setIsQl(cbChucVu.getSelectedIndex());
                 req.setTrangThai(cbTrangThai.getSelectedItem().toString());
-                req.setMaCn(txtMaCn.getText().trim());
+                req.setMaCn(cbMaCn.getSelectedItem() != null ? cbMaCn.getSelectedItem().toString() : null);
 
                 staffService.updateStaff(staff.getManv(), req);
                 JOptionPane.showMessageDialog(this, "Đã cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);

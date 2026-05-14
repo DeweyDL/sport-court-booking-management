@@ -48,7 +48,7 @@ public class ContentPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(view);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.decode("#F5F7FA"));
-        CrudViewStyle.configureScrollPane(scrollPane);
+        CrudViewStyle.configureScrollPane(scrollPane, Color.decode("#F5F7FA"));
 
         int pad = UIScale.scale(20);
         JPanel wrapper = new JPanel(new BorderLayout());
