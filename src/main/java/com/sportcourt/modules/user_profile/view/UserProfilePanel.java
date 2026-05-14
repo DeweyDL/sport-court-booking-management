@@ -167,7 +167,7 @@ public class UserProfilePanel extends JPanel implements Scrollable {
     private JPanel createInfoCard() {
         InfoCardPanel card = new InfoCardPanel();
         card.setLayout(new BorderLayout(0, UIScale.scale(24)));
-        card.setBorder(new EmptyBorder(UIScale.scale(28), UIScale.scale(32), UIScale.scale(38), UIScale.scale(32)));
+        card.setBorder(new EmptyBorder(UIScale.scale(28), UIScale.scale(24), UIScale.scale(38), UIScale.scale(24)));
 
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setOpaque(false);
