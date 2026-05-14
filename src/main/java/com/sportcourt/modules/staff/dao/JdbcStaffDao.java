@@ -5,13 +5,13 @@ import com.sportcourt.modules.staff.dto.StaffCreateRequest;
 import com.sportcourt.modules.staff.dto.StaffResponse;
 import com.sportcourt.modules.staff.dto.StaffUpdateRequest;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class JdbcStaffDao {
 
@@ -21,7 +21,7 @@ public class JdbcStaffDao {
         StringBuilder sql = new StringBuilder(
                 "SELECT nv.MANV, u.HOTEN, u.SDT, u.DIACHI, nv.CCCD, nv.IS_QL, nv.TRANG_THAI, nv.NVL, nv.MACN, nv.IS_DELETED " +
                         "FROM NHAN_VIEN nv " +
-                        "JOIN USERS u ON nv.USER_ID = u.USER_ID AND u.IS_DELETED = 0 "
+                        "JOIN USERS u ON nv.USER_ID = u.USER_ID "
         );
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -65,102 +65,99 @@ public class JdbcStaffDao {
         return list;
     }
 
-    // 2. Thêm nhân viên mới (Đã chuẩn hóa hoàn toàn theo DDL)
-    public boolean insert(StaffCreateRequest req) throws SQLException {
-        Connection conn = null;
-        PreparedStatement psUser = null;
-        PreparedStatement psStaff = null;
+    // 2. Thêm nhân viên mới qua procedure PRC_THEM_NHAN_VIEN
+    public String nextNumericId(String tableName, String idColumn, String prefix) throws SQLException {
+        String sql = switch ((tableName + "." + idColumn).toUpperCase()) {
+            case "USERS.USER_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(USER_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM USERS
+                    WHERE USER_ID LIKE ?
+                    """;
+            case "ACCOUNT.ACCOUNT_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(ACCOUNT_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM ACCOUNT
+                    WHERE ACCOUNT_ID LIKE ?
+                    """;
+            case "ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(ACCOUNT_ROLE_GROUP_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM ACCOUNT_ROLE_GROUP
+                    WHERE ACCOUNT_ROLE_GROUP_ID LIKE ?
+                    """;
+            case "ACCOUNT_ROLE.ACCOUNT_ROLE_ID" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(ACCOUNT_ROLE_ID, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM ACCOUNT_ROLE
+                    WHERE ACCOUNT_ROLE_ID LIKE ?
+                    """;
+            case "NHAN_VIEN.MANV" -> """
+                    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MANV, '\\d+$'))), 0) + 1 AS NEXT_ID
+                    FROM NHAN_VIEN
+                    WHERE MANV LIKE ?
+                    """;
+            default -> throw new SQLException("Khong ho tro sinh ID cho " + tableName + "." + idColumn);
+        };
 
-        try {
-            conn = ConnectionUtils.getMyConnection();
-            conn.setAutoCommit(false); // Bật Transaction
-
-            // Sinh mã USER_ID ngẫu nhiên
-            String userId = "USR_" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
-
-            String sdt = (req.getSdt() != null && !req.getSdt().trim().isEmpty()) ? req.getSdt().trim() : "0999999999";
-            String diaChi = (req.getDiaChi() != null && !req.getDiaChi().trim().isEmpty()) ? req.getDiaChi().trim() : null;
-
-            // Insert bảng USERS
-            String sqlUser = "INSERT INTO USERS (USER_ID, HOTEN, SDT, DIACHI) VALUES (?, ?, ?, ?)";
-            psUser = conn.prepareStatement(sqlUser);
-            psUser.setString(1, userId);
-            psUser.setString(2, req.getHoten());
-            psUser.setString(3, sdt);
-            psUser.setString(4, diaChi);
-            psUser.executeUpdate();
-
-            // Use provided maCn if given; otherwise auto-detect first available branch
-            String defaultMacn = (req.getMaCn() != null && !req.getMaCn().trim().isEmpty())
-                    ? req.getMaCn().trim() : null;
-
-            if (defaultMacn == null) {
-                try (PreparedStatement ps1 = conn.prepareStatement("SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 AND ROWNUM = 1");
-                     ResultSet rs1 = ps1.executeQuery()) {
-                    if (rs1.next()) defaultMacn = rs1.getString("MACN");
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, prefix + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return prefix + rs.getLong("NEXT_ID");
                 }
             }
-
-            if (defaultMacn == null) {
-                defaultMacn = "CN01";
-                try (PreparedStatement psCN = conn.prepareStatement("INSERT INTO CHI_NHANH (MACN, TEN_CHI_NHANH, DIACHI) VALUES (?, ?, ?)")) {
-                    psCN.setString(1, defaultMacn);
-                    psCN.setString(2, "Chi nhánh mặc định");
-                    psCN.setString(3, "Chưa cập nhật địa chỉ");
-                    psCN.executeUpdate();
-                }
-            }
-
-            // --- TỰ ĐỘNG TÌM MALNV TRONG DB ---
-            String defaultMalnv = null;
-            try(PreparedStatement ps2 = conn.prepareStatement("SELECT MALNV FROM LOAI_NHAN_VIEN WHERE IS_DELETED = 0 AND ROWNUM = 1");
-                ResultSet rs2 = ps2.executeQuery()) {
-                if(rs2.next()) defaultMalnv = rs2.getString("MALNV");
-            }
-
-            // NẾU DB TRỐNG LOẠI NV -> TỰ INSERT ĐÚNG CẤU TRÚC (Có đủ MALNV, VITRI, MUC_LUONG)
-            if (defaultMalnv == null) {
-                defaultMalnv = "LNV01";
-                try (PreparedStatement psLNV = conn.prepareStatement("INSERT INTO LOAI_NHAN_VIEN (MALNV, VITRI, MUC_LUONG) VALUES (?, ?, ?)")) {
-                    psLNV.setString(1, defaultMalnv);
-                    psLNV.setString(2, "Nhân viên mặc định");
-                    psLNV.setDouble(3, 0.0);
-                    psLNV.executeUpdate();
-                }
-            }
-
-            // Xử lý CCCD rỗng thành NULL để không bị dính chưởng Constraint Regex
-            String cccd = req.getCccd();
-            if (cccd != null && cccd.trim().isEmpty()) {
-                cccd = null;
-            }
-
-            // Insert NHAN_VIEN
-            String sqlStaff = "INSERT INTO NHAN_VIEN (MANV, USER_ID, MALNV, MACN, NVL, CCCD, IS_QL, TRANG_THAI, IS_DELETED) " +
-                    "VALUES (?, ?, ?, ?, SYSDATE, ?, ?, ?, 0)";
-
-            psStaff = conn.prepareStatement(sqlStaff);
-            psStaff.setString(1, req.getManv());
-            psStaff.setString(2, userId);
-            psStaff.setString(3, defaultMalnv);
-            psStaff.setString(4, defaultMacn);
-            psStaff.setString(5, cccd);
-            psStaff.setInt(6, req.getIsQl());
-            psStaff.setString(7, req.getTrangThai());
-
-            psStaff.executeUpdate();
-
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            if (conn != null) conn.rollback();
-            throw e;
-        } finally {
-            if (psUser != null) psUser.close();
-            if (psStaff != null) psStaff.close();
-            if (conn != null) conn.setAutoCommit(true);
-            if (conn != null) conn.close();
         }
+        throw new SQLException("Khong the sinh ID moi cho " + tableName + "." + idColumn);
+    }
+
+    public boolean insert(String userId,
+                          String accountId,
+                          String accountRoleGroupId,
+                          String accountRoleId,
+                          String roleGroupId,
+                          String roleId,
+                          StaffCreateRequest req,
+                          String maLoaiNv,
+                          String passwordHash) throws SQLException {
+        String call = "{ call PRC_THEM_NHAN_VIEN(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }";
+
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try (CallableStatement ps = conn.prepareCall(call)) {
+                ps.setString(1, userId);
+                ps.setString(2, normalizeOptional(req.getManv()));
+                ps.setString(3, accountId);
+                ps.setString(4, accountRoleGroupId);
+                ps.setString(5, accountRoleId);
+                ps.setString(6, roleGroupId);
+                ps.setString(7, roleId);
+                ps.setString(8, normalizeOptional(req.getHoten()));
+                ps.setString(9, normalizeOptional(req.getSdt()));
+                ps.setString(10, maLoaiNv);
+                ps.setString(11, normalizeOptional(req.getMaCn()));
+                ps.setString(12, normalizeOptional(req.getCccd()));
+                ps.setInt(13, req.getIsQl());
+                ps.setString(14, normalizeOptional(req.getTrangThai()));
+                ps.setString(15, passwordHash);
+                ps.setString(16, normalizeOptional(req.getDiaChi()));
+
+                ps.execute();
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     // 3. Sửa thông tin nhân viên
@@ -217,35 +214,83 @@ public class JdbcStaffDao {
     }
 
     public String generateNextManv() throws SQLException {
-        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MANV, '\\d+$'))), 0) + 1 AS NEXT_ID " +
-                "FROM NHAN_VIEN WHERE REGEXP_LIKE(MANV, '^NV-\\d+$')";
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return "NV-" + rs.getInt("NEXT_ID");
-            }
-        }
-        return "NV-1";
+        return nextNumericId("NHAN_VIEN", "MANV", "NV-");
     }
 
-    // 4. Xóa mềm nhân viên
+    // 4. Xóa mềm nhân viên qua procedure PRC_XOA_NHAN_VIEN
     public boolean delete(String manv) throws SQLException {
-        String sql = "UPDATE NHAN_VIEN SET IS_DELETED = 1, TRANG_THAI = 'ĐÃ NGHỈ' WHERE MANV = ?";
+        String call = "{ call PRC_XOA_NHAN_VIEN(?) }";
         try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, manv);
-            return ps.executeUpdate() > 0;
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setString(1, manv);
+            cs.execute();
+            return true;
         }
     }
 
-    // 5. Khôi phục nhân viên đã xóa
+    // 5. Khôi phục nhân viên đã xóa (khôi phục cả USERS, ACCOUNT, ACCOUNT_ROLE_GROUP, ACCOUNT_ROLE)
     public boolean restore(String manv) throws SQLException {
-        String sql = "UPDATE NHAN_VIEN SET IS_DELETED = 0, TRANG_THAI = 'ACTIVE' WHERE MANV = ?";
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, manv);
-            return ps.executeUpdate() > 0;
+        String restoreStaff = "UPDATE NHAN_VIEN SET IS_DELETED = 0, TRANG_THAI = 'ACTIVE' WHERE MANV = ?";
+        String restoreUser = """
+                UPDATE USERS SET IS_DELETED = 0
+                WHERE USER_ID = (SELECT USER_ID FROM NHAN_VIEN WHERE MANV = ?)
+                """;
+        String restoreAccount = """
+                UPDATE ACCOUNT SET STATUS = 'ACTIVE', IS_DELETED = 0
+                WHERE USER_ID = (SELECT USER_ID FROM NHAN_VIEN WHERE MANV = ?)
+                """;
+        String restoreRoleGroup = """
+                UPDATE ACCOUNT_ROLE_GROUP SET IS_DELETED = 0
+                WHERE ACCOUNT_ID = (
+                    SELECT a.ACCOUNT_ID FROM ACCOUNT a
+                    JOIN NHAN_VIEN nv ON nv.USER_ID = a.USER_ID
+                    WHERE nv.MANV = ?
+                )
+                """;
+        String restoreRole = """
+                UPDATE ACCOUNT_ROLE SET IS_DELETED = 0
+                WHERE ACCOUNT_ID = (
+                    SELECT a.ACCOUNT_ID FROM ACCOUNT a
+                    JOIN NHAN_VIEN nv ON nv.USER_ID = a.USER_ID
+                    WHERE nv.MANV = ?
+                )
+                """;
+
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement psStaff = conn.prepareStatement(restoreStaff);
+                 PreparedStatement psUser = conn.prepareStatement(restoreUser);
+                 PreparedStatement psAccount = conn.prepareStatement(restoreAccount);
+                 PreparedStatement psRoleGroup = conn.prepareStatement(restoreRoleGroup);
+                 PreparedStatement psRole = conn.prepareStatement(restoreRole)) {
+
+                psStaff.setString(1, manv);
+                int updated = psStaff.executeUpdate();
+                if (updated <= 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                psUser.setString(1, manv);
+                psUser.executeUpdate();
+
+                psAccount.setString(1, manv);
+                psAccount.executeUpdate();
+
+                psRoleGroup.setString(1, manv);
+                psRoleGroup.executeUpdate();
+
+                psRole.setString(1, manv);
+                psRole.executeUpdate();
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
         }
     }
 }

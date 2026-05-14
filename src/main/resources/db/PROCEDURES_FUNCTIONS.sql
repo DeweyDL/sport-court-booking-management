@@ -1046,34 +1046,75 @@ CREATE OR REPLACE PROCEDURE PRC_THEM_NHAN_VIEN(
     P_CCCD IN NHAN_VIEN.CCCD%TYPE DEFAULT NULL,
     P_IS_QL IN NHAN_VIEN.IS_QL%TYPE DEFAULT 0,
     P_TRANG_THAI IN NHAN_VIEN.TRANG_THAI%TYPE DEFAULT 'ACTIVE',
-    P_PASSWORD_HASH IN ACCOUNT.PASSWORD_HASH%TYPE
+    P_PASSWORD_HASH IN ACCOUNT.PASSWORD_HASH%TYPE,
+    P_DIACHI IN USERS.DIACHI%TYPE DEFAULT NULL
 )
 AS
     V_COUNT NUMBER := 0;
 BEGIN
-    IF  P_HOTEN IS NULL OR P_SDT IS NULL OR P_MACN IS NULL
-       OR P_PASSWORD_HASH IS NULL THEN
+    IF  TRIM(P_USER_ID) IS NULL
+        OR TRIM(P_MANV) IS NULL
+        OR TRIM(P_ACCOUNT_ID) IS NULL
+        OR TRIM(P_ACCOUNT_ROLE_GROUP_ID) IS NULL
+        OR TRIM(P_ACCOUNT_ROLE_ID) IS NULL
+        OR TRIM(P_ROLE_GROUP_ID) IS NULL
+        OR TRIM(P_ROLE_ID) IS NULL
+        OR TRIM(P_HOTEN) IS NULL
+        OR TRIM(P_SDT) IS NULL
+        OR TRIM(P_MALNV) IS NULL
+        OR TRIM(P_MACN) IS NULL
+        OR TRIM(P_CCCD) IS NULL
+        OR TRIM(P_PASSWORD_HASH) IS NULL THEN
         RAISE_APPLICATION_ERROR(-20330, 'Thong tin them nhan vien khong duoc de trong.');
     END IF;
 
-    IF TRIM(P_SDT) IS NULL OR LENGTH(TRIM(P_SDT)) <> 10 THEN
-        RAISE_APPLICATION_ERROR(-20331, 'So dien thoai phai co 10 chu so.');
+    IF NOT REGEXP_LIKE(TRIM(P_SDT), '^0[0-9]{9}$') THEN
+        RAISE_APPLICATION_ERROR(-20331, 'So dien thoai phai gom 10 chu so va bat dau bang 0.');
+    END IF;
+
+    IF P_CCCD IS NOT NULL
+       AND TRIM(P_CCCD) IS NOT NULL
+       AND NOT REGEXP_LIKE(TRIM(P_CCCD), '^[0-9]{12}$') THEN
+        RAISE_APPLICATION_ERROR(-20332, 'Can cuoc cong dan phai gom 12 chu so.');
+    END IF;
+
+    IF P_IS_QL IS NOT NULL AND P_IS_QL NOT IN (0, 1) THEN
+        RAISE_APPLICATION_ERROR(-20333, 'Chuc vu nhan vien khong hop le.');
     END IF;
 
 
     SELECT COUNT(1)
     INTO V_COUNT
     FROM NHAN_VIEN NV
-    WHERE MANV = P_MANV
+    WHERE MANV = TRIM(P_MANV)
       AND IS_DELETED = 0;
     IF V_COUNT > 0 THEN
         RAISE_APPLICATION_ERROR(-20334, 'Nhan vien da ton tai.');
     END IF;
 
+    IF P_CCCD IS NOT NULL AND TRIM(P_CCCD) IS NOT NULL THEN
+        SELECT COUNT(1)
+        INTO V_COUNT
+        FROM NHAN_VIEN
+        WHERE CCCD = TRIM(P_CCCD);
+        IF V_COUNT > 0 THEN
+            RAISE_APPLICATION_ERROR(-20335, 'Can cuoc cong dan da ton tai.');
+        END IF;
+    END IF;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM CHI_NHANH
+    WHERE MACN = TRIM(P_MACN)
+      AND IS_DELETED = 0;
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20336, 'Chi nhanh khong ton tai hoac da bi xoa.');
+    END IF;
+
     SELECT COUNT(1)
     INTO V_COUNT
     FROM USERS
-    WHERE SDT = P_SDT
+    WHERE SDT = TRIM(P_SDT)
       AND IS_DELETED = 0;
     IF V_COUNT > 0 THEN
         RAISE_APPLICATION_ERROR(-20340, 'So dien thoai da ton tai.');
@@ -1082,8 +1123,8 @@ BEGIN
     SELECT COUNT(1)
     INTO V_COUNT
     FROM ACCOUNT_ROLE_GROUP_MAPPING
-    WHERE ROLE_ID = P_ROLE_ID
-      AND GROUP_ID = P_ROLE_GROUP_ID
+    WHERE ROLE_ID = TRIM(P_ROLE_ID)
+      AND GROUP_ID = TRIM(P_ROLE_GROUP_ID)
       AND IS_DELETED = 0;
     IF V_COUNT = 0 THEN
         RAISE_APPLICATION_ERROR(-20339, 'ROLE khong hop le voi ROLE_GROUP.');
@@ -1093,7 +1134,7 @@ BEGIN
     SELECT COUNT(1)
     INTO V_COUNT
     FROM LOAI_NHAN_VIEN
-    WHERE MALNV = P_MALNV
+    WHERE MALNV = TRIM(P_MALNV)
       AND IS_DELETED = 0;
     IF V_COUNT = 0 THEN
         RAISE_APPLICATION_ERROR(-20338, 'Loai nhan vien khong ton tai hoac da bi xoa.');
@@ -1110,12 +1151,12 @@ BEGIN
         IS_DELETED
     )
     VALUES (
-        P_USER_ID,
-        P_HOTEN,
-        P_SDT,
+        TRIM(P_USER_ID),
+        TRIM(P_HOTEN),
+        TRIM(P_SDT),
         NULL,
         NULL,
-        NULL,
+        TRIM(P_DIACHI),
         SYSDATE,
         0
     );
@@ -1130,11 +1171,11 @@ BEGIN
         IS_DELETED
     )
     VALUES (
-        P_ACCOUNT_ID,
-        P_USER_ID,
-        P_SDT,
+        TRIM(P_ACCOUNT_ID),
+        TRIM(P_USER_ID),
+        TRIM(P_SDT),
         P_PASSWORD_HASH,
-        NVL(P_TRANG_THAI, 'ACTIVE'),
+        NVL(TRIM(P_TRANG_THAI), 'ACTIVE'),
         SYSDATE,
         0
     );
@@ -1152,14 +1193,14 @@ BEGIN
         IS_DELETED
     )
     VALUES (
-        P_MANV,
-        P_USER_ID,
-        P_MALNV,
-        P_MACN,
+        TRIM(P_MANV),
+        TRIM(P_USER_ID),
+        TRIM(P_MALNV),
+        TRIM(P_MACN),
         SYSDATE,
-        P_CCCD,
+        TRIM(P_CCCD),
         NVL(P_IS_QL, 0),
-        NVL(P_TRANG_THAI, 'ACTIVE'),
+        NVL(TRIM(P_TRANG_THAI), 'ACTIVE'),
         SYSDATE,
         0
     );
@@ -1172,9 +1213,9 @@ BEGIN
         IS_DELETED
     )
     VALUES (
-        P_ACCOUNT_ROLE_GROUP_ID,
-        P_ACCOUNT_ID,
-        P_ROLE_GROUP_ID,
+        TRIM(P_ACCOUNT_ROLE_GROUP_ID),
+        TRIM(P_ACCOUNT_ID),
+        TRIM(P_ROLE_GROUP_ID),
         SYSDATE,
         0
     );
@@ -1187,9 +1228,9 @@ BEGIN
         IS_DELETED
     )
     VALUES (
-        P_ACCOUNT_ROLE_ID,
-        P_ACCOUNT_ID,
-        P_ROLE_ID,
+        TRIM(P_ACCOUNT_ROLE_ID),
+        TRIM(P_ACCOUNT_ID),
+        TRIM(P_ROLE_ID),
         SYSDATE,
         0
     );
