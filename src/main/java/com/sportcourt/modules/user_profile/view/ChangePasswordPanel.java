@@ -24,7 +24,7 @@ public class ChangePasswordPanel extends JPanel implements Scrollable {
 
     private final JPasswordField currentPasswordField = createPasswordField();
     private final JPasswordField newPasswordField = createPasswordField();
-    private final JPasswordField oldPasswordField = createPasswordField();
+    private final JPasswordField confirmNewPasswordField = createPasswordField();
     private final JButton saveButton = createPillButton("Lưu thay đổi", GREEN, Color.WHITE);
     private final JButton cancelButton = createPillButton("Hủy thay đổi", CANCEL_BACKGROUND, new Color(24, 24, 27));
 
@@ -56,14 +56,14 @@ public class ChangePasswordPanel extends JPanel implements Scrollable {
         return new ChangePasswordInput(
                 passwordText(currentPasswordField),
                 passwordText(newPasswordField),
-                passwordText(oldPasswordField)
+                passwordText(confirmNewPasswordField)
         );
     }
 
     public void clearForm() {
         currentPasswordField.setText("");
         newPasswordField.setText("");
-        oldPasswordField.setText("");
+        confirmNewPasswordField.setText("");
     }
 
     public void setSaveAction(ActionListener listener) {
@@ -114,7 +114,7 @@ public class ChangePasswordPanel extends JPanel implements Scrollable {
 
         gbc.gridy = 2;
         gbc.insets = new Insets(0, 0, 0, 0);
-        fields.add(createField("Mật khẩu cũ", oldPasswordField), gbc);
+        fields.add(createField("Xác nhận mật khẩu mới", confirmNewPasswordField), gbc);
 
         return fields;
     }
@@ -257,7 +257,7 @@ public class ChangePasswordPanel extends JPanel implements Scrollable {
     public record ChangePasswordInput(
             String currentPassword,
             String newPassword,
-            String oldPassword
+            String confirmNewPassword
     ) {
     }
 

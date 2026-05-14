@@ -21,8 +21,6 @@ import com.sportcourt.modules.product.view.ProductPanel;
 import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
 import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
-import com.sportcourt.modules.user_profile.view.ChangePasswordPanel;
-import com.sportcourt.modules.user_profile.view.UserProfileEditPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
 
 import javax.swing.*;
@@ -32,8 +30,6 @@ import java.net.URL;
 
 public class Sidebar extends JFrame {
     private static final String PROFILE_VIEW_KEY = "TRANG CÁ NHÂN";
-    private static final String PROFILE_EDIT_VIEW_KEY = "CẬP NHẬT THÔNG TIN CÁ NHÂN";
-    private static final String PROFILE_CHANGE_PASSWORD_VIEW_KEY = "ĐỔI MẬT KHẨU";
 
     private static final int SIDEBAR_MIN_WIDTH = UIScale.scale(220);
     private static final int SIDEBAR_MAX_WIDTH = UIScale.scale(320);
@@ -357,48 +353,8 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
         if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
-            contentPanel.registerView(PROFILE_VIEW_KEY, this::createUserProfilePanel);
-            contentPanel.registerView(PROFILE_EDIT_VIEW_KEY, this::createUserProfileEditPanel);
-            contentPanel.registerView(PROFILE_CHANGE_PASSWORD_VIEW_KEY, this::createChangePasswordPanel);
+            contentPanel.registerView(PROFILE_VIEW_KEY, UserProfilePanel::new);
         }
-    }
-
-    private UserProfilePanel createUserProfilePanel() {
-        UserProfilePanel panel = new UserProfilePanel();
-        panel.setEditProfileAction(event -> openView(PROFILE_EDIT_VIEW_KEY));
-        panel.setChangePasswordAction(event -> openView(PROFILE_CHANGE_PASSWORD_VIEW_KEY));
-        return panel;
-    }
-
-    private UserProfileEditPanel createUserProfileEditPanel() {
-        UserProfileEditPanel panel = new UserProfileEditPanel();
-        panel.setCancelAction(event -> openView(PROFILE_VIEW_KEY));
-        panel.setSaveAction(event -> {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Đã nhận thông tin cập nhật. Kết nối service để lưu xuống database.",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            openView(PROFILE_VIEW_KEY);
-        });
-        return panel;
-    }
-
-    private ChangePasswordPanel createChangePasswordPanel() {
-        ChangePasswordPanel panel = new ChangePasswordPanel();
-        panel.setCancelAction(event -> openView(PROFILE_VIEW_KEY));
-        panel.setSaveAction(event -> {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Đã nhận yêu cầu đổi mật khẩu. Kết nối service để cập nhật database.",
-                    "Thông báo",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            panel.clearForm();
-            openView(PROFILE_VIEW_KEY);
-        });
-        return panel;
     }
 
     private void openView(String key) {
