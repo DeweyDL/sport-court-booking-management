@@ -76,4 +76,9 @@ public class StaffServiceImpl implements StaffService {
     public String generateNextManv() throws Exception {
         return staffDao.generateNextManv();
     }
+
+    @Override
+    public List<String> loadBranchIds() throws Exception {
+        return staffDao.loadBranchIds();
+    }
 }

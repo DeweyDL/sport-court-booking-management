@@ -14,4 +14,5 @@ public interface StaffService {
     void deleteStaff(String manv) throws Exception;
     void restoreStaff(String manv) throws Exception;
     String generateNextManv() throws Exception;
+    List<String> loadBranchIds() throws Exception;
 }

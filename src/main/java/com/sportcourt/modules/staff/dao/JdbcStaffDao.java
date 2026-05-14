@@ -203,6 +203,19 @@ public class JdbcStaffDao {
         }
     }
 
+    public List<String> loadBranchIds() {
+        List<String> ids = new ArrayList<>();
+        String sql = "SELECT MACN FROM CHI_NHANH WHERE IS_DELETED = 0 ORDER BY MACN ASC";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) ids.add(rs.getString("MACN"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ids;
+    }
+
     public String generateNextManv() throws SQLException {
         String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MANV, '\\d+$'))), 0) + 1 AS NEXT_ID " +
                 "FROM NHAN_VIEN WHERE REGEXP_LIKE(MANV, '^NV-\\d+$')";

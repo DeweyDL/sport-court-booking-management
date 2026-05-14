@@ -151,7 +151,7 @@ public class Sidebar extends JFrame {
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
         menuScrollPane.getViewport().setOpaque(false);
         menuScrollPane.setOpaque(false);
-        CrudViewStyle.configureScrollPane(menuScrollPane);
+        CrudViewStyle.configureSidebarScrollPane(menuScrollPane);
         sidebar.add(menuScrollPane, BorderLayout.CENTER);
 
         return sidebar;
