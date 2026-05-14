@@ -1,1280 +1,611 @@
-package com.sportcourt.modules.customer_history.view;
+package com.sportcourt.modules.dashboard.view;
 
-import com.sportcourt.common.style.AppFonts;
-import com.sportcourt.common.style.CrudViewStyle;
-import com.sportcourt.common.style.UIScale;
+import com.sportcourt.modules.dashboard.controller.DashboardController;
+import com.sportcourt.modules.dashboard.dto.DashboardCourtCard;
+import com.sportcourt.modules.dashboard.dto.DashboardSportTypeOption;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.net.URL;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.awt.geom.RoundRectangle2D;
+import java.io.File;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.List;
+import java.util.Locale;
 
-public class BookingHistoryPanel extends JPanel {
-    private static final String LIST_VIEW   = "LIST_VIEW";
-    private static final String DETAIL_VIEW = "DETAIL_VIEW";
+public class DashBoardScreen extends JPanel {
 
-    private static final Color PAGE_BG           = new Color(248, 249, 250);
-    private static final Color CARD_BG           = Color.WHITE;
-    private static final Color TEXT_DARK         = new Color(30, 31, 36);
-    private static final Color TEXT_MUTED        = new Color(103, 112, 133);
-    private static final Color LIME_DARK         = new Color(34, 139, 34);
-    private static final Color BANNER_BOTTOM_BG  = new Color(65, 82, 60);
-    private static final Color DARK_BUTTON_BG    = new Color(50, 50, 50);
-    private static final Color SEPARATOR_COLOR   = new Color(220, 220, 220);
-    private static final Color TEXT_LIGHT_BUTTON = Color.WHITE;
+    private static final String HERO_IMAGE_PATH = "src/main/resources/image/BgDashboard.png";
+    private static final String CARD_IMAGE_PATH = "src/main/resources/image/BgcardDashboard.png";
 
-    private static final Color EDIT_BG       = CrudViewStyle.EDIT_BG;
-    private static final Color EDIT_TEXT     = CrudViewStyle.EDIT_TEXT;
-    private static final Color CREATE_BG     = CrudViewStyle.SUCCESS_BG;
-    private static final Color CREATE_TEXT   = CrudViewStyle.SUCCESS_TEXT;
-    private static final Color SOFT_RED_BG   = CrudViewStyle.DANGER_BG;
-    private static final Color SOFT_RED_TEXT = CrudViewStyle.DANGER_TEXT;
+    private final Color bgColor = new Color(249, 249, 252);
+    private final Color greenPrimary = new Color(57, 255, 20);
+    private final Color darkText = new Color(15, 23, 42);
+    private final Color grayUI = new Color(232, 232, 234);
+    private final Color greenTextDark = new Color(16, 113, 0);
 
-    private final CardLayout cardLayout   = new CardLayout();
-    private final JPanel     contentPanel = new JPanel(cardLayout);
+    private static final String SEARCH_PLACEHOLDER = "Tìm kiếm sân hoặc địa chỉ...";
 
-    private final HistoryListPanel   listPanel;
-    private final HistoryDetailPanel detailPanel;
+    private final DashboardController controller = new DashboardController();
+    private ResponsiveCardsGrid cardsGrid;
+    private JTextField searchInput;
+    private JPanel filterSection;
+    private List<DashboardSportTypeOption> availableSportTypes = java.util.Collections.emptyList();
 
-    private Image bannerImage;
-
-    public BookingHistoryPanel() {
-        AppFonts.register();
+    public DashBoardScreen() {
+        // Cố định: Thiết lập layout cho chính JPanel này để có thể chứa ScrollPane
         setLayout(new BorderLayout());
-        CrudViewStyle.applyPageDefaults(this);
-        loadBannerImage();
 
-        listPanel   = new HistoryListPanel(this::showDetailView);
-        detailPanel = new HistoryDetailPanel(this::showListView);
+        ViewportWidthPanel mainContent = new ViewportWidthPanel(new GridBagLayout());
+        mainContent.setBackground(bgColor);
+        // Reduce padding to avoid overflow and keep hero banner wide.
+        mainContent.setBorder(new EmptyBorder(25, 32, 24, 32));
 
-        contentPanel.setOpaque(false);
-        contentPanel.add(listPanel,   LIST_VIEW);
-        contentPanel.add(detailPanel, DETAIL_VIEW);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.gridx = 0;
 
-        add(contentPanel, BorderLayout.CENTER);
-        showListView();
-        CrudViewStyle.installResponsiveTypography(this);
-    }
+        // 1. Logo
+//        JLabel logo = new JLabel("RENTSTA");
+//        logo.setFont(new Font("Lexend", Font.BOLD, 48));
+//        logo.setForeground(darkText);
+//        gbc.gridy = 0;
+//        gbc.insets = new Insets(0, 0, 30, 0);
+//        mainContent.add(logo, gbc);
 
-    private void loadBannerImage() {
-        String[] names = {"/image/court2.png", "/image/court2.jpg", "/image/court2.jpeg",
-                "/image/court.png", "/image/court.jpg"};
-        for (String name : names) {
-            URL url = BookingHistoryPanel.class.getResource(name);
-            if (url != null) {
-                bannerImage = new ImageIcon(url).getImage();
-                break;
+        // 2. Hero Section
+        gbc.gridy = 0;
+        mainContent.add(createHeroSection(), gbc);
+
+        // 3. Filter Buttons
+        gbc.gridy = 1;
+        gbc.insets = new Insets(30, 0, 30, 0);
+        filterSection = createFilterSection();
+        mainContent.add(filterSection, gbc);
+
+        // 4. Discovery Header
+        gbc.gridy = 2;
+        gbc.insets = new Insets(10, 0, 20, 0);
+        mainContent.add(createDiscoveryHeader(), gbc);
+
+        // 5. Card Grid
+        gbc.gridy = 3;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        this.cardsGrid = createCardsGrid(6);
+        mainContent.add(this.cardsGrid, gbc);
+
+        // Thanh cuộn tối giản
+        JScrollPane scrollPane = new JScrollPane(mainContent);
+        scrollPane.setBorder(null);
+        scrollPane.setViewportBorder(null);
+        scrollPane.setBackground(bgColor);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setWheelScrollingEnabled(true);
+        JScrollBar vbar = scrollPane.getVerticalScrollBar();
+        vbar.setUI(new ModernScrollBarUI());
+        vbar.setPreferredSize(new Dimension(8, 0));
+        vbar.setUnitIncrement(20);
+        vbar.setOpaque(false);
+        vbar.setBackground(new Color(0, 0, 0, 0));
+        vbar.setBorder(null);
+        scrollPane.getViewport().setBackground(bgColor);
+
+        // Ensure mouse wheel scroll works even when cursor is over inner components.
+        installMouseWheelScroll(mainContent, vbar);
+
+        scrollPane.getViewport().addChangeListener(e -> {
+            Insets in = mainContent.getInsets();
+            int w = scrollPane.getViewport().getWidth() - in.left - in.right;
+            if (w > 0) {
+                this.cardsGrid.updateColumns(w);
             }
-        }
+        });
+
+        // QUAN TRỌNG: Thêm scrollPane vào chính JPanel TestDashboard
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Initial load: load sport types for filter bar, then show all courts/cards
+        loadSportTypesAsync();
+        loadCardsAsync(() -> controller.search(null));
     }
 
-    private void showListView()   { cardLayout.show(contentPanel, LIST_VIEW);   }
-    private void showDetailView() { cardLayout.show(contentPanel, DETAIL_VIEW); }
-
-    private static JPanel makeSeparator() {
-        JPanel line = new JPanel();
-        line.setBackground(SEPARATOR_COLOR);
-        line.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(1)));
-        line.setPreferredSize(new Dimension(100, UIScale.scale(1)));
-        line.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return line;
-    }
-
-    private static JPanel makeFieldRow(String label, String value) {
-        JPanel row = new JPanel(new BorderLayout(8, 0));
-        row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(22)));
-
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(AppFonts.lexendRegular(12f));
-        lbl.setForeground(TEXT_MUTED);
-
-        JLabel val = new JLabel(value);
-        val.setFont(AppFonts.lexendBold(12f));
-        val.setForeground(TEXT_DARK);
-
-        row.add(lbl, BorderLayout.WEST);
-        row.add(val, BorderLayout.EAST);
-        return row;
-    }
-
-    private JComponent createImageLabel(String fileName, int width, int height) {
-        URL imgUrl = BookingHistoryPanel.class.getResource("/image/" + fileName);
-        if (imgUrl != null) {
-            Image scaled = new ImageIcon(imgUrl).getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            return new JPanel() {
-                { setOpaque(false); }
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setClip(new java.awt.geom.RoundRectangle2D.Float(
-                            0, 0, width, height, UIScale.scale(14), UIScale.scale(14)));
-                    g2.drawImage(scaled, 0, 0, width, height, null);
-                    g2.dispose();
-                }
-            };
-        }
-        return new RoundedPanel(UIScale.scale(14), new Color(200, 210, 220));
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  LIST PANEL
-    // ════════════════════════════════════════════════════════════════════════
-    private class HistoryListPanel extends JPanel {
-        private final Runnable onDetailRequested;
-
-        HistoryListPanel(Runnable onDetailRequested) {
-            this.onDetailRequested = onDetailRequested;
-            setLayout(new BorderLayout());
-            setOpaque(false);
-            setBorder(new EmptyBorder(UIScale.scale(30), UIScale.scale(50),
-                    UIScale.scale(30), UIScale.scale(50)));
-            add(createHeader(),      BorderLayout.NORTH);
-            add(createListContent(), BorderLayout.CENTER);
-        }
-
-        private JPanel createHeader() {
-            JPanel header = new JPanel();
-            header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-            header.setOpaque(false);
-
-            JLabel logo = new JLabel("RENTSTA");
-            logo.setFont(AppFonts.lexendBold(30f));
-            logo.setForeground(new Color(30, 31, 36));
-            logo.setAlignmentX(Component.LEFT_ALIGNMENT);
-            header.add(logo);
-            header.add(Box.createVerticalStrut(UIScale.scale(10)));
-            header.add(makeSeparator());
-            header.add(Box.createVerticalStrut(UIScale.scale(30)));
-
-            JLabel title = new JLabel("Lịch sử đặt chỗ");
-            title.setFont(AppFonts.lexendBold(30f));
-            title.setForeground(TEXT_DARK);
-            title.setAlignmentX(Component.LEFT_ALIGNMENT);
-            header.add(title);
-
-            JLabel sub = new JLabel("Xem lại lịch sử đặt sân và chi tiết các buổi tập tại các cơ sở thể thao hàng đầu.");
-            sub.setFont(AppFonts.lexendRegular(14f));
-            sub.setForeground(TEXT_MUTED);
-            sub.setAlignmentX(Component.LEFT_ALIGNMENT);
-            header.add(sub);
-            header.add(Box.createVerticalStrut(UIScale.scale(30)));
-
-            JPanel toolbar = new JPanel(new BorderLayout());
-            toolbar.setOpaque(false);
-            toolbar.setAlignmentX(Component.LEFT_ALIGNMENT);
-            toolbar.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
-
-            JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(12), 0));
-            filters.setOpaque(false);
-            filters.add(createPillButton("Lọc theo danh mục", Color.WHITE, TEXT_DARK, true));
-            filters.add(createPillButton("3 tháng qua", Color.WHITE, TEXT_DARK, true));
-
-            JLabel sortLbl = new JLabel("Sắp xếp: Mới nhất");
-            sortLbl.setFont(AppFonts.lexendBold(14f));
-            sortLbl.setForeground(LIME_DARK);
-
-            toolbar.add(filters,  BorderLayout.WEST);
-            toolbar.add(sortLbl,  BorderLayout.EAST);
-            header.add(toolbar);
-            return header;
-        }
-
-        private JScrollPane createListContent() {
-            JPanel wrap = new JPanel();
-            wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-            wrap.setOpaque(false);
-            wrap.setBorder(new EmptyBorder(UIScale.scale(20), 0, 0, 0));
-
-            wrap.add(card("Sân Tennis - Quận 1",      "12 Nguyễn Huệ, Quận 1, TP.HCM",        "24/10/2026", "400.000 VNĐ",   "tennis.jpg"));
-            wrap.add(Box.createVerticalStrut(UIScale.scale(16)));
-            wrap.add(card("Sân Cầu Lông - Quận 3",    "45 Võ Văn Tần, Quận 3, TP.HCM",         "18/10/2026", "150.000 VNĐ",   "badminton.png"));
-            wrap.add(Box.createVerticalStrut(UIScale.scale(16)));
-            wrap.add(card("Sân Bóng Đá - Bình Thạnh", "88 Điện Biên Phủ, Bình Thạnh, TP.HCM",  "12/10/2026", "1.200.000 VNĐ", "court.png"));
-
-            JScrollPane sp = new JScrollPane(wrap);
-            sp.setOpaque(false);
-            sp.getViewport().setOpaque(false);
-            sp.setBorder(null);
-            sp.getVerticalScrollBar().setUnitIncrement(16);
-            return sp;
-        }
-
-        private JPanel card(String title, String loc, String date, String price, String img) {
-            RoundedPanel card = new RoundedPanel(UIScale.scale(28), CARD_BG, true);
-            card.setLayout(new BorderLayout(UIScale.scale(22), 0));
-            card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(20),
-                    UIScale.scale(20), UIScale.scale(28)));
-            card.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.setMinimumSize(new Dimension(UIScale.scale(400), UIScale.scale(120)));
-
-            int imgW = UIScale.scale(140);
-            int imgH = UIScale.scale(90);
-            JComponent imgComp = createImageLabel(img, imgW, imgH);
-            imgComp.setPreferredSize(new Dimension(imgW, imgH));
-            imgComp.setMinimumSize(new Dimension(imgW, imgH));
-            card.add(imgComp, BorderLayout.WEST);
-
-            JPanel mid = new JPanel();
-            mid.setLayout(new BoxLayout(mid, BoxLayout.Y_AXIS));
-            mid.setOpaque(false);
-            mid.setBorder(new EmptyBorder(UIScale.scale(8), 0, UIScale.scale(8), 0));
-
-            JPanel tagRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
-            tagRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(26)));
-            tagRow.setOpaque(false);
-            tagRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-            tagRow.add(CrudViewStyle.createStatusPill("ĐÃ HOÀN THÀNH", CREATE_BG, CREATE_TEXT));
-            JLabel dateLbl = new JLabel(date);
-            dateLbl.setFont(AppFonts.lexendRegular(13f));
-            dateLbl.setForeground(TEXT_MUTED);
-            tagRow.add(dateLbl);
-
-            JLabel titleLbl = new JLabel(title);
-            titleLbl.setFont(AppFonts.lexendBold(19f));
-            titleLbl.setForeground(TEXT_DARK);
-            titleLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            JLabel locLbl = new JLabel(loc);
-            locLbl.setFont(AppFonts.lexendRegular(14f));
-            locLbl.setForeground(TEXT_MUTED);
-            locLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            mid.add(tagRow);
-            mid.add(Box.createVerticalStrut(UIScale.scale(2)));
-            mid.add(titleLbl);
-            mid.add(Box.createVerticalStrut(UIScale.scale(3)));
-            mid.add(locLbl);
-            card.add(mid, BorderLayout.CENTER);
-
-            JPanel right = new JPanel();
-            right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-            right.setOpaque(false);
-
-            JLabel prc = new JLabel(price);
-            prc.setFont(AppFonts.lexendBold(20f));
-            prc.setForeground(TEXT_DARK);
-            prc.setAlignmentX(Component.RIGHT_ALIGNMENT);
-
-            JButton btn = createPillButton("Xem chi tiết", DARK_BUTTON_BG, TEXT_LIGHT_BUTTON, false);
-            btn.setAlignmentX(Component.RIGHT_ALIGNMENT);
-            btn.addActionListener(e -> onDetailRequested.run());
-
-            right.add(Box.createVerticalGlue());
-            right.add(prc);
-            right.add(Box.createVerticalStrut(UIScale.scale(10)));
-            right.add(btn);
-            right.add(Box.createVerticalGlue());
-            card.add(right, BorderLayout.EAST);
-
-            return card;
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    //  DETAIL PANEL
-    // ════════════════════════════════════════════════════════════════════════
-    private class HistoryDetailPanel extends JPanel {
-        private final Runnable onBack;
-
-        HistoryDetailPanel(Runnable onBack) {
-            this.onBack = onBack;
-            setLayout(new BorderLayout(0, UIScale.scale(15)));
-            setOpaque(false);
-            setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(24),
-                    UIScale.scale(24), UIScale.scale(24)));
-            add(buildHeader(), BorderLayout.NORTH);
-            add(buildMain(),   BorderLayout.CENTER);
-        }
-
-        private JPanel buildHeader() {
-            JPanel h = new JPanel(new BorderLayout());
-            h.setOpaque(false);
-
-            JLabel back = new JLabel("RENTSTA");
-            back.setFont(AppFonts.lexendBold(30f));
-            back.setForeground(new Color(30, 31, 36));
-            back.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            back.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) { onBack.run(); }
-            });
-            h.add(back, BorderLayout.WEST);
-
-            JPanel bottomWrap = new JPanel(new BorderLayout());
-            bottomWrap.setOpaque(false);
-            bottomWrap.add(h, BorderLayout.CENTER);
-            bottomWrap.add(Box.createVerticalStrut(UIScale.scale(16)), BorderLayout.SOUTH);
-            return bottomWrap;
-        }
-
-        private JPanel buildMain() {
-            JPanel main = new JPanel(new GridBagLayout());
-            main.setOpaque(false);
-            GridBagConstraints g = new GridBagConstraints();
-
-            g.fill = GridBagConstraints.HORIZONTAL;
-            g.anchor = GridBagConstraints.NORTH;
-
-            g.gridx = 0; g.gridy = 0;
-            g.gridwidth = 2;
-            g.weightx = 1.0;
-            g.weighty = 0;
-            g.insets = new Insets(0, 0, UIScale.scale(20), 0);
-            main.add(buildBanner(), g);
-
-            g.gridy = 1;
-            g.gridwidth = 1;
-            g.weightx = 0.6;
-            g.insets = new Insets(0, 0, 0, UIScale.scale(16));
-            main.add(buildBookingInfo(), g);
-
-            JPanel right = new JPanel();
-            right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-            right.setOpaque(false);
-            right.add(buildPaymentCard());
-            right.add(Box.createVerticalStrut(UIScale.scale(12)));
-            right.add(buildTotalCard());
-
-            g.gridx = 1;
-            g.weightx = 0.4;
-            g.insets = new Insets(0, 0, 0, 0);
-            main.add(right, g);
-
-            g.gridx = 0; g.gridy = 2;
-            g.gridwidth = 2;
-            g.weighty = 1.0;
-            main.add(new JLabel(""), g);
-
-            return main;
-        }
-
-        private JPanel buildBanner() {
-            RoundedPanel banner = new RoundedPanel(UIScale.scale(40), BANNER_BOTTOM_BG, true) {
-                @Override protected void paintComponent(Graphics g) {
-                    super.paintComponent(g);
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-
-                    int h = shadow ? getHeight() - UIScale.scale(8) : getHeight();
-                    int arc = UIScale.scale(40);
-                    int overlayH = UIScale.scale(68);
-
-                    g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), h, arc, arc));
-
-                    if (bannerImage != null) {
-                        java.awt.image.BufferedImage buf = new java.awt.image.BufferedImage(
-                                getWidth(), h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                        Graphics2D bg = buf.createGraphics();
-                        bg.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                        bg.drawImage(bannerImage, 0, 0, getWidth(), h, null);
-                        bg.dispose();
-                        java.awt.image.RescaleOp op = new java.awt.image.RescaleOp(1.05f, 0, null);
-                        g2.drawImage(op.filter(buf, null), 0, 0, null);
-                    } else {
-                        g2.setColor(new Color(60, 120, 40));
-                        g2.fillRect(0, 0, getWidth(), h);
-                    }
-
-                    g2.setColor(new Color(30, 40, 28, 255));
-                    g2.fillRect(0, h - overlayH, getWidth(), overlayH);
-                    g2.dispose();
-                }
-            };
-
-            banner.setLayout(new BorderLayout());
-            int bannerHeight = UIScale.scale(250);
-            banner.setPreferredSize(new Dimension(0, bannerHeight));
-            banner.setMinimumSize(new Dimension(0, bannerHeight));
-
-            JLabel lbl = new JLabel("CHI TIẾT LỊCH SỬ ĐẶT CHỖ", SwingConstants.CENTER);
-            lbl.setFont(AppFonts.lexendBold(30f));
-            lbl.setForeground(Color.WHITE);
-            lbl.setPreferredSize(new Dimension(0, UIScale.scale(68)));
-            banner.add(lbl, BorderLayout.SOUTH);
-            return banner;
-        }
-
-        private JPanel buildBookingInfo() {
-            RoundedPanel card = new RoundedPanel(UIScale.scale(40), CARD_BG, true);
-            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-            card.setBorder(new EmptyBorder(UIScale.scale(14), UIScale.scale(16),
-                    UIScale.scale(14), UIScale.scale(16)));
-
-            JPanel head = new JPanel(new BorderLayout());
-            head.setOpaque(false);
-            head.setAlignmentX(Component.LEFT_ALIGNMENT);
-            head.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(32)));
-
-            JLabel title = new JLabel("🟩 THÔNG TIN ĐẶT SÂN");
-            title.setFont(AppFonts.lexendBold(13f));
-            title.setForeground(TEXT_DARK);
-
-            JButton addBtn = createPillButton("Thêm sân", LIME_DARK, Color.WHITE, true);
-            head.add(title,  BorderLayout.WEST);
-            head.add(addBtn, BorderLayout.EAST);
-            card.add(head);
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            card.add(makeFieldRow("Khách hàng",    "Nguyễn Văn A"));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makeFieldRow("Số điện thoại", "0123456789"));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makeFieldRow("Mã đơn",        "xxxxxxxxx"));
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            card.add(makeSeparator());
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            card.add(makeFieldRow("Chi nhánh", "KINETIC Central Park"));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makeFieldRow("Địa chỉ",   "Quận 1, TP. Hồ Chí Minh"));
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            card.add(makeCourtItem("Mã sân 1", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makeCourtItem("Mã sân 2", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            card.add(makeSeparator());
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            JPanel total = new JPanel(new BorderLayout());
-            total.setOpaque(false);
-            total.setAlignmentX(Component.LEFT_ALIGNMENT);
-            total.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(30)));
-            JLabel lblTotal = new JLabel("Tổng tiền thuê sân");
-            lblTotal.setFont(AppFonts.lexendRegular(12f));
-            lblTotal.setForeground(TEXT_MUTED);
-            JLabel valTotal = new JLabel("500.000đ");
-            valTotal.setFont(AppFonts.lexendBold(17f));
-            valTotal.setForeground(TEXT_DARK);
-            total.add(lblTotal, BorderLayout.WEST);
-            total.add(valTotal, BorderLayout.EAST);
-            card.add(total);
-            card.add(Box.createVerticalGlue());
-
-            return card;
-        }
-
-        private JPanel makeCourtItem(String id, String time, String price) {
-            RoundedPanel p = new RoundedPanel(UIScale.scale(10), new Color(245, 247, 245), false);
-            p.setLayout(new BorderLayout(UIScale.scale(8), 0));
-            p.setBorder(new EmptyBorder(UIScale.scale(7), UIScale.scale(12),
-                    UIScale.scale(7), UIScale.scale(12)));
-            p.setAlignmentX(Component.LEFT_ALIGNMENT);
-            p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(36)));
-
-            JLabel idLbl = new JLabel(id);
-            idLbl.setFont(AppFonts.lexendRegular(12f));
-            idLbl.setForeground(TEXT_MUTED);
-            p.add(idLbl, BorderLayout.WEST);
-
-            JPanel rightSide = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(10), 0));
-            rightSide.setOpaque(false);
-
-            JLabel timeLbl = new JLabel(time);
-            timeLbl.setFont(AppFonts.lexendBold(12f));
-            timeLbl.setForeground(LIME_DARK);
-
-            JLabel priceLbl = new JLabel(price);
-            priceLbl.setFont(AppFonts.lexendBold(12f));
-            priceLbl.setForeground(LIME_DARK);
-
-            rightSide.add(timeLbl);
-            rightSide.add(priceLbl);
-            p.add(rightSide, BorderLayout.CENTER);
-            return p;
-        }
-
-        private JPanel buildPaymentCard() {
-            RoundedPanel card = new RoundedPanel(UIScale.scale(32), DARK_BUTTON_BG, true);
-            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-            card.setBorder(new EmptyBorder(UIScale.scale(12), UIScale.scale(14),
-                    UIScale.scale(12), UIScale.scale(14)));
-
-            JLabel t = new JLabel("🟩 THANH TOÁN");
-            t.setFont(AppFonts.lexendBold(12f));
-            t.setForeground(Color.WHITE);
-            t.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(t);
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-            card.add(makePayOpt("💳", "Thẻ tín dụng", true));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makePayOpt("🏦", "Chuyển khoản", false));
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
-            card.add(makePayOpt("📱", "Ví điện tử",   false));
-            return card;
-        }
-
-        private JPanel makePayOpt(String icon, String text, boolean selected) {
-            RoundedPanel p = new RoundedPanel(UIScale.scale(10), new Color(65, 67, 70));
-            p.setLayout(new BorderLayout());
-            p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
-                    UIScale.scale(8), UIScale.scale(12)));
-            p.setAlignmentX(Component.LEFT_ALIGNMENT);
-            p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(36)));
-
-            JLabel lbl = new JLabel(icon + "   " + text);
-            lbl.setFont(AppFonts.lexendRegular(12f));
-            lbl.setForeground(Color.WHITE);
-            p.add(lbl, BorderLayout.WEST);
-
-            JLabel dot = new JLabel(selected ? "●" : "○");
-            dot.setForeground(selected ? LIME_DARK : Color.GRAY);
-            p.add(dot, BorderLayout.EAST);
-            return p;
-        }
-
-        private JPanel buildTotalCard() {
-            RoundedPanel card = new RoundedPanel(UIScale.scale(32), new Color(238, 238, 238), true);
-            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-            card.setBorder(new EmptyBorder(UIScale.scale(12), UIScale.scale(14),
-                    UIScale.scale(12), UIScale.scale(14)));
-
-            JLabel title = new JLabel("CHI TIẾT THANH TOÁN");
-            title.setFont(AppFonts.lexendBold(12f));
-            title.setForeground(TEXT_DARK);
-            title.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(title);
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            JPanel rent = new JPanel(new BorderLayout());
-            rent.setOpaque(false);
-            rent.setAlignmentX(Component.LEFT_ALIGNMENT);
-            rent.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(22)));
-            JLabel rentLbl = new JLabel("Tiền thuê sân");
-            rentLbl.setFont(AppFonts.lexendRegular(12f));
-            rentLbl.setForeground(TEXT_MUTED);
-            JLabel rentVal = new JLabel("500.000đ");
-            rentVal.setFont(AppFonts.lexendBold(12f));
-            rentVal.setForeground(TEXT_DARK);
-            rent.add(rentLbl, BorderLayout.WEST);
-            rent.add(rentVal, BorderLayout.EAST);
-            card.add(rent);
-
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-            card.add(makeSeparator());
-            card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-            JPanel bot = new JPanel(new BorderLayout());
-            bot.setOpaque(false);
-            bot.setAlignmentX(Component.LEFT_ALIGNMENT);
-            bot.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(30)));
-            JLabel botLbl = new JLabel("TỔNG CỘNG");
-            botLbl.setFont(AppFonts.lexendBold(13f));
-            botLbl.setForeground(TEXT_DARK);
-            JLabel botVal = new JLabel("500.000đ");
-            botVal.setFont(AppFonts.lexendBold(18f));
-            botVal.setForeground(LIME_DARK);
-            bot.add(botLbl, BorderLayout.WEST);
-            bot.add(botVal, BorderLayout.EAST);
-            card.add(bot);
-
-            return card;
-        }
-    }
-
-
-    private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
+    private JPanel createHeroSection() {
+        RoundedPanel hero = new RoundedPanel(40, HERO_IMAGE_PATH);
+        hero.setPreferredSize(new Dimension(0, 380));
+        hero.setLayout(new GridBagLayout());
+
+        JPanel centerContent = new JPanel();
+        centerContent.setLayout(new BoxLayout(centerContent, BoxLayout.Y_AXIS));
+        centerContent.setOpaque(false);
+
+        JLabel title = new JLabel("LÊN KÈO NGAY!!!");
+        title.setFont(new Font("Lexend", Font.BOLD, 64));
+        title.setForeground(Color.WHITE);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        title.setMaximumSize(new Dimension(Integer.MAX_VALUE, title.getPreferredSize().height));
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel searchBar = new JPanel(new BorderLayout(10, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
+                g2.setColor(new Color(255, 255, 255, 200));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                if (bg == Color.WHITE) {
-                    g2.setColor(SEPARATOR_COLOR);
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                }
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
-        btn.setFont(bold ? AppFonts.lexendBold(13f) : AppFonts.lexendRegular(13f));
-        btn.setForeground(fg);
-        btn.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(20),
-                UIScale.scale(8), UIScale.scale(20)));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
+        searchBar.setOpaque(false);
+        searchBar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        searchBar.setBorder(new EmptyBorder(5, 25, 5, 5));
 
-    private static class RoundedPanel extends JPanel {
-        private final int     radius;
-        private final Color   background;
-        protected final boolean shadow;
-
-        RoundedPanel(int radius, Color background) {
-            this(radius, background, false);
-        }
-
-        RoundedPanel(int radius, Color background, boolean shadow) {
-            this.radius     = radius;
-            this.background = background;
-            this.shadow     = shadow;
-            setOpaque(false);
-            if (shadow) setBorder(new EmptyBorder(0, 0, UIScale.scale(8), 0));
-        }
-
-        @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            int shadowOffset = UIScale.scale(8);
-            int h = shadow ? getHeight() - shadowOffset : getHeight();
-
-            if (shadow) {
-                g2.setColor(new Color(0, 0, 0, 8));
-                g2.fillRoundRect(0, shadowOffset / 2, getWidth(), h, radius, radius);
-                g2.setColor(new Color(0, 0, 0, 5));
-                g2.fillRoundRect(0, shadowOffset, getWidth(), h, radius, radius);
+        searchInput = new JTextField(SEARCH_PLACEHOLDER);
+        searchInput.setOpaque(false);
+        searchInput.setBorder(null);
+        searchInput.setForeground(Color.GRAY);
+        searchInput.setFont(new Font("Lexend", Font.PLAIN, 18));
+        searchInput.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (SEARCH_PLACEHOLDER.equals(searchInput.getText())) {
+                    searchInput.setText("");
+                    searchInput.setForeground(darkText);
+                }
             }
 
-            g2.setColor(background);
-            g2.fillRoundRect(0, 0, getWidth(), h, radius, radius);
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (searchInput.getText() == null || searchInput.getText().trim().isEmpty()) {
+                    searchInput.setText(SEARCH_PLACEHOLDER);
+                    searchInput.setForeground(Color.GRAY);
+                }
+            }
+        });
+        searchInput.addActionListener(e -> triggerSearch());
+
+        RoundedButton btnSearch = new RoundedButton("TÌM NGAY", greenPrimary, new Color(16, 113, 0), 50);
+        btnSearch.setFont(new Font("Lexend", Font.BOLD, 17));
+        btnSearch.setPreferredSize(new Dimension(150, 50));
+        btnSearch.addActionListener(e -> triggerSearch());
+
+        searchBar.add(searchInput, BorderLayout.CENTER);
+        searchBar.add(btnSearch, BorderLayout.EAST);
+
+        centerContent.add(title);
+        centerContent.add(Box.createRigidArea(new Dimension(0, 30)));
+        centerContent.add(searchBar);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.CENTER;
+        // Keep banner content wide; large insets make the hero feel "shrunk".
+        gbc.insets = new Insets(0, 28, 0, 28);
+
+        hero.add(centerContent, gbc);
+        return hero;
+    }
+
+    private JPanel createFilterSection() {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        p.setBackground(bgColor);
+        // Start with just "Tất cả". Actual sport type buttons are loaded from DB.
+        rebuildFilterButtons(p);
+        return p;
+    }
+
+    private void loadSportTypesAsync() {
+        SwingWorker<List<DashboardSportTypeOption>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<DashboardSportTypeOption> doInBackground() {
+                return controller.loadAvailableSportTypes();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    availableSportTypes = get();
+                } catch (Exception e) {
+                    availableSportTypes = java.util.Collections.emptyList();
+                }
+
+                if (filterSection != null) {
+                    filterSection.removeAll();
+                    rebuildFilterButtons(filterSection);
+                    filterSection.revalidate();
+                    filterSection.repaint();
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void rebuildFilterButtons(JPanel container) {
+        List<RoundedButton> buttons = new java.util.ArrayList<>();
+
+        RoundedButton all = new RoundedButton("Tất cả", greenPrimary, new Color(16, 113, 0), 40);
+        all.setFont(new Font("Lexend", Font.BOLD, 16));
+        Dimension prefAll = all.getPreferredSize();
+        all.setPreferredSize(new Dimension(Math.max(prefAll.width + 26, 120), 50));
+        buttons.add(all);
+        container.add(all);
+        
+        for (DashboardSportTypeOption opt : availableSportTypes) {
+            RoundedButton b = new RoundedButton(opt.sportTypeName(), grayUI, darkText, 40);
+            b.putClientProperty("sportTypeId", opt.sportTypeId());
+            b.setFont(new Font("Lexend", Font.BOLD, 16));
+            Dimension pref = b.getPreferredSize();
+            b.setPreferredSize(new Dimension(Math.max(pref.width + 26, 120), 50));
+            buttons.add(b);
+            container.add(b);
+        }
+
+        for (int i = 0; i < buttons.size(); i++) {
+            int idx = i;
+            buttons.get(i).addActionListener(e -> {
+                for (int j = 0; j < buttons.size(); j++) {
+                    boolean selected = (j == idx);
+                    RoundedButton btn = buttons.get(j);
+                    btn.setBg(selected ? greenPrimary : grayUI);
+                    btn.setForeground(selected ? greenTextDark : darkText);
+                }
+
+                if (idx == 0) {
+                    loadCardsAsync(() -> controller.search(null));
+                } else {
+                    Object sportTypeId = buttons.get(idx).getClientProperty("sportTypeId");
+                    loadCardsAsync(() -> controller.filterBySportType(String.valueOf(sportTypeId)));
+                }
+            });
+        }
+    }
+
+    private JPanel createDiscoveryHeader() {
+        JPanel p = new JPanel(new GridLayout(2, 1, 0, 5));
+        p.setBackground(bgColor);
+        JLabel t = new JLabel("Khám phá");
+        t.setFont(new Font("Lexend", Font.BOLD, 32));
+        JLabel st = new JLabel("Các sân thể thao theo ý muốn của bạn!");
+        st.setFont(new Font("Lexend", Font.PLAIN, 16));
+        st.setForeground(new Color(100, 100, 100));
+        p.add(t);
+        p.add(st);
+        return p;
+    }
+
+    private ResponsiveCardsGrid createCardsGrid(int initialCols) {
+        ResponsiveCardsGrid p = new ResponsiveCardsGrid(initialCols, 25, 25, bgColor);
+        return p;
+    }
+
+    private void triggerSearch() {
+        String keyword = searchInput == null ? null : searchInput.getText();
+        if (keyword != null) {
+            keyword = keyword.trim();
+            if (keyword.isEmpty() || SEARCH_PLACEHOLDER.equals(keyword)) {
+                keyword = null;
+            }
+        }
+        String finalKeyword = keyword;
+        loadCardsAsync(() -> controller.search(finalKeyword));
+    }
+
+    private void loadCardsAsync(java.util.concurrent.Callable<List<DashboardCourtCard>> task) {
+        SwingWorker<List<DashboardCourtCard>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<DashboardCourtCard> doInBackground() {
+                try {
+                    return task.call();
+                } catch (Exception e) {
+                    return java.util.Collections.emptyList();
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    renderCards(get());
+                } catch (Exception e) {
+                    renderCards(java.util.Collections.emptyList());
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void renderCards(List<DashboardCourtCard> cards) {
+        if (cardsGrid == null) {
+            return;
+        }
+        cardsGrid.removeAll();
+        for (DashboardCourtCard card : cards) {
+            cardsGrid.add(new StadiumCard(card));
+        }
+        cardsGrid.revalidate();
+        cardsGrid.repaint();
+    }
+
+    private static void installMouseWheelScroll(Component root, JScrollBar vbar) {
+        MouseWheelListener l = e -> {
+            int rotation = e.getWheelRotation();
+            if (rotation == 0) return;
+
+            int delta;
+            if (e.getScrollType() == MouseWheelEvent.WHEEL_BLOCK_SCROLL) {
+                delta = rotation * Math.max(vbar.getBlockIncrement(rotation), vbar.getVisibleAmount());
+            } else {
+                delta = e.getUnitsToScroll() * vbar.getUnitIncrement(rotation);
+            }
+
+            int min = vbar.getMinimum();
+            int max = vbar.getMaximum() - vbar.getVisibleAmount();
+            vbar.setValue(Math.max(min, Math.min(max, vbar.getValue() + delta)));
+            e.consume();
+        };
+        installMouseWheelScrollRecursive(root, l);
+    }
+
+    private static void installMouseWheelScrollRecursive(Component c, MouseWheelListener l) {
+        c.addMouseWheelListener(l);
+        if (c instanceof Container) {
+            for (Component child : ((Container) c).getComponents()) {
+                installMouseWheelScrollRecursive(child, l);
+            }
+        }
+    }
+
+    static class ViewportWidthPanel extends JPanel implements Scrollable {
+        ViewportWidthPanel(LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(visibleRect.height - 20, 20);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
+    }
+
+    // Grid that adapts column count based on viewport width (avoid fixed 6 columns overflow).
+    static class ResponsiveCardsGrid extends JPanel {
+        private final int hgap;
+        private final int vgap;
+        private final int minCardWidth;
+        private int cols;
+
+        ResponsiveCardsGrid(int initialCols, int hgap, int vgap, Color bg) {
+            this.hgap = hgap;
+            this.vgap = vgap;
+            this.cols = Math.max(1, initialCols);
+            this.minCardWidth = 260;
+            setBackground(bg);
+            setLayout(new GridLayout(0, this.cols, this.hgap, this.vgap));
+        }
+
+        void updateColumns(int viewportWidth) {
+            int targetCols = Math.max(1, viewportWidth / (minCardWidth + hgap));
+            if (targetCols != cols) {
+                cols = targetCols;
+                setLayout(new GridLayout(0, cols, hgap, vgap));
+                revalidate();
+                repaint();
+            }
+        }
+    }
+
+    class StadiumCard extends JPanel {
+        public StadiumCard(DashboardCourtCard data) {
+            setLayout(new BorderLayout());
+            setOpaque(false);
+            JPanel cardInner = new JPanel(new BorderLayout()) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 40, 40);
+                    g2.dispose();
+                }
+            };
+            cardInner.setOpaque(false);
+
+            RoundedPanel imgArea = new RoundedPanel(40, CARD_IMAGE_PATH);
+            imgArea.setPreferredSize(new Dimension(0, 200));
+            cardInner.add(imgArea, BorderLayout.NORTH);
+
+            JPanel info = new JPanel(new GridBagLayout());
+            info.setPreferredSize(new Dimension(0, 160));
+            info.setBackground(Color.WHITE);
+            info.setOpaque(false);
+
+            // Compact card info area (avoid excessive height).
+            info.setBorder(new EmptyBorder(7, 15, 7, 15));
+
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 0;
+            gbc.weightx = 1.0;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+// --- PHẦN NAME ---
+            gbc.gridy = 0;
+            gbc.anchor = GridBagConstraints.WEST;
+            gbc.insets = new Insets(0, 0, 5, 0); // Khoảng cách nhỏ bên dưới
+            JLabel name = new JLabel(safeText(data == null ? null : data.courtName()));
+            name.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            info.add(name, gbc);
+
+// --- PHẦN LOCATION ---
+            gbc.gridy = 1;
+            gbc.insets = new Insets(0, 0, 10, 0); // Khoảng cách dưới địa chỉ
+            JLabel loc = new JLabel(safeText(data == null ? null : data.branchAddress()));
+            loc.setForeground(Color.GRAY);
+            loc.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            info.add(loc, gbc);
+
+// --- PHẦN PRICE ---
+            gbc.gridy = 2;
+            gbc.insets = new Insets(5, 0, 15, 0); // Reset và set lề mới cho price
+            JLabel price = new JLabel(formatPrice(data == null ? null : data.price()));
+            price.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            info.add(price, gbc);
+
+// --- PHẦN BUTTON ---
+            gbc.gridy = 3;
+            gbc.anchor = GridBagConstraints.CENTER; // Reset về giữa
+            gbc.insets = new Insets(0, 0, 5, 0);
+            RoundedButton btnDetail = new RoundedButton("Chi tiết", grayUI, darkText, 30);
+            btnDetail.setFont(new Font("Segoe UI", Font.BOLD, 16));
+// Thay vì (0, 45), hãy dùng chiều rộng tối thiểu hoặc để Layout tự tính
+            btnDetail.setPreferredSize(new Dimension(150, 45));
+            info.add(btnDetail, gbc);
+
+            cardInner.add(info, BorderLayout.CENTER);
+            add(cardInner);
+        }
+    }
+
+    private static String safeText(String v) {
+        return v == null ? "" : v;
+    }
+
+    private static String formatPrice(BigDecimal price) {
+        if (price == null) {
+            return "--";
+        }
+        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+        nf.setMaximumFractionDigits(0);
+        nf.setMinimumFractionDigits(0);
+        return nf.format(price) + "VNĐ/1 giờ";
+    }
+
+    class RoundedButton extends JButton {
+        private Color bg;
+        private int radius;
+        public RoundedButton(String text, Color bg, Color fg, int radius) {
+            super(text);
+            this.bg = bg;
+            this.radius = radius;
+            setForeground(fg);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(bg);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
             g2.dispose();
             super.paintComponent(g);
         }
-    }
 
-    public static class BookingHistoryPanel extends JPanel {
-        private static final String LIST_VIEW   = "LIST_VIEW";
-        private static final String DETAIL_VIEW = "DETAIL_VIEW";
-
-        private static final Color PAGE_BG           = new Color(248, 249, 250);
-        private static final Color CARD_BG           = Color.WHITE;
-        private static final Color TEXT_DARK         = new Color(30, 31, 36);
-        private static final Color TEXT_MUTED        = new Color(103, 112, 133);
-        private static final Color LIME_DARK         = new Color(34, 139, 34);
-        private static final Color BANNER_BOTTOM_BG  = new Color(65, 82, 60);
-        private static final Color DARK_BUTTON_BG    = new Color(50, 50, 50);
-        private static final Color SEPARATOR_COLOR   = new Color(220, 220, 220);
-        private static final Color TEXT_LIGHT_BUTTON = Color.WHITE;
-
-        private static final Color EDIT_BG       = CrudViewStyle.EDIT_BG;
-        private static final Color EDIT_TEXT     = CrudViewStyle.EDIT_TEXT;
-        private static final Color CREATE_BG     = CrudViewStyle.SUCCESS_BG;
-        private static final Color CREATE_TEXT   = CrudViewStyle.SUCCESS_TEXT;
-        private static final Color SOFT_RED_BG   = CrudViewStyle.DANGER_BG;
-        private static final Color SOFT_RED_TEXT = CrudViewStyle.DANGER_TEXT;
-
-        private final CardLayout cardLayout   = new CardLayout();
-        private final JPanel     contentPanel = new JPanel(cardLayout);
-
-        private final com.sportcourt.modules.customer_history.view.BookingHistoryPanel.HistoryListPanel listPanel;
-        private final com.sportcourt.modules.customer_history.view.BookingHistoryPanel.HistoryDetailPanel detailPanel;
-
-        private Image bannerImage;
-
-        public BookingHistoryPanel() {
-            AppFonts.register();
-            setLayout(new BorderLayout());
-            CrudViewStyle.applyPageDefaults(this);
-            loadBannerImage();
-
-            listPanel   = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.HistoryListPanel(this::showDetailView);
-            detailPanel = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.HistoryDetailPanel(this::showListView);
-
-            contentPanel.setOpaque(false);
-            contentPanel.add(listPanel,   LIST_VIEW);
-            contentPanel.add(detailPanel, DETAIL_VIEW);
-
-            add(contentPanel, BorderLayout.CENTER);
-            showListView();
-            CrudViewStyle.installResponsiveTypography(this);
-        }
-
-        private void loadBannerImage() {
-            String[] names = {"/image/court2.png", "/image/court2.jpg", "/image/court2.jpeg",
-                    "/image/court.png", "/image/court.jpg"};
-            for (String name : names) {
-                URL url = com.sportcourt.modules.customer_history.view.BookingHistoryPanel.class.getResource(name);
-                if (url != null) {
-                    bannerImage = new ImageIcon(url).getImage();
-                    break;
-                }
-            }
-        }
-
-        private void showListView()   { cardLayout.show(contentPanel, LIST_VIEW);   }
-        private void showDetailView() { cardLayout.show(contentPanel, DETAIL_VIEW); }
-
-        private static JPanel makeSeparator() {
-            JPanel line = new JPanel();
-            line.setBackground(SEPARATOR_COLOR);
-            line.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(1)));
-            line.setPreferredSize(new Dimension(100, UIScale.scale(1)));
-            line.setAlignmentX(Component.LEFT_ALIGNMENT);
-            return line;
-        }
-
-        private static JPanel makeFieldRow(String label, String value) {
-            JPanel row = new JPanel(new BorderLayout(8, 0));
-            row.setOpaque(false);
-            row.setAlignmentX(Component.LEFT_ALIGNMENT);
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(22)));
-
-            JLabel lbl = new JLabel(label);
-            lbl.setFont(AppFonts.lexendRegular(12f));
-            lbl.setForeground(TEXT_MUTED);
-
-            JLabel val = new JLabel(value);
-            val.setFont(AppFonts.lexendBold(12f));
-            val.setForeground(TEXT_DARK);
-
-            row.add(lbl, BorderLayout.WEST);
-            row.add(val, BorderLayout.EAST);
-            return row;
-        }
-
-        private JComponent createImageLabel(String fileName, int width, int height) {
-            URL imgUrl = com.sportcourt.modules.customer_history.view.BookingHistoryPanel.class.getResource("/image/" + fileName);
-            if (imgUrl != null) {
-                Image scaled = new ImageIcon(imgUrl).getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-                return new JPanel() {
-                    { setOpaque(false); }
-                    @Override protected void paintComponent(Graphics g) {
-                        Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setClip(new java.awt.geom.RoundRectangle2D.Float(
-                                0, 0, width, height, UIScale.scale(14), UIScale.scale(14)));
-                        g2.drawImage(scaled, 0, 0, width, height, null);
-                        g2.dispose();
-                    }
-                };
-            }
-            return new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(14), new Color(200, 210, 220));
-        }
-
-        // ════════════════════════════════════════════════════════════════════════
-        //  LIST PANEL
-        // ════════════════════════════════════════════════════════════════════════
-        private class HistoryListPanel extends JPanel {
-            private final Runnable onDetailRequested;
-
-            HistoryListPanel(Runnable onDetailRequested) {
-                this.onDetailRequested = onDetailRequested;
-                setLayout(new BorderLayout());
-                setOpaque(false);
-                setBorder(new EmptyBorder(UIScale.scale(30), UIScale.scale(50),
-                        UIScale.scale(30), UIScale.scale(50)));
-                add(createHeader(),      BorderLayout.NORTH);
-                add(createListContent(), BorderLayout.CENTER);
-            }
-
-            private JPanel createHeader() {
-                JPanel header = new JPanel();
-                header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-                header.setOpaque(false);
-
-                JLabel logo = new JLabel("RENTSTA");
-                logo.setFont(AppFonts.lexendBold(30f));
-                logo.setForeground(new Color(30, 31, 36));
-                logo.setAlignmentX(Component.LEFT_ALIGNMENT);
-                header.add(logo);
-                header.add(Box.createVerticalStrut(UIScale.scale(10)));
-                header.add(makeSeparator());
-                header.add(Box.createVerticalStrut(UIScale.scale(30)));
-
-                JLabel title = new JLabel("Lịch sử đặt chỗ");
-                title.setFont(AppFonts.lexendBold(30f));
-                title.setForeground(TEXT_DARK);
-                title.setAlignmentX(Component.LEFT_ALIGNMENT);
-                header.add(title);
-
-                JLabel sub = new JLabel("Xem lại lịch sử đặt sân và chi tiết các buổi tập tại các cơ sở thể thao hàng đầu.");
-                sub.setFont(AppFonts.lexendRegular(14f));
-                sub.setForeground(TEXT_MUTED);
-                sub.setAlignmentX(Component.LEFT_ALIGNMENT);
-                header.add(sub);
-                header.add(Box.createVerticalStrut(UIScale.scale(30)));
-
-                JPanel toolbar = new JPanel(new BorderLayout());
-                toolbar.setOpaque(false);
-                toolbar.setAlignmentX(Component.LEFT_ALIGNMENT);
-                toolbar.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
-
-                JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(12), 0));
-                filters.setOpaque(false);
-                filters.add(createPillButton("Lọc theo danh mục", Color.WHITE, TEXT_DARK, true));
-                filters.add(createPillButton("3 tháng qua", Color.WHITE, TEXT_DARK, true));
-
-                JLabel sortLbl = new JLabel("Sắp xếp: Mới nhất");
-                sortLbl.setFont(AppFonts.lexendBold(14f));
-                sortLbl.setForeground(LIME_DARK);
-
-                toolbar.add(filters,  BorderLayout.WEST);
-                toolbar.add(sortLbl,  BorderLayout.EAST);
-                header.add(toolbar);
-                return header;
-            }
-
-            private JScrollPane createListContent() {
-                JPanel wrap = new JPanel();
-                wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-                wrap.setOpaque(false);
-                wrap.setBorder(new EmptyBorder(UIScale.scale(20), 0, 0, 0));
-
-                wrap.add(card("Sân Tennis - Quận 1",      "12 Nguyễn Huệ, Quận 1, TP.HCM",        "24/10/2026", "400.000 VNĐ",   "tennis.jpg"));
-                wrap.add(Box.createVerticalStrut(UIScale.scale(16)));
-                wrap.add(card("Sân Cầu Lông - Quận 3",    "45 Võ Văn Tần, Quận 3, TP.HCM",         "18/10/2026", "150.000 VNĐ",   "badminton.png"));
-                wrap.add(Box.createVerticalStrut(UIScale.scale(16)));
-                wrap.add(card("Sân Bóng Đá - Bình Thạnh", "88 Điện Biên Phủ, Bình Thạnh, TP.HCM",  "12/10/2026", "1.200.000 VNĐ", "court.png"));
-
-                JScrollPane sp = new JScrollPane(wrap);
-                sp.setOpaque(false);
-                sp.getViewport().setOpaque(false);
-                sp.setBorder(null);
-                sp.getVerticalScrollBar().setUnitIncrement(16);
-                return sp;
-            }
-
-            private JPanel card(String title, String loc, String date, String price, String img) {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel card = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(28), CARD_BG, true);
-                card.setLayout(new BorderLayout(UIScale.scale(22), 0));
-                card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(20),
-                        UIScale.scale(20), UIScale.scale(28)));
-                card.setAlignmentX(Component.LEFT_ALIGNMENT);
-                card.setMinimumSize(new Dimension(UIScale.scale(400), UIScale.scale(120)));
-
-                int imgW = UIScale.scale(140);
-                int imgH = UIScale.scale(90);
-                JComponent imgComp = createImageLabel(img, imgW, imgH);
-                imgComp.setPreferredSize(new Dimension(imgW, imgH));
-                imgComp.setMinimumSize(new Dimension(imgW, imgH));
-                card.add(imgComp, BorderLayout.WEST);
-
-                JPanel mid = new JPanel();
-                mid.setLayout(new BoxLayout(mid, BoxLayout.Y_AXIS));
-                mid.setOpaque(false);
-                mid.setBorder(new EmptyBorder(UIScale.scale(8), 0, UIScale.scale(8), 0));
-
-                JPanel tagRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
-                tagRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(26)));
-                tagRow.setOpaque(false);
-                tagRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-                tagRow.add(CrudViewStyle.createStatusPill("ĐÃ HOÀN THÀNH", CREATE_BG, CREATE_TEXT));
-                JLabel dateLbl = new JLabel(date);
-                dateLbl.setFont(AppFonts.lexendRegular(13f));
-                dateLbl.setForeground(TEXT_MUTED);
-                tagRow.add(dateLbl);
-
-                JLabel titleLbl = new JLabel(title);
-                titleLbl.setFont(AppFonts.lexendBold(19f));
-                titleLbl.setForeground(TEXT_DARK);
-                titleLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-                JLabel locLbl = new JLabel(loc);
-                locLbl.setFont(AppFonts.lexendRegular(14f));
-                locLbl.setForeground(TEXT_MUTED);
-                locLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-                mid.add(tagRow);
-                mid.add(Box.createVerticalStrut(UIScale.scale(2)));
-                mid.add(titleLbl);
-                mid.add(Box.createVerticalStrut(UIScale.scale(3)));
-                mid.add(locLbl);
-                card.add(mid, BorderLayout.CENTER);
-
-                JPanel right = new JPanel();
-                right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-                right.setOpaque(false);
-
-                JLabel prc = new JLabel(price);
-                prc.setFont(AppFonts.lexendBold(20f));
-                prc.setForeground(TEXT_DARK);
-                prc.setAlignmentX(Component.RIGHT_ALIGNMENT);
-
-                JButton btn = createPillButton("Xem chi tiết", DARK_BUTTON_BG, TEXT_LIGHT_BUTTON, false);
-                btn.setAlignmentX(Component.RIGHT_ALIGNMENT);
-                btn.addActionListener(e -> onDetailRequested.run());
-
-                right.add(Box.createVerticalGlue());
-                right.add(prc);
-                right.add(Box.createVerticalStrut(UIScale.scale(10)));
-                right.add(btn);
-                right.add(Box.createVerticalGlue());
-                card.add(right, BorderLayout.EAST);
-
-                return card;
-            }
-        }
-
-        // ════════════════════════════════════════════════════════════════════════
-        //  DETAIL PANEL
-        // ════════════════════════════════════════════════════════════════════════
-        private class HistoryDetailPanel extends JPanel {
-            private final Runnable onBack;
-
-            HistoryDetailPanel(Runnable onBack) {
-                this.onBack = onBack;
-                setLayout(new BorderLayout(0, UIScale.scale(15)));
-                setOpaque(false);
-                setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(24),
-                        UIScale.scale(24), UIScale.scale(24)));
-                add(buildHeader(), BorderLayout.NORTH);
-                add(buildMain(),   BorderLayout.CENTER);
-            }
-
-            private JPanel buildHeader() {
-                JPanel h = new JPanel(new BorderLayout());
-                h.setOpaque(false);
-
-                JLabel back = new JLabel("RENTSTA");
-                back.setFont(AppFonts.lexendBold(30f));
-                back.setForeground(new Color(30, 31, 36));
-                back.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                back.addMouseListener(new MouseAdapter() {
-                    @Override public void mouseClicked(MouseEvent e) { onBack.run(); }
-                });
-                h.add(back, BorderLayout.WEST);
-
-                JPanel bottomWrap = new JPanel(new BorderLayout());
-                bottomWrap.setOpaque(false);
-                bottomWrap.add(h, BorderLayout.CENTER);
-                bottomWrap.add(Box.createVerticalStrut(UIScale.scale(16)), BorderLayout.SOUTH);
-                return bottomWrap;
-            }
-
-            private JPanel buildMain() {
-                JPanel main = new JPanel(new GridBagLayout());
-                main.setOpaque(false);
-                GridBagConstraints g = new GridBagConstraints();
-
-                g.fill = GridBagConstraints.HORIZONTAL;
-                g.anchor = GridBagConstraints.NORTH;
-
-                g.gridx = 0; g.gridy = 0;
-                g.gridwidth = 2;
-                g.weightx = 1.0;
-                g.weighty = 0;
-                g.insets = new Insets(0, 0, UIScale.scale(20), 0);
-                main.add(buildBanner(), g);
-
-                g.gridy = 1;
-                g.gridwidth = 1;
-                g.weightx = 0.6;
-                g.insets = new Insets(0, 0, 0, UIScale.scale(16));
-                main.add(buildBookingInfo(), g);
-
-                JPanel right = new JPanel();
-                right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-                right.setOpaque(false);
-                right.add(buildPaymentCard());
-                right.add(Box.createVerticalStrut(UIScale.scale(12)));
-                right.add(buildTotalCard());
-
-                g.gridx = 1;
-                g.weightx = 0.4;
-                g.insets = new Insets(0, 0, 0, 0);
-                main.add(right, g);
-
-                g.gridx = 0; g.gridy = 2;
-                g.gridwidth = 2;
-                g.weighty = 1.0;
-                main.add(new JLabel(""), g);
-
-                return main;
-            }
-
-            private JPanel buildBanner() {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel banner = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(40), BANNER_BOTTOM_BG, true) {
-                    @Override protected void paintComponent(Graphics g) {
-                        super.paintComponent(g);
-                        Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-
-                        int h = shadow ? getHeight() - UIScale.scale(8) : getHeight();
-                        int arc = UIScale.scale(40);
-                        int overlayH = UIScale.scale(68);
-
-                        g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), h, arc, arc));
-
-                        if (bannerImage != null) {
-                            java.awt.image.BufferedImage buf = new java.awt.image.BufferedImage(
-                                    getWidth(), h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                            Graphics2D bg = buf.createGraphics();
-                            bg.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                            bg.drawImage(bannerImage, 0, 0, getWidth(), h, null);
-                            bg.dispose();
-                            java.awt.image.RescaleOp op = new java.awt.image.RescaleOp(1.05f, 0, null);
-                            g2.drawImage(op.filter(buf, null), 0, 0, null);
-                        } else {
-                            g2.setColor(new Color(60, 120, 40));
-                            g2.fillRect(0, 0, getWidth(), h);
-                        }
-
-                        g2.setColor(new Color(30, 40, 28, 255));
-                        g2.fillRect(0, h - overlayH, getWidth(), overlayH);
-                        g2.dispose();
-                    }
-                };
-
-                banner.setLayout(new BorderLayout());
-                int bannerHeight = UIScale.scale(250);
-                banner.setPreferredSize(new Dimension(0, bannerHeight));
-                banner.setMinimumSize(new Dimension(0, bannerHeight));
-
-                JLabel lbl = new JLabel("CHI TIẾT LỊCH SỬ ĐẶT CHỖ", SwingConstants.CENTER);
-                lbl.setFont(AppFonts.lexendBold(30f));
-                lbl.setForeground(Color.WHITE);
-                lbl.setPreferredSize(new Dimension(0, UIScale.scale(68)));
-                banner.add(lbl, BorderLayout.SOUTH);
-                return banner;
-            }
-
-            private JPanel buildBookingInfo() {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel card = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(40), CARD_BG, true);
-                card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-                card.setBorder(new EmptyBorder(UIScale.scale(14), UIScale.scale(16),
-                        UIScale.scale(14), UIScale.scale(16)));
-
-                JPanel head = new JPanel(new BorderLayout());
-                head.setOpaque(false);
-                head.setAlignmentX(Component.LEFT_ALIGNMENT);
-                head.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(32)));
-
-                JLabel title = new JLabel("🟩 THÔNG TIN ĐẶT SÂN");
-                title.setFont(AppFonts.lexendBold(13f));
-                title.setForeground(TEXT_DARK);
-
-                JButton addBtn = createPillButton("Thêm sân", LIME_DARK, Color.WHITE, true);
-                head.add(title,  BorderLayout.WEST);
-                head.add(addBtn, BorderLayout.EAST);
-                card.add(head);
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                card.add(makeFieldRow("Khách hàng",    "Nguyễn Văn A"));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makeFieldRow("Số điện thoại", "0123456789"));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makeFieldRow("Mã đơn",        "xxxxxxxxx"));
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                card.add(makeSeparator());
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                card.add(makeFieldRow("Chi nhánh", "KINETIC Central Park"));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makeFieldRow("Địa chỉ",   "Quận 1, TP. Hồ Chí Minh"));
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                card.add(makeCourtItem("Mã sân 1", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makeCourtItem("Mã sân 2", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                card.add(makeSeparator());
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                JPanel total = new JPanel(new BorderLayout());
-                total.setOpaque(false);
-                total.setAlignmentX(Component.LEFT_ALIGNMENT);
-                total.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(30)));
-                JLabel lblTotal = new JLabel("Tổng tiền thuê sân");
-                lblTotal.setFont(AppFonts.lexendRegular(12f));
-                lblTotal.setForeground(TEXT_MUTED);
-                JLabel valTotal = new JLabel("500.000đ");
-                valTotal.setFont(AppFonts.lexendBold(17f));
-                valTotal.setForeground(TEXT_DARK);
-                total.add(lblTotal, BorderLayout.WEST);
-                total.add(valTotal, BorderLayout.EAST);
-                card.add(total);
-                card.add(Box.createVerticalGlue());
-
-                return card;
-            }
-
-            private JPanel makeCourtItem(String id, String time, String price) {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel p = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(10), new Color(245, 247, 245), false);
-                p.setLayout(new BorderLayout(UIScale.scale(8), 0));
-                p.setBorder(new EmptyBorder(UIScale.scale(7), UIScale.scale(12),
-                        UIScale.scale(7), UIScale.scale(12)));
-                p.setAlignmentX(Component.LEFT_ALIGNMENT);
-                p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(36)));
-
-                JLabel idLbl = new JLabel(id);
-                idLbl.setFont(AppFonts.lexendRegular(12f));
-                idLbl.setForeground(TEXT_MUTED);
-                p.add(idLbl, BorderLayout.WEST);
-
-                JPanel rightSide = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(10), 0));
-                rightSide.setOpaque(false);
-
-                JLabel timeLbl = new JLabel(time);
-                timeLbl.setFont(AppFonts.lexendBold(12f));
-                timeLbl.setForeground(LIME_DARK);
-
-                JLabel priceLbl = new JLabel(price);
-                priceLbl.setFont(AppFonts.lexendBold(12f));
-                priceLbl.setForeground(LIME_DARK);
-
-                rightSide.add(timeLbl);
-                rightSide.add(priceLbl);
-                p.add(rightSide, BorderLayout.CENTER);
-                return p;
-            }
-
-            private JPanel buildPaymentCard() {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel card = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(32), DARK_BUTTON_BG, true);
-                card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-                card.setBorder(new EmptyBorder(UIScale.scale(12), UIScale.scale(14),
-                        UIScale.scale(12), UIScale.scale(14)));
-
-                JLabel t = new JLabel("🟩 THANH TOÁN");
-                t.setFont(AppFonts.lexendBold(12f));
-                t.setForeground(Color.WHITE);
-                t.setAlignmentX(Component.LEFT_ALIGNMENT);
-                card.add(t);
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-                card.add(makePayOpt("💳", "Thẻ tín dụng", true));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makePayOpt("🏦", "Chuyển khoản", false));
-                card.add(Box.createVerticalStrut(UIScale.scale(6)));
-                card.add(makePayOpt("📱", "Ví điện tử",   false));
-                return card;
-            }
-
-            private JPanel makePayOpt(String icon, String text, boolean selected) {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel p = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(10), new Color(65, 67, 70));
-                p.setLayout(new BorderLayout());
-                p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
-                        UIScale.scale(8), UIScale.scale(12)));
-                p.setAlignmentX(Component.LEFT_ALIGNMENT);
-                p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(36)));
-
-                JLabel lbl = new JLabel(icon + "   " + text);
-                lbl.setFont(AppFonts.lexendRegular(12f));
-                lbl.setForeground(Color.WHITE);
-                p.add(lbl, BorderLayout.WEST);
-
-                JLabel dot = new JLabel(selected ? "●" : "○");
-                dot.setForeground(selected ? LIME_DARK : Color.GRAY);
-                p.add(dot, BorderLayout.EAST);
-                return p;
-            }
-
-            private JPanel buildTotalCard() {
-                com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel card = new com.sportcourt.modules.customer_history.view.BookingHistoryPanel.RoundedPanel(UIScale.scale(32), new Color(238, 238, 238), true);
-                card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-                card.setBorder(new EmptyBorder(UIScale.scale(12), UIScale.scale(14),
-                        UIScale.scale(12), UIScale.scale(14)));
-
-                JLabel title = new JLabel("CHI TIẾT THANH TOÁN");
-                title.setFont(AppFonts.lexendBold(12f));
-                title.setForeground(TEXT_DARK);
-                title.setAlignmentX(Component.LEFT_ALIGNMENT);
-                card.add(title);
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                JPanel rent = new JPanel(new BorderLayout());
-                rent.setOpaque(false);
-                rent.setAlignmentX(Component.LEFT_ALIGNMENT);
-                rent.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(22)));
-                JLabel rentLbl = new JLabel("Tiền thuê sân");
-                rentLbl.setFont(AppFonts.lexendRegular(12f));
-                rentLbl.setForeground(TEXT_MUTED);
-                JLabel rentVal = new JLabel("500.000đ");
-                rentVal.setFont(AppFonts.lexendBold(12f));
-                rentVal.setForeground(TEXT_DARK);
-                rent.add(rentLbl, BorderLayout.WEST);
-                rent.add(rentVal, BorderLayout.EAST);
-                card.add(rent);
-
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-                card.add(makeSeparator());
-                card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-                JPanel bot = new JPanel(new BorderLayout());
-                bot.setOpaque(false);
-                bot.setAlignmentX(Component.LEFT_ALIGNMENT);
-                bot.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(30)));
-                JLabel botLbl = new JLabel("TỔNG CỘNG");
-                botLbl.setFont(AppFonts.lexendBold(13f));
-                botLbl.setForeground(TEXT_DARK);
-                JLabel botVal = new JLabel("500.000đ");
-                botVal.setFont(AppFonts.lexendBold(18f));
-                botVal.setForeground(LIME_DARK);
-                bot.add(botLbl, BorderLayout.WEST);
-                bot.add(botVal, BorderLayout.EAST);
-                card.add(bot);
-
-                return card;
-            }
-        }
-
-
-        private JButton createPillButton(String text, Color bg, Color fg, boolean bold) {
-            JButton btn = new JButton(text) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(bg);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                    if (bg == Color.WHITE) {
-                        g2.setColor(SEPARATOR_COLOR);
-                        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, getHeight(), getHeight());
-                    }
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            btn.setFont(bold ? AppFonts.lexendBold(13f) : AppFonts.lexendRegular(13f));
-            btn.setForeground(fg);
-            btn.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(20),
-                    UIScale.scale(8), UIScale.scale(20)));
-            btn.setContentAreaFilled(false);
-            btn.setBorderPainted(false);
-            btn.setFocusPainted(false);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            return btn;
-        }
-
-        private static class RoundedPanel extends JPanel {
-            private final int     radius;
-            private final Color   background;
-            protected final boolean shadow;
-
-            RoundedPanel(int radius, Color background) {
-                this(radius, background, false);
-            }
-
-            RoundedPanel(int radius, Color background, boolean shadow) {
-                this.radius     = radius;
-                this.background = background;
-                this.shadow     = shadow;
-                setOpaque(false);
-                if (shadow) setBorder(new EmptyBorder(0, 0, UIScale.scale(8), 0));
-            }
-
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                int shadowOffset = UIScale.scale(8);
-                int h = shadow ? getHeight() - shadowOffset : getHeight();
-
-                if (shadow) {
-                    g2.setColor(new Color(0, 0, 0, 8));
-                    g2.fillRoundRect(0, shadowOffset / 2, getWidth(), h, radius, radius);
-                    g2.setColor(new Color(0, 0, 0, 5));
-                    g2.fillRoundRect(0, shadowOffset, getWidth(), h, radius, radius);
-                }
-
-                g2.setColor(background);
-                g2.fillRoundRect(0, 0, getWidth(), h, radius, radius);
-                g2.dispose();
-                super.paintComponent(g);
-            }
+        public void setBg(Color bg) {
+            this.bg = bg;
+            repaint();
         }
     }
+
+    class RoundedPanel extends JPanel {
+        private int radius;
+        private Image img;
+        public RoundedPanel(int radius, String imgPath) {
+            this.radius = radius;
+            setOpaque(false);
+            try {
+                img = ImageIO.read(new File(imgPath));
+            } catch (Exception e) {}
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Shape clip = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius);
+            g2.setClip(clip);
+            if (img != null) {
+                g2.drawImage(img, 0, 0, getWidth(), getHeight(), this);
+            } else {
+                g2.setColor(new Color(200, 200, 200));
+                g2.fill(clip);
+            }
+            g2.dispose();
+        }
+    }
+
+    class ModernScrollBarUI extends BasicScrollBarUI {
+        @Override
+        protected void configureScrollBarColors() {
+            this.thumbColor = new Color(200, 200, 200);
+            this.trackColor = new Color(0, 0, 0, 0);
+        }
+        @Override
+        protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
+        @Override
+        protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
+        private JButton createZeroButton() {
+            JButton jb = new JButton();
+            jb.setPreferredSize(new Dimension(0, 0));
+            return jb;
+        }
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(thumbColor);
+            g2.fillRoundRect(thumbBounds.x, thumbBounds.y, thumbBounds.width, thumbBounds.height, 10, 10);
+            g2.dispose();
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            // Hide track background/edge (keep UI clean; only show the thumb).
+        }
+    }
+
+    // Main được sửa đổi để hiển thị JPanel TestDashboard
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(() -> {
+//            JFrame frame = new JFrame("Rentsta Dashboard Container");
+//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//
+//            // Cách gọi TestDashboard::new
+//            TestDashboard dashboard = new TestDashboard();
+//
+//            frame.getContentPane().add(dashboard);
+//            frame.setSize(1200, 800);
+//            frame.setLocationRelativeTo(null);
+//            frame.setVisible(true);
+//        });
+//    }
 }
