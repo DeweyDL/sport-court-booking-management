@@ -1,30 +1,28 @@
+-- ============================================================
 -- RB68, RB65, RB64
--- Validate court rental detail, copy snapshot price from BANG_GIA.GIA,
--- and guard arrival transition to DANG SU DUNG.
-
+-- Validate chi tiết thuê sân, gán giá snapshot từ BANG_GIA.GIA
+-- thông qua FN_LAY_GIA_THUE_SAN, và kiểm tra chuyển trạng thái.
+--
+-- [REFACTORED] Trích logic lấy giá + validate khu vực ra
+-- FN_LAY_GIA_THUE_SAN để trigger gọn hơn và function tái sử dụng.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_BIUD_CTHD_THUE_SAN_VALIDATE
     BEFORE INSERT OR UPDATE OF MASAN, MABG, DON_GIA_THUE, TRANGTHAI, IS_DELETED
     ON CHI_TIET_HOA_DON_THUE_SAN
     FOR EACH ROW
 DECLARE
-    V_MAKV_SAN      SAN_CON.MAKV%TYPE;
     V_TRANGTHAI_SAN SAN_CON.TRANGTHAI%TYPE;
-    V_MAKV_BG       BANG_GIA.MAKV%TYPE;
     V_GIA           BANG_GIA.GIA%TYPE;
 BEGIN
     IF :NEW.IS_DELETED = 0 THEN
-        SELECT SC.MAKV, SC.TRANGTHAI, BG.MAKV, BG.GIA
-        INTO V_MAKV_SAN, V_TRANGTHAI_SAN, V_MAKV_BG, V_GIA
-        FROM SAN_CON SC
-                 CROSS JOIN BANG_GIA BG
-        WHERE SC.MASAN = :NEW.MASAN
-          AND BG.MABG = :NEW.MABG
-          AND SC.IS_DELETED = 0
-          AND BG.IS_DELETED = 0;
 
-        IF V_MAKV_SAN <> V_MAKV_BG THEN
-            RAISE_APPLICATION_ERROR(-20068, 'Bang gia khong thuoc cung khu vuc voi san con.');
-        END IF;
+        V_GIA := FN_LAY_GIA_THUE_SAN(:NEW.MASAN, :NEW.MABG);
+
+        SELECT SC.TRANGTHAI
+        INTO V_TRANGTHAI_SAN
+        FROM SAN_CON SC
+        WHERE SC.MASAN = :NEW.MASAN
+          AND SC.IS_DELETED = 0;
 
         IF :NEW.TRANGTHAI <> 'ĐÃ HUỶ' AND V_TRANGTHAI_SAN <> 'ĐANG HOẠT ĐỘNG' THEN
             RAISE_APPLICATION_ERROR(-20065, 'Chi duoc thue san con dang hoat dong.');
@@ -63,9 +61,12 @@ EXCEPTION
 END;
 /
 
+
 -- ============================================================
 -- RB52, RB59
--- Recalculate invoice after rental detail changes that affect money.
+-- Compound trigger: thu thập danh sách MAHD bị ảnh hưởng,
+-- sau đó tính lại số tiền hóa đơn ở AFTER STATEMENT
+-- để tránh mutating table error.
 -- ============================================================
 CREATE OR REPLACE TRIGGER TRG_FIUD_CTHD_THUE_SAN_RECALC
     FOR INSERT OR UPDATE OR DELETE
@@ -117,10 +118,14 @@ END BEFORE EACH ROW;
 /
 
 
+-- ============================================================
 -- RB52, RB53, RB61
--- Validate service item and copy snapshot price from SAN_PHAM/DUNG_CU_THE_THAO.
--- Service details have no cancelled business state; employees only create used/active services.
-
+-- Validate dòng dịch vụ và gán giá snapshot.
+--
+-- [REFACTORED] Trích logic lấy giá ra FN_LAY_GIA_DICH_VU.
+-- Dòng dịch vụ không có trạng thái ĐÃ HUỶ (nhân viên chỉ tạo
+-- dịch vụ đang sử dụng hoặc đã hoàn thành).
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_BIUD_CTHD_DV_PRICE
     BEFORE INSERT OR UPDATE OF MASP, MADC, DON_GIA, IS_DELETED
     ON CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
@@ -128,22 +133,12 @@ CREATE OR REPLACE TRIGGER TRG_BIUD_CTHD_DV_PRICE
 DECLARE
     V_GIA CHI_TIET_HOA_DON_DICH_VU_DA_DUNG.DON_GIA%TYPE;
 BEGIN
+    -- Gọi function mới: validate + trả về giá snapshot
     IF :NEW.IS_DELETED = 0 THEN
-        IF :NEW.MASP IS NOT NULL THEN
-            SELECT GIA
-            INTO V_GIA
-            FROM SAN_PHAM
-            WHERE MASP = :NEW.MASP
-              AND IS_DELETED = 0;
-        ELSIF :NEW.MADC IS NOT NULL THEN
-            SELECT GIA
-            INTO V_GIA
-            FROM DUNG_CU_THE_THAO
-            WHERE MADC = :NEW.MADC
-              AND IS_DELETED = 0;
-        END IF;
+        V_GIA := FN_LAY_GIA_DICH_VU(:NEW.MASP, :NEW.MADC);
     END IF;
 
+    -- Gán giá snapshot khi INSERT hoặc khi đổi MASP/MADC
     IF INSERTING
         OR NVL(:OLD.MASP, '#') <> NVL(:NEW.MASP, '#')
         OR NVL(:OLD.MADC, '#') <> NVL(:NEW.MADC, '#')
@@ -155,16 +150,14 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20052,
                                 'Khong duoc sua DON_GIA dich vu thu cong. Hay doi MASP/MADC neu can lay gia moi.');
     END IF;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20052, 'San pham/dung cu khong ton tai hoac da bi xoa.');
 END;
 /
 
 
+-- ============================================================
 -- RB52, RB59
--- Recalculate invoice after service detail changes that affect money.
-
+-- Compound trigger: tính lại hóa đơn khi chi tiết dịch vụ thay đổi.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_FIUD_CTHD_DICH_VU_RECALC
     FOR INSERT OR UPDATE OR DELETE
     ON CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
@@ -213,10 +206,10 @@ END BEFORE EACH ROW;
 /
 
 
--- RB58, RB56 basic checks on HOA_DON.
--- Actual 70% deposit check is inside PRC_CAP_NHAT_SO_TIEN_HOA_DON,
--- so it runs after details are available.
-
+-- ============================================================
+-- RB58, RB56: Validate cơ bản trên HOA_DON.
+-- Kiểm tra 70% deposit thực sự nằm trong PRC_CAP_NHAT_SO_TIEN_HOA_DON.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_BIU_HOA_DON_VALIDATE
     BEFORE INSERT OR UPDATE OF GIAMGIA, TIEN_COC, TONGGIATRI, TONGTIEN, TRANGTHAI, IS_DELETED
     ON HOA_DON
@@ -241,7 +234,12 @@ BEGIN
 END;
 /
 
--- Recalculate when MAKH/GIAMGIA/TIEN_COC changes.
+
+-- ============================================================
+-- Compound trigger: tính lại hóa đơn khi MAKH/GIAMGIA/TIEN_COC thay đổi.
+-- Dùng PKG_COURT_CTX.G_INTERNAL_RECALC để tránh vòng lặp đệ quy
+-- khi PRC_CAP_NHAT_SO_TIEN_HOA_DON cập nhật ngược lại HOA_DON.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_FU_HOA_DON_RECALC_AMOUNT
     FOR UPDATE OF MAKH, GIAMGIA, TIEN_COC, IS_DELETED
     ON HOA_DON
@@ -278,9 +276,13 @@ END BEFORE EACH ROW;
 /
 
 
+-- ============================================================
 -- RB62, RB63
--- Validate payment transition and complete related details.
-
+-- Validate chuyển trạng thái thanh toán hóa đơn.
+-- Kiểm tra: chỉ CHUA THANH TOAN → DA THANH TOAN,
+-- phải có chi tiết DANG SU DUNG/DA HOAN THANH,
+-- không còn chi tiết chờ sử dụng, sân con phải hoạt động.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_BU_HOA_DON_THANH_TOAN_CHECK
     BEFORE UPDATE OF TRANGTHAI
     ON HOA_DON
@@ -289,16 +291,19 @@ DECLARE
     V_COUNT       PLS_INTEGER := 0;
     V_INVALID_SAN PLS_INTEGER := 0;
 BEGIN
+    -- Không cho thay đổi từ trạng thái đã kết thúc
     IF :OLD.TRANGTHAI IN ('ĐÃ THANH TOÁN', 'ĐÃ HUỶ')
         AND :NEW.TRANGTHAI <> :OLD.TRANGTHAI THEN
         RAISE_APPLICATION_ERROR(-20061, 'Khong duoc thay doi trang thai cua hoa don da thanh toan hoac da huy.');
     END IF;
 
+    -- Validate chuyển sang ĐÃ THANH TOÁN
     IF :NEW.TRANGTHAI = 'ĐÃ THANH TOÁN' AND :OLD.TRANGTHAI <> 'ĐÃ THANH TOÁN' THEN
         IF :OLD.TRANGTHAI <> 'CHƯA THANH TOÁN' THEN
             RAISE_APPLICATION_ERROR(-20061, 'Chi duoc xac nhan thanh toan hoa don dang o trang thai CHUA THANH TOAN.');
         END IF;
 
+        -- Phải có ít nhất 1 chi tiết thuê sân đang/đã sử dụng
         SELECT COUNT(1)
         INTO V_COUNT
         FROM CHI_TIET_HOA_DON_THUE_SAN CT
@@ -310,6 +315,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20062, 'Hoa don khong co chi tiet thue san hop le de thanh toan.');
         END IF;
 
+        -- Kiểm tra sân con không bị xóa/bảo trì
         SELECT COUNT(1)
         INTO V_INVALID_SAN
         FROM CHI_TIET_HOA_DON_THUE_SAN CT
@@ -323,6 +329,7 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20063, 'Khong the thanh toan vi co san con da xoa hoac dang bao tri.');
         END IF;
 
+        -- Không còn chi tiết chờ sử dụng
         SELECT COUNT(1)
         INTO V_COUNT
         FROM CHI_TIET_HOA_DON_THUE_SAN
@@ -334,12 +341,16 @@ BEGIN
             RAISE_APPLICATION_ERROR(
                     -20062,
                     'Khong the thanh toan khi con chi tiet thue san chua bat dau su dung.'
-            );
+                );
         END IF;
     END IF;
 END;
 /
 
+
+-- ============================================================
+-- RB63: Sau khi thanh toán, chuyển chi tiết ĐANG SỬ DỤNG → ĐÃ HOÀN THÀNH.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_AU_HOA_DON_COMPLETE_DETAILS
     AFTER UPDATE OF TRANGTHAI
     ON HOA_DON
@@ -352,8 +363,10 @@ END;
 /
 
 
--- RB61: import details update stock.
-
+-- ============================================================
+-- RB61: Nhập hàng sản phẩm → cộng tồn kho.
+-- AFTER trigger vì chỉ side-effect lên bảng SAN_PHAM.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CTNH_CAP_NHAT_TON_SAN_PHAM
     AFTER INSERT OR UPDATE OR DELETE
     ON CHI_TIET_NHAP_HANG
@@ -368,6 +381,7 @@ BEGIN
             PRC_DIEU_CHINH_TON_SAN_PHAM(:OLD.MASP, -:OLD.SLTHUCNHAP);
         END IF;
     ELSIF UPDATING THEN
+        -- Hoàn tác tồn cũ rồi áp dụng tồn mới
         IF :OLD.IS_DELETED = 0 THEN
             PRC_DIEU_CHINH_TON_SAN_PHAM(:OLD.MASP, -:OLD.SLTHUCNHAP);
         END IF;
@@ -378,6 +392,10 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- RB61: Nhập dụng cụ → cộng tồn kho.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CTNDC_CAP_NHAT_TON_DUNG_CU
     AFTER INSERT OR UPDATE OR DELETE
     ON CHI_TIET_NHAP_DUNG_CU
@@ -403,22 +421,30 @@ END;
 /
 
 
--- RB61: service details update product/tool stock by state effect.
--- Product sale consumes stock in DANG SU DUNG and remains consumed in DA HOAN THANH.
--- Tool rental consumes stock only while DANG SU DUNG and returns on DA HOAN THANH.
-
+-- ============================================================
+-- RB61: Cập nhật tồn kho khi sử dụng dịch vụ.
+-- Sản phẩm bán: trừ tồn khi ĐANG SỬ DỤNG, KHÔNG cộng lại khi ĐÃ HOÀN THÀNH.
+-- Dụng cụ thuê: trừ tồn khi ĐANG SỬ DỤNG, cộng trả lại khi ĐÃ HOÀN THÀNH.
+--
+-- [FIX] Đổi BEFORE → AFTER vì trigger này chỉ side-effect
+-- lên bảng SAN_PHAM/DUNG_CU_THE_THAO, không modify :NEW.
+-- Nhất quán với TRG_CTNH_CAP_NHAT_TON_SAN_PHAM (đã dùng AFTER).
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CTHD_DV_CAP_NHAT_TON
-    BEFORE INSERT OR UPDATE OR DELETE
+    AFTER INSERT OR UPDATE OR DELETE
     ON CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
     FOR EACH ROW
 BEGIN
+    -- ====== Hoàn tác hiệu ứng tồn kho cũ (khi UPDATE hoặc DELETE) ======
     IF DELETING OR UPDATING THEN
+        -- Sản phẩm: cộng trả lại nếu trước đó đã trừ (ĐANG SỬ DỤNG hoặc ĐÃ HOÀN THÀNH)
         IF :OLD.MASP IS NOT NULL
             AND :OLD.IS_DELETED = 0
             AND :OLD.TRANGTHAI IN ('ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH') THEN
             PRC_DIEU_CHINH_TON_SAN_PHAM(:OLD.MASP, :OLD.SL);
         END IF;
 
+        -- Dụng cụ: cộng trả lại chỉ khi đang thuê (ĐANG SỬ DỤNG)
         IF :OLD.MADC IS NOT NULL
             AND :OLD.IS_DELETED = 0
             AND :OLD.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN
@@ -426,13 +452,16 @@ BEGIN
         END IF;
     END IF;
 
+    -- ====== Áp dụng hiệu ứng tồn kho mới (khi INSERT hoặc UPDATE) ======
     IF INSERTING OR UPDATING THEN
+        -- Sản phẩm: trừ tồn khi bán (ĐANG SỬ DỤNG hoặc ĐÃ HOÀN THÀNH)
         IF :NEW.MASP IS NOT NULL
             AND :NEW.IS_DELETED = 0
             AND :NEW.TRANGTHAI IN ('ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH') THEN
             PRC_DIEU_CHINH_TON_SAN_PHAM(:NEW.MASP, -:NEW.SL);
         END IF;
 
+        -- Dụng cụ: trừ tồn chỉ khi đang thuê (ĐANG SỬ DỤNG)
         IF :NEW.MADC IS NOT NULL
             AND :NEW.IS_DELETED = 0
             AND :NEW.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN
@@ -441,65 +470,78 @@ BEGIN
     END IF;
 END;
 /
---69 
+
+
+-- ============================================================
+-- RB69: Tự động cập nhật DOANH_THU của khách hàng
+-- khi hóa đơn thay đổi trạng thái/giá trị.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_DOANHTHU_KH
     AFTER INSERT OR UPDATE OF MAKH, TONGTIEN, TRANGTHAI, IS_DELETED OR DELETE
     ON HOA_DON
     FOR EACH ROW
 DECLARE
-    old_money NUMBER(12, 2) := 0;
-    new_money NUMBER(12, 2) := 0;
+    V_OLD_MONEY NUMBER(12, 2) := 0;
+    V_NEW_MONEY NUMBER(12, 2) := 0;
 BEGIN
-
+    -- Tính giá trị doanh thu cũ cần trừ
     IF UPDATING OR DELETING THEN
         IF :OLD.TRANGTHAI = 'ĐÃ THANH TOÁN' AND :OLD.IS_DELETED = 0 THEN
-            old_money := :OLD.TONGTIEN;
+            V_OLD_MONEY := :OLD.TONGTIEN;
         END IF;
     END IF;
 
+    -- Tính giá trị doanh thu mới cần cộng
     IF INSERTING OR UPDATING THEN
         IF :NEW.TRANGTHAI = 'ĐÃ THANH TOÁN' AND :NEW.IS_DELETED = 0 THEN
-            new_money := :NEW.TONGTIEN;
+            V_NEW_MONEY := :NEW.TONGTIEN;
         END IF;
     END IF;
 
-
+    -- Áp dụng delta lên KHACH_HANG.DOANH_THU
     IF INSERTING THEN
-        UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU + new_money WHERE MAKH = :NEW.MAKH;
+        UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU + V_NEW_MONEY WHERE MAKH = :NEW.MAKH;
 
     ELSIF DELETING THEN
-        UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU - old_money WHERE MAKH = :OLD.MAKH;
+        UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU - V_OLD_MONEY WHERE MAKH = :OLD.MAKH;
 
     ELSIF UPDATING THEN
         IF :OLD.MAKH = :NEW.MAKH THEN
-
+            -- Cùng khách hàng: chỉ cần delta
             UPDATE KHACH_HANG
-            SET DOANH_THU = DOANH_THU + (new_money - old_money)
+            SET DOANH_THU = DOANH_THU + (V_NEW_MONEY - V_OLD_MONEY)
             WHERE MAKH = :NEW.MAKH;
         ELSE
-
-            UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU - old_money WHERE MAKH = :OLD.MAKH;
-            UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU + new_money WHERE MAKH = :NEW.MAKH;
+            -- Đổi khách hàng: trừ cũ, cộng mới
+            UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU - V_OLD_MONEY WHERE MAKH = :OLD.MAKH;
+            UPDATE KHACH_HANG SET DOANH_THU = DOANH_THU + V_NEW_MONEY WHERE MAKH = :NEW.MAKH;
         END IF;
     END IF;
 END;
 /
---70 
+
+
+-- ============================================================
+-- RB70: Tự động cập nhật hạng khách hàng dựa trên doanh thu.
+-- Gọi FN_TIM_HANG_KHACH_HANG để xác định hạng phù hợp.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_HANG_KH
     BEFORE INSERT OR UPDATE OF DOANH_THU
     ON KHACH_HANG
     FOR EACH ROW
-DECLARE
 BEGIN
-
     :NEW.MA_HANG := FN_TIM_HANG_KHACH_HANG(:NEW.DOANH_THU);
-
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         :NEW.MA_HANG := NULL;
 END;
 /
---rb71 
+
+
+-- ============================================================
+-- RB71: Tự động cập nhật SO_LUONG_SAN trong KHU_VUC
+-- khi thêm/xóa/chuyển sân con.
+-- ============================================================
 CREATE OR REPLACE TRIGGER TRG_CAPNHAT_SL_SAN_KV
     AFTER INSERT OR UPDATE OF MAKV, IS_DELETED OR DELETE
     ON SAN_CON
@@ -521,12 +563,14 @@ BEGIN
 
     ELSIF UPDATING THEN
         IF :OLD.MAKV = :NEW.MAKV THEN
+            -- Cùng khu vực: chỉ xử lý soft delete toggle
             IF :OLD.IS_DELETED = 0 AND :NEW.IS_DELETED = 1 THEN
                 UPDATE KHU_VUC SET SO_LUONG_SAN = SO_LUONG_SAN - 1 WHERE MAKV = :NEW.MAKV;
             ELSIF :OLD.IS_DELETED = 1 AND :NEW.IS_DELETED = 0 THEN
                 UPDATE KHU_VUC SET SO_LUONG_SAN = SO_LUONG_SAN + 1 WHERE MAKV = :NEW.MAKV;
             END IF;
         ELSE
+            -- Chuyển khu vực: trừ cũ, cộng mới
             IF :OLD.IS_DELETED = 0 THEN
                 UPDATE KHU_VUC SET SO_LUONG_SAN = SO_LUONG_SAN - 1 WHERE MAKV = :OLD.MAKV;
             END IF;
@@ -537,4 +581,3 @@ BEGIN
     END IF;
 END;
 /
-
