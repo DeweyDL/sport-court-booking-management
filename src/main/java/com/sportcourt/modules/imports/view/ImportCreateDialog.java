@@ -1,5 +1,9 @@
 package com.sportcourt.modules.imports.view;
 
+import com.sportcourt.modules.auth.service.SessionManager;
+import com.sportcourt.modules.imports.controller.ImportManagementController;
+import com.sportcourt.modules.imports.dto.*;
+
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
@@ -8,6 +12,8 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Dialog tạo phiếu nhập hàng mới.
@@ -33,32 +39,10 @@ final class ImportCreateDialog {
     private static final Color TOGGLE_INACTIVE_BG = new Color(239, 246, 255);
     private static final Color TOGGLE_INACTIVE_FG = new Color(37, 99, 235);
 
-    private static final String[] MOCK_EMPLOYEES = {
-            "Nguyễn Văn An", "Trần Thị Bình", "Lê Minh Châu", "Phạm Đức Duy", "Hoàng Thị Eo", "Vũ Quang Phúc", "Đỗ Thanh Giang", "Bùi Thị Hạnh"
-    };
-    private static final String[] MOCK_SUPPLIERS = {
-            "Công ty TNHH Thể thao Viễn Đông", 
-            "Cửa hàng Dụng cụ TDTT Tiến Đạt", 
-            "Đại lý phân phối Yonex VN", 
-            "Nhà cung cấp Nước giải khát CocaCola", 
-            "Tập đoàn Động Lực"
-    };
-    private static final java.util.Map<String, String> MOCK_PRODUCTS = new java.util.HashMap<>();
-    private static final java.util.Map<String, String> MOCK_EQUIPMENTS = new java.util.HashMap<>();
-    static {
-        MOCK_PRODUCTS.put("Nước uống ion Pocari", "SP001");
-        MOCK_PRODUCTS.put("Khăn lạnh thể thao", "SP002");
-        MOCK_PRODUCTS.put("Băng dán thể thao", "SP003");
-        MOCK_PRODUCTS.put("Bình nước thể thao 750ml", "SP004");
-        MOCK_PRODUCTS.put("Grip vợt tennis", "SP005");
-
-        MOCK_EQUIPMENTS.put("Vợt cầu lông Yonex", "DC001");
-        MOCK_EQUIPMENTS.put("Quả bóng đá Mikasa", "DC002");
-        MOCK_EQUIPMENTS.put("Giày thể thao Adidas", "DC004");
-        MOCK_EQUIPMENTS.put("Bóng rổ Spalding", "DC005");
-        MOCK_EQUIPMENTS.put("Vợt tennis Wilson", "DC007");
-        MOCK_EQUIPMENTS.put("Bàn bóng bàn Butterfly", "DC009");
-    }
+    // Maps: display name -> ID (populated from DB)
+    private static Map<String, String> supplierMap = new LinkedHashMap<>();
+    private static Map<String, String> productMap = new LinkedHashMap<>();
+    private static Map<String, String> equipmentMap = new LinkedHashMap<>();
 
     private ImportCreateDialog() {
     }
@@ -82,7 +66,10 @@ final class ImportCreateDialog {
         JTextField txtCktm = new JTextField();
     }
 
-    static void show(Component parent, com.sportcourt.modules.imports.view.ImportMockData.ImportItem itemToEdit) {
+    static void show(Component parent, ImportRow itemToEdit, ImportManagementController controller, Runnable onSuccess) {
+        // Load dropdown data from DB
+        loadDropdownData(controller);
+
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         String dialogTitle = itemToEdit == null ? "Tạo phiếu nhập hàng" : "Chỉnh sửa phiếu nhập";
         JDialog dialog = new JDialog(owner, dialogTitle, Dialog.ModalityType.APPLICATION_MODAL);
@@ -120,15 +107,29 @@ final class ImportCreateDialog {
         centerPanel.setOpaque(false);
 
         // --- Header fields ---
-        JTextField txtNcc = createSearchableField(java.util.Arrays.asList(MOCK_SUPPLIERS), null);
-        JTextField txtNv = createSearchableField(java.util.Arrays.asList(MOCK_EMPLOYEES), null);
+        String[] selectedNccId = {itemToEdit != null ? itemToEdit.getMancc() : ""};
+
+        JTextField txtNcc = createSearchableField(supplierMap.keySet(), name -> {
+            selectedNccId[0] = supplierMap.getOrDefault(name, "");
+        });
+
+        // Nhân viên: lấy từ tài khoản đang đăng nhập, không cho chỉnh sửa
+        String currentEmployeeName = SessionManager.requireSession().getDisplayName();
+        JTextField txtNv = createReadOnlyField(currentEmployeeName);
+
         JTextField txtChungTu = new JTextField();
-        JTextField txtMaNh = createReadOnlyField(itemToEdit == null ? generateNextImportId() : itemToEdit.manh());
-        
+
+        String nextId;
+        try {
+            nextId = itemToEdit == null ? controller.generateNextImportId() : itemToEdit.getManh();
+        } catch (Exception e) {
+            nextId = itemToEdit == null ? "NH???" : itemToEdit.getManh();
+        }
+        JTextField txtMaNh = createReadOnlyField(nextId);
+
         if (itemToEdit != null) {
-            txtNcc.setText(itemToEdit.tenNcc());
-            txtNv.setText(itemToEdit.tenNv());
-            txtChungTu.setText(itemToEdit.maChungTu());
+            txtNcc.setText(itemToEdit.getTenNcc());
+            txtChungTu.setText(itemToEdit.getMaChungTu());
         }
 
         JPanel formCard = new JPanel();
@@ -207,29 +208,29 @@ final class ImportCreateDialog {
         prodPanel.add(prodScroll, BorderLayout.CENTER);
 
         if (itemToEdit != null) {
-            for (com.sportcourt.modules.imports.view.ImportMockData.ImportEquipmentDetail d : ImportMockData.createSampleEquipmentDetails()) {
-                if (d.manh().equals(itemToEdit.manh())) {
+            try {
+                for (ImportEquipmentDetailDTO d : controller.getEquipmentDetails(itemToEdit.getManh())) {
                     EquipmentRow row = new EquipmentRow();
-                    row.txtMaDc.setText(d.maDc());
-                    row.txtTenDc.setText(d.tenDc());
-                    row.txtSlChungTu.setText(String.valueOf(d.slChungTu()));
-                    row.txtSlThucNhap.setText(String.valueOf(d.slThucNhap()));
-                    row.txtDonGia.setText(String.valueOf(d.donGia()));
-                    row.txtCktm.setText(String.valueOf(d.cktm()));
+                    row.txtMaDc.setText(d.getMaDc());
+                    row.txtTenDc.setText(d.getTenDc());
+                    row.txtSlChungTu.setText(String.valueOf(d.getSlTheoChungTu()));
+                    row.txtSlThucNhap.setText(String.valueOf(d.getSlThucNhap()));
+                    row.txtDonGia.setText(String.valueOf(d.getDonGia()));
+                    row.txtCktm.setText(String.valueOf(d.getCktm()));
                     equipmentRows.add(row);
                 }
-            }
-            for (com.sportcourt.modules.imports.view.ImportMockData.ImportProductDetail d : ImportMockData.createSampleProductDetails()) {
-                if (d.manh().equals(itemToEdit.manh())) {
+                for (ImportProductDetailDTO d : controller.getProductDetails(itemToEdit.getManh())) {
                     ProductRow row = new ProductRow();
-                    row.txtMaSp.setText(d.maSp());
-                    row.txtTenSp.setText(d.tenSp());
-                    row.txtSlChungTu.setText(String.valueOf(d.slChungTu()));
-                    row.txtSlThucNhap.setText(String.valueOf(d.slThucNhap()));
-                    row.txtDonGia.setText(String.valueOf(d.donGia()));
-                    row.txtVat.setText(String.valueOf(d.vat()));
+                    row.txtMaSp.setText(d.getMaSp());
+                    row.txtTenSp.setText(d.getTenSp());
+                    row.txtSlChungTu.setText(String.valueOf(d.getSlTheoChungTu()));
+                    row.txtSlThucNhap.setText(String.valueOf(d.getSlThucNhap()));
+                    row.txtDonGia.setText(String.valueOf(d.getDonGia()));
+                    row.txtVat.setText(String.valueOf(d.getVat()));
                     productRows.add(row);
                 }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi tải chi tiết: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
 
@@ -304,15 +305,63 @@ final class ImportCreateDialog {
 
         cancelBtn.addActionListener(event -> dialog.dispose());
         saveBtn.addActionListener(event -> {
-            if (txtNcc.getText().trim().isEmpty() || txtNv.getText().trim().isEmpty() || txtChungTu.getText().trim().isEmpty()) {
+            if (txtNcc.getText().trim().isEmpty() || txtChungTu.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng điền đầy đủ thông tin phiếu nhập.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            System.out.println("[Import Create] ID: " + txtMaNh.getText() + ", NCC: " + txtNcc.getText() + ", NV: " + txtNv.getText()
-                    + ", CT: " + txtChungTu.getText()
-                    + ", SP rows: " + productRows.size() + ", DC rows: " + equipmentRows.size());
-            JOptionPane.showMessageDialog(dialog, "Đã ghi nhận (mock). Phiếu nhập sẽ được lưu khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            dialog.dispose();
+            if (selectedNccId[0] == null || selectedNccId[0].isBlank()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn nhà cung cấp hợp lệ.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                ImportCreateRequest request = new ImportCreateRequest();
+                request.setManh(txtMaNh.getText().trim());
+                request.setMancc(selectedNccId[0]);
+                request.setMaChungTu(txtChungTu.getText().trim());
+
+                // Build product details
+                List<ImportProductDetailDTO> prodDtos = new ArrayList<>();
+                for (ProductRow pr : productRows) {
+                    String maSp = pr.txtMaSp.getText().trim();
+                    if (maSp.isEmpty()) continue;
+                    ImportProductDetailDTO dto = new ImportProductDetailDTO();
+                    dto.setMaSp(maSp);
+                    dto.setSlTheoChungTu(parseIntSafe(pr.txtSlChungTu.getText()));
+                    dto.setSlThucNhap(parseIntSafe(pr.txtSlThucNhap.getText()));
+                    dto.setDonGia(parseBigDecimalSafe(pr.txtDonGia.getText()));
+                    dto.setVat(parseBigDecimalSafe(pr.txtVat.getText()));
+                    prodDtos.add(dto);
+                }
+                request.setProductDetails(prodDtos);
+
+                // Build equipment details
+                List<ImportEquipmentDetailDTO> equipDtos = new ArrayList<>();
+                for (EquipmentRow er : equipmentRows) {
+                    String maDc = er.txtMaDc.getText().trim();
+                    if (maDc.isEmpty()) continue;
+                    ImportEquipmentDetailDTO dto = new ImportEquipmentDetailDTO();
+                    dto.setMaDc(maDc);
+                    dto.setSlTheoChungTu(parseIntSafe(er.txtSlChungTu.getText()));
+                    dto.setSlThucNhap(parseIntSafe(er.txtSlThucNhap.getText()));
+                    dto.setDonGia(parseBigDecimalSafe(er.txtDonGia.getText()));
+                    dto.setCktm(parseBigDecimalSafe(er.txtCktm.getText()));
+                    equipDtos.add(dto);
+                }
+                request.setEquipmentDetails(equipDtos);
+
+                if (itemToEdit == null) {
+                    controller.createImport(request);
+                    JOptionPane.showMessageDialog(dialog, "Tạo phiếu nhập thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    controller.updateImport(request);
+                    JOptionPane.showMessageDialog(dialog, "Cập nhật phiếu nhập thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                }
+                if (onSuccess != null) onSuccess.run();
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
 
         actions.add(cancelBtn);
@@ -324,19 +373,33 @@ final class ImportCreateDialog {
         dialog.setVisible(true);
     }
 
-    private static String generateNextImportId() {
-        int max = 0;
-        for (ImportMockData.ImportItem item : ImportMockData.createSampleImports()) {
-            String value = item.manh();
-            if (value == null) {
-                continue;
+    private static void loadDropdownData(ImportManagementController controller) {
+        try {
+            supplierMap = new LinkedHashMap<>();
+            for (SupplierOption opt : controller.getSupplierOptions()) {
+                supplierMap.put(opt.tenNcc(), opt.mancc());
             }
-            String digits = value.replaceAll("\\D", "");
-            if (!digits.isEmpty()) {
-                max = Math.max(max, Integer.parseInt(digits));
+            productMap = new LinkedHashMap<>();
+            for (ProductOption opt : controller.getProductOptions()) {
+                productMap.put(opt.tenSp(), opt.maSp());
             }
+            equipmentMap = new LinkedHashMap<>();
+            for (EquipmentOption opt : controller.getEquipmentOptions()) {
+                equipmentMap.put(opt.tenDc(), opt.maDc());
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải dữ liệu dropdown: " + e.getMessage());
         }
-        return "NH%03d".formatted(max + 1);
+    }
+
+    private static int parseIntSafe(String text) {
+        if (text == null || text.isBlank()) return 0;
+        try { return Integer.parseInt(text.trim()); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private static BigDecimal parseBigDecimalSafe(String text) {
+        if (text == null || text.isBlank()) return BigDecimal.ZERO;
+        try { return new BigDecimal(text.trim()); } catch (NumberFormatException e) { return BigDecimal.ZERO; }
     }
 
     // --------- Detail table headers ---------
@@ -383,8 +446,8 @@ final class ImportCreateDialog {
 
     private static JPanel createEquipmentDataRow(EquipmentRow row, List<EquipmentRow> rows, JPanel tablePanel, int idx) {
         String existingTenDc = row.txtTenDc.getText();
-        row.txtTenDc = createSearchableField(MOCK_EQUIPMENTS.keySet(), name -> {
-            row.txtMaDc.setText(MOCK_EQUIPMENTS.get(name));
+        row.txtTenDc = createSearchableField(equipmentMap.keySet(), name -> {
+            row.txtMaDc.setText(equipmentMap.getOrDefault(name, ""));
         });
         if (existingTenDc != null && !existingTenDc.isEmpty()) {
             row.txtTenDc.setText(existingTenDc);
@@ -434,8 +497,8 @@ final class ImportCreateDialog {
 
     private static JPanel createProductDataRow(ProductRow row, List<ProductRow> rows, JPanel tablePanel, int idx) {
         String existingTenSp = row.txtTenSp.getText();
-        row.txtTenSp = createSearchableField(MOCK_PRODUCTS.keySet(), name -> {
-            row.txtMaSp.setText(MOCK_PRODUCTS.get(name));
+        row.txtTenSp = createSearchableField(productMap.keySet(), name -> {
+            row.txtMaSp.setText(productMap.getOrDefault(name, ""));
         });
         if (existingTenSp != null && !existingTenSp.isEmpty()) {
             row.txtTenSp.setText(existingTenSp);
