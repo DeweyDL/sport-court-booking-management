@@ -10,12 +10,12 @@ public class SessionManager {
     private SessionManager() {
     }
 
-    public static void setCurrentSession(UserSession session) {
-        currentSession = session;
-    }
-
     public static Optional<UserSession> getCurrentSession() {
         return Optional.ofNullable(currentSession);
+    }
+
+    public static void setCurrentSession(UserSession session) {
+        currentSession = session;
     }
 
     public static UserSession requireSession() {

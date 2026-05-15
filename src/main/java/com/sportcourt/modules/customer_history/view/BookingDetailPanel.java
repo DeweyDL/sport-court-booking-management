@@ -290,7 +290,7 @@ public class BookingDetailPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                int arc = UIScale.scale(28);
+                int arc = UIScale.scale(80);
                 int h = getHeight();
                 g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), h, arc, arc));
                 if (displayImg != null) {
@@ -319,7 +319,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel buildBookingInfoCard(BookingDetailDTO detail) {
-        RoundedPanel card = new RoundedPanel(UIScale.scale(28), CARD_BG, true);
+        RoundedPanel card = new RoundedPanel(UIScale.scale(40), CARD_BG, true);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(UIScale.scale(24), UIScale.scale(24),
                 UIScale.scale(24), UIScale.scale(24)));
@@ -393,7 +393,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel makeCourtItem(BookingDetailDTO.CourtLineItem item) {
-        RoundedPanel p = new RoundedPanel(UIScale.scale(14), new Color(245, 247, 245), false);
+        RoundedPanel p = new RoundedPanel(UIScale.scale(30), new Color(245, 247, 245), false);
         p.setLayout(new BorderLayout(UIScale.scale(12), 0));
         p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
                 UIScale.scale(8), UIScale.scale(12)));
@@ -422,7 +422,7 @@ public class BookingDetailPanel extends JPanel {
         idLbl.setFont(AppFonts.lexendBold(13f));
         idLbl.setForeground(TEXT_DARK);
 
-        RoundedPanel statusPill = new RoundedPanel(UIScale.scale(10), stBg, false);
+        RoundedPanel statusPill = new RoundedPanel(UIScale.scale(50), stBg, false);
         statusPill.setLayout(new BorderLayout());
         statusPill.setBorder(new EmptyBorder(UIScale.scale(4), UIScale.scale(8),
                 UIScale.scale(4), UIScale.scale(8)));
@@ -455,7 +455,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel makeServiceItem(ServiceDetailDTO item) {
-        RoundedPanel p = new RoundedPanel(UIScale.scale(14), new Color(248, 249, 250), false);
+        RoundedPanel p = new RoundedPanel(UIScale.scale(30), new Color(248, 249, 250), false);
         p.setLayout(new BorderLayout(UIScale.scale(12), 0));
         p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
                 UIScale.scale(8), UIScale.scale(12)));
@@ -477,7 +477,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel buildSummaryCard(BookingDetailDTO detail) {
-        RoundedPanel card = new RoundedPanel(UIScale.scale(28), SUMMARY_CARD_BG, true);
+        RoundedPanel card = new RoundedPanel(UIScale.scale(40), SUMMARY_CARD_BG, true);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(24),
                 UIScale.scale(20), UIScale.scale(24)));
@@ -552,7 +552,7 @@ public class BookingDetailPanel extends JPanel {
     private JPanel createStatusBadge(String status) {
         String st = status != null ? status : "";
         String upperSt = st.toUpperCase();
-        
+
         Color bg = new Color(220, 220, 220);
         Color fg = Color.DARK_GRAY;
         String displayStatus = st; // Mặc định
@@ -575,8 +575,8 @@ public class BookingDetailPanel extends JPanel {
             displayStatus = "Đã hủy";
         }
 
-        RoundedPanel badge = new RoundedPanel(UIScale.scale(14), bg, false);
-        badge.setLayout(new FlowLayout(FlowLayout.CENTER, UIScale.scale(12), UIScale.scale(6)));
+        RoundedPanel badge = new RoundedPanel(UIScale.scale(50), bg, false);
+        badge.setLayout(new FlowLayout(FlowLayout.CENTER, UIScale.scale(20), UIScale.scale(8)));
         badge.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lbl = new JLabel(displayStatus);
@@ -595,7 +595,7 @@ public class BookingDetailPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), UIScale.scale(20), UIScale.scale(20));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
                 super.paintComponent(g);
                 g2.dispose();
             }

@@ -15,7 +15,6 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +101,7 @@ public class BookingHistoryPanel extends JPanel {
             }
         }
         final Image img = finalImage;
-        int arc = UIScale.scale(20);
+        int arc = UIScale.scale(60);
 
         return new JLabel() {
             @Override
@@ -293,16 +292,9 @@ public class BookingHistoryPanel extends JPanel {
         }
 
         public void loadData() {
-            String customerId = null;
-            try {
-                Field field = SessionManager.class.getDeclaredField("session");
-                field.setAccessible(true);
-                UserSession session = (UserSession) field.get(null);
-                if (session != null && session.getCustomerId() != null) {
-                    customerId = session.getCustomerId();
-                }
-            } catch (Exception e) {
-            }
+            String customerId = SessionManager.getCurrentSession()
+                    .map(UserSession::getCustomerId)
+                    .orElse(null);
             final String cid = customerId;
             SwingWorker<List<BookingHistoryItemDTO>, Void> worker = new SwingWorker<>() {
                 @Override
@@ -416,7 +408,7 @@ public class BookingHistoryPanel extends JPanel {
             String dateText = item.getFormattedBookingDate();
             String price = item.getFormattedTotalAmount();
 
-            RoundedPanel card = new RoundedPanel(UIScale.scale(28), CARD_BG, true);
+            RoundedPanel card = new RoundedPanel(UIScale.scale(80), CARD_BG, true);
             card.setLayout(new BorderLayout(UIScale.scale(22), 0));
             card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(20), UIScale.scale(20), UIScale.scale(28)));
             card.setAlignmentX(Component.LEFT_ALIGNMENT);
