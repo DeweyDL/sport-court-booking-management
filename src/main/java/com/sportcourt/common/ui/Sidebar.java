@@ -15,6 +15,7 @@ import com.sportcourt.modules.branch.view.BranchManagement;
 import com.sportcourt.modules.cost.view.CostManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
+import com.sportcourt.modules.customer_booking.view.CustomerBookingPanel;
 import com.sportcourt.modules.customer_rank.view.CustomerRankManagement;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
 import com.sportcourt.modules.imports.view.ImportManagement;
@@ -347,7 +348,7 @@ public class Sidebar extends JFrame {
 
     private void registerModuleViews() {
         contentPanel.registerView("TRANG CHỦ", DashBoardScreen::new);
-        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", () -> createPage("ĐẶT SÂN KHÁCH HÀNG"));
+        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", CustomerBookingPanel::new);
         if (canView(FunctionId.CUSTOMER_BOOKING_HISTORY)) contentPanel.registerView("LỊCH SỬ ĐẶT SÂN", BookingHistoryPanel::new);
         if (canView(FunctionId.BRANCH_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView(FunctionId.AREA_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
