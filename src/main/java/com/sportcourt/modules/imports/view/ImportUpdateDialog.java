@@ -1,8 +1,8 @@
 package com.sportcourt.modules.imports.view;
 
-import com.sportcourt.modules.imports.view.ImportMockData.ImportEquipmentDetail;
-import com.sportcourt.modules.imports.view.ImportMockData.ImportItem;
-import com.sportcourt.modules.imports.view.ImportMockData.ImportProductDetail;
+import com.sportcourt.modules.auth.service.SessionManager;
+import com.sportcourt.modules.imports.controller.ImportManagementController;
+import com.sportcourt.modules.imports.dto.*;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -13,9 +13,8 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Dialog xem chi tiết phiếu nhập hàng.
@@ -42,37 +41,18 @@ final class ImportUpdateDialog {
     private static final Color TOGGLE_INACTIVE_FG = new Color(107, 114, 128);
     private static final int DETAIL_ROW_HEIGHT = 46;
     private static final int[] DETAIL_WIDTHS = {70, 150, 65, 65, 100, 65, 110, 76};
-    private static final String[] MOCK_EMPLOYEES = {
-            "Nguyễn Văn An", "Trần Thị Bình", "Lê Minh Châu", "Phạm Đức Duy", "Hoàng Thị Eo", "Vũ Quang Phúc", "Đỗ Thanh Giang", "Bùi Thị Hạnh"
-    };
-    private static final String[] MOCK_SUPPLIERS = {
-            "Công ty TNHH Thể thao Viễn Đông",
-            "Cửa hàng Dụng cụ TDTT Tiến Đạt",
-            "Đại lý phân phối Yonex VN",
-            "Nhà cung cấp Nước giải khát CocaCola",
-            "Tập đoàn Động Lực"
-    };
-    private static final java.util.Map<String, String> MOCK_PRODUCTS = new java.util.HashMap<>();
-    private static final java.util.Map<String, String> MOCK_EQUIPMENTS = new java.util.HashMap<>();
-    static {
-        MOCK_PRODUCTS.put("Nước uống ion Pocari", "SP001");
-        MOCK_PRODUCTS.put("Khăn lạnh thể thao", "SP002");
-        MOCK_PRODUCTS.put("Băng dán thể thao", "SP003");
-        MOCK_PRODUCTS.put("Bình nước thể thao 750ml", "SP004");
-        MOCK_PRODUCTS.put("Grip vợt tennis", "SP005");
 
-        MOCK_EQUIPMENTS.put("Vợt cầu lông Yonex", "DC001");
-        MOCK_EQUIPMENTS.put("Quả bóng đá Mikasa", "DC002");
-        MOCK_EQUIPMENTS.put("Giày thể thao Adidas", "DC004");
-        MOCK_EQUIPMENTS.put("Bóng rổ Spalding", "DC005");
-        MOCK_EQUIPMENTS.put("Vợt tennis Wilson", "DC007");
-        MOCK_EQUIPMENTS.put("Bàn bóng bàn Butterfly", "DC009");
-    }
+    // Maps: display name -> ID (populated from DB)
+    private static Map<String, String> supplierMap = new LinkedHashMap<>();
+    private static Map<String, String> productMap = new LinkedHashMap<>();
+    private static Map<String, String> equipmentMap = new LinkedHashMap<>();
 
     private ImportUpdateDialog() {
     }
 
-    static void show(Component parent, ImportItem item) {
+    static void show(Component parent, ImportRow item, ImportManagementController controller, Runnable onSuccess) {
+        loadDropdownData(controller);
+
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Chỉnh sửa phiếu nhập", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -93,7 +73,7 @@ final class ImportUpdateDialog {
         title.setForeground(TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Cập nhật thông tin phiếu nhập " + item.manh() + ".");
+        JLabel subtitle = new JLabel("Cập nhật thông tin phiếu nhập " + item.getManh() + ".");
         subtitle.setFont(new Font("Lexend", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setBorder(new EmptyBorder(4, 0, 0, 0));
@@ -108,11 +88,20 @@ final class ImportUpdateDialog {
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setOpaque(false);
 
-        JTextField txtNcc = createSearchableField(java.util.Arrays.asList(MOCK_SUPPLIERS), null);
-        JTextField txtNv = createSearchableField(java.util.Arrays.asList(MOCK_EMPLOYEES), null);
-        JTextField txtChungTu = new JTextField(item.maChungTu());
-        txtNcc.setText(item.tenNcc());
-        txtNv.setText(item.tenNv());
+        String[] selectedNccId = {item.getMancc()};
+
+        JTextField txtNcc = createSearchableField(supplierMap.keySet(), name -> {
+            selectedNccId[0] = supplierMap.getOrDefault(name, "");
+        });
+
+        // Nhân viên: lấy từ tài khoản đang đăng nhập, không cho chỉnh sửa
+        String currentEmployeeName = SessionManager.requireSession().getDisplayName();
+        JTextField txtNv = new JTextField(currentEmployeeName);
+        txtNv.setEditable(false);
+        txtNv.setFocusable(false);
+
+        JTextField txtChungTu = new JTextField(item.getMaChungTu());
+        txtNcc.setText(item.getTenNcc());
 
         // --- Header fields ---
         JPanel formCard = new JPanel();
@@ -121,7 +110,7 @@ final class ImportUpdateDialog {
         formCard.setBorder(new EmptyBorder(18, 18, 18, 18));
         formCard.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        formCard.add(createReadonlyField("Mã nhập hàng", item.manh()));
+        formCard.add(createReadonlyField("Mã nhập hàng", item.getManh()));
         formCard.add(Box.createVerticalStrut(14));
         formCard.add(createField("Nhà cung cấp", txtNcc));
         formCard.add(Box.createVerticalStrut(14));
@@ -129,7 +118,7 @@ final class ImportUpdateDialog {
         formCard.add(Box.createVerticalStrut(14));
         formCard.add(createField("Mã chứng từ", txtChungTu));
         formCard.add(Box.createVerticalStrut(14));
-        formCard.add(createReadonlyField("Trị giá", formatCurrency(item.triGia())));
+        formCard.add(createReadonlyField("Trị giá", formatCurrency(item.getTriGia())));
 
         centerPanel.add(formCard);
         centerPanel.add(Box.createVerticalStrut(12));
@@ -153,11 +142,17 @@ final class ImportUpdateDialog {
         JPanel detailContainer = new JPanel(detailCardLayout);
         detailContainer.setOpaque(false);
 
-        // Load mock details for this import
-        List<ImportEquipmentDetail> equipDetails = ImportMockData.createSampleEquipmentDetails().stream()
-                .filter(d -> d.manh().equals(item.manh())).toList();
-        List<ImportProductDetail> prodDetails = ImportMockData.createSampleProductDetails().stream()
-                .filter(d -> d.manh().equals(item.manh())).toList();
+        // Load details from DB
+        List<ImportEquipmentDetailDTO> equipDetails;
+        List<ImportProductDetailDTO> prodDetails;
+        try {
+            equipDetails = controller.getEquipmentDetails(item.getManh());
+            prodDetails = controller.getProductDetails(item.getManh());
+        } catch (Exception e) {
+            equipDetails = new ArrayList<>();
+            prodDetails = new ArrayList<>();
+            JOptionPane.showMessageDialog(dialog, "Lỗi tải chi tiết: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
 
         DetailTableView equipTable = buildEquipmentTable(equipDetails);
         DetailTableView prodTable = buildProductTable(prodDetails);
@@ -217,8 +212,51 @@ final class ImportUpdateDialog {
         JButton cancelBtn = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59));
         JButton confirmBtn = createPillButton("Lưu thay đổi", BRAND_BLUE, Color.WHITE);
         confirmBtn.addActionListener(e -> {
-            JOptionPane.showMessageDialog(dialog, "Đã ghi nhận cập nhật (mock).", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-            dialog.dispose();
+            if (selectedNccId[0] == null || selectedNccId[0].isBlank()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn nhà cung cấp hợp lệ.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            try {
+                ImportCreateRequest request = new ImportCreateRequest();
+                request.setManh(item.getManh());
+                request.setMancc(selectedNccId[0]);
+                request.setMaChungTu(txtChungTu.getText().trim());
+
+                // Collect product details from editable table
+                List<ImportProductDetailDTO> prodDtos = new ArrayList<>();
+                for (String[] row : prodTable.rows) {
+                    if (row[0] == null || row[0].isBlank()) continue;
+                    ImportProductDetailDTO dto = new ImportProductDetailDTO();
+                    dto.setMaSp(row[0]);
+                    dto.setSlTheoChungTu(parseIntSafe(row[2]));
+                    dto.setSlThucNhap(parseIntSafe(row[3]));
+                    dto.setDonGia(parseBigDecimalSafe(row[4]));
+                    dto.setVat(parseBigDecimalSafe(row[5]));
+                    prodDtos.add(dto);
+                }
+                request.setProductDetails(prodDtos);
+
+                // Collect equipment details from editable table
+                List<ImportEquipmentDetailDTO> equipDtos = new ArrayList<>();
+                for (String[] row : equipTable.rows) {
+                    if (row[0] == null || row[0].isBlank()) continue;
+                    ImportEquipmentDetailDTO dto = new ImportEquipmentDetailDTO();
+                    dto.setMaDc(row[0]);
+                    dto.setSlTheoChungTu(parseIntSafe(row[2]));
+                    dto.setSlThucNhap(parseIntSafe(row[3]));
+                    dto.setDonGia(parseBigDecimalSafe(row[4]));
+                    dto.setCktm(parseBigDecimalSafe(row[5]));
+                    equipDtos.add(dto);
+                }
+                request.setEquipmentDetails(equipDtos);
+
+                controller.updateImport(request);
+                JOptionPane.showMessageDialog(dialog, "Cập nhật phiếu nhập thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                if (onSuccess != null) onSuccess.run();
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
         cancelBtn.addActionListener(e -> dialog.dispose());
         actions.add(cancelBtn);
@@ -232,15 +270,15 @@ final class ImportUpdateDialog {
 
     // --------- Build detail tables ---------
 
-    private static DetailTableView buildEquipmentTable(List<ImportEquipmentDetail> details) {
+    private static DetailTableView buildEquipmentTable(List<ImportEquipmentDetailDTO> details) {
         List<String[]> rows = new ArrayList<>();
-        for (ImportEquipmentDetail d : details) {
-            BigDecimal thanhTien = d.donGia().multiply(BigDecimal.valueOf(d.slThucNhap()))
-                    .multiply(BigDecimal.ONE.subtract(d.cktm().divide(BigDecimal.valueOf(100))));
+        for (ImportEquipmentDetailDTO d : details) {
+            BigDecimal thanhTien = d.getDonGia().multiply(BigDecimal.valueOf(d.getSlThucNhap()))
+                    .multiply(BigDecimal.ONE.subtract(d.getCktm().divide(BigDecimal.valueOf(100))));
             rows.add(new String[]{
-                    d.maDc(), d.tenDc(),
-                    String.valueOf(d.slChungTu()), String.valueOf(d.slThucNhap()),
-                    formatCurrency(d.donGia()), d.cktm() + "%",
+                    d.getMaDc(), d.getTenDc(),
+                    String.valueOf(d.getSlTheoChungTu()), String.valueOf(d.getSlThucNhap()),
+                    String.valueOf(d.getDonGia()), String.valueOf(d.getCktm()),
                     formatCurrency(thanhTien)
             });
         }
@@ -252,15 +290,15 @@ final class ImportUpdateDialog {
         );
     }
 
-    private static DetailTableView buildProductTable(List<ImportProductDetail> details) {
+    private static DetailTableView buildProductTable(List<ImportProductDetailDTO> details) {
         List<String[]> rows = new ArrayList<>();
-        for (ImportProductDetail d : details) {
-            BigDecimal thanhTien = d.donGia().multiply(BigDecimal.valueOf(d.slThucNhap()))
-                    .multiply(BigDecimal.ONE.add(d.vat().divide(BigDecimal.valueOf(100))));
+        for (ImportProductDetailDTO d : details) {
+            BigDecimal thanhTien = d.getDonGia().multiply(BigDecimal.valueOf(d.getSlThucNhap()))
+                    .multiply(BigDecimal.ONE.add(d.getVat().divide(BigDecimal.valueOf(100))));
             rows.add(new String[]{
-                    d.maSp(), d.tenSp(),
-                    String.valueOf(d.slChungTu()), String.valueOf(d.slThucNhap()),
-                    formatCurrency(d.donGia()), d.vat() + "%",
+                    d.getMaSp(), d.getTenSp(),
+                    String.valueOf(d.getSlTheoChungTu()), String.valueOf(d.getSlThucNhap()),
+                    String.valueOf(d.getDonGia()), String.valueOf(d.getVat()),
                     formatCurrency(thanhTien)
             });
         }
@@ -426,7 +464,7 @@ final class ImportUpdateDialog {
         for (int i = 0; i < values.length && i < DETAIL_WIDTHS.length - 1; i++) {
             JTextField field;
             if (i == 1) {
-                java.util.Map<String, String> source = view.equipmentTable ? MOCK_EQUIPMENTS : MOCK_PRODUCTS;
+                Map<String, String> source = view.equipmentTable ? equipmentMap : productMap;
                 field = createSearchableField(source.keySet(), selectedName -> {
                     values[1] = selectedName;
                     values[0] = source.getOrDefault(selectedName, "");
@@ -777,6 +815,39 @@ final class ImportUpdateDialog {
     private static String formatCurrency(BigDecimal value) {
         if (value == null) return "0 VNĐ";
         return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(value) + " VNĐ";
+    }
+
+    private static void loadDropdownData(ImportManagementController controller) {
+        try {
+            supplierMap = new LinkedHashMap<>();
+            for (SupplierOption opt : controller.getSupplierOptions()) {
+                supplierMap.put(opt.tenNcc(), opt.mancc());
+            }
+            productMap = new LinkedHashMap<>();
+            for (ProductOption opt : controller.getProductOptions()) {
+                productMap.put(opt.tenSp(), opt.maSp());
+            }
+            equipmentMap = new LinkedHashMap<>();
+            for (EquipmentOption opt : controller.getEquipmentOptions()) {
+                equipmentMap.put(opt.tenDc(), opt.maDc());
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải dữ liệu dropdown: " + e.getMessage());
+        }
+    }
+
+    private static int parseIntSafe(String text) {
+        if (text == null || text.isBlank()) return 0;
+        try {
+            return Integer.parseInt(text.replaceAll("[^0-9]", "").trim());
+        } catch (NumberFormatException e) { return 0; }
+    }
+
+    private static BigDecimal parseBigDecimalSafe(String text) {
+        if (text == null || text.isBlank()) return BigDecimal.ZERO;
+        try {
+            return new BigDecimal(text.replaceAll("[^0-9.]", "").trim());
+        } catch (NumberFormatException e) { return BigDecimal.ZERO; }
     }
 
     private static final class RoundedLineBorder extends AbstractBorder {

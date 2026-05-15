@@ -1,7 +1,8 @@
 package com.sportcourt.modules.imports.view;
 
 import com.sportcourt.common.style.CrudViewStyle;
-import com.sportcourt.modules.imports.view.ImportMockData.ImportItem;
+import com.sportcourt.modules.imports.controller.ImportManagementController;
+import com.sportcourt.modules.imports.dto.ImportRow;
 
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
@@ -12,6 +13,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -33,7 +35,8 @@ public class ImportManagement extends JPanel implements Scrollable {
     private final JComboBox<String> cbSort = new JComboBox<>(new String[]{"Ngày nhập", "Trị giá", "NCC"});
     private final JButton btnSortDir = new JButton("\u25B2");
 
-    private List<ImportItem> importList = new ArrayList<>();
+    private final ImportManagementController controller = new ImportManagementController();
+    private List<ImportRow> importList = new ArrayList<>();
     private boolean sortAscending = true;
 
     public ImportManagement() {
@@ -207,7 +210,7 @@ public class ImportManagement extends JPanel implements Scrollable {
         return label;
     }
 
-    private JPanel createDataRow(ImportItem item, int rowIndex) {
+    private JPanel createDataRow(ImportRow item, int rowIndex) {
         Color rowBg = rowIndex % 2 == 0 ? Color.WHITE : ALTERNATE_ROW_BG;
 
         JPanel row = new JPanel(new GridBagLayout());
@@ -226,25 +229,26 @@ public class ImportManagement extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         // Mã NH - highlight xanh lá
-        JLabel idLabel = new JLabel(item.manh());
+        JLabel idLabel = new JLabel(item.getManh());
         idLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         idLabel.setForeground(new Color(22, 163, 74));
         gbc.weightx = 0.08; row.add(createFlexibleCell(idLabel, SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Nhà cung cấp
-        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.tenNcc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
+        gbc.weightx = 0.25; row.add(createFlexibleCell(createCellLabel(item.getTenNcc(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
 
         // Nhân viên
-        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.tenNv(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
+        gbc.weightx = 0.15; row.add(createFlexibleCell(createCellLabel(item.getTenNv(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
 
         // Mã chứng từ
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.maChungTu(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.getMaChungTu(), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 8), gbc);
 
         // Trị giá
-        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.triGia()), new Color(17, 24, 39)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
+        gbc.weightx = 0.12; row.add(createFlexibleCell(createCellLabel(formatCurrency(item.getTriGia()), new Color(17, 24, 39)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
 
         // Ngày nhập
-        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(item.createdAt().format(DATE_FORMATTER), new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 4), gbc);
+        String dateStr = item.getCreatedAt() != null ? item.getCreatedAt().format(DATE_FORMATTER) : "--";
+        gbc.weightx = 0.10; row.add(createFlexibleCell(createCellLabel(dateStr, new Color(75, 85, 99)), SwingConstants.CENTER, rowBg, 0, 4), gbc);
 
         // Thao tác
         JPanel actionGroup = new JPanel();
@@ -256,9 +260,7 @@ public class ImportManagement extends JPanel implements Scrollable {
         deleteBtn.setPreferredSize(deleteBtnSize);
         deleteBtn.setMinimumSize(deleteBtnSize);
         deleteBtn.setMaximumSize(deleteBtnSize);
-        deleteBtn.addActionListener(event ->
-                JOptionPane.showMessageDialog(this, "Chức năng xóa sẽ hoạt động khi có BE.", "Thông báo", JOptionPane.INFORMATION_MESSAGE)
-        );
+        deleteBtn.addActionListener(event -> handleDelete(item));
         actionGroup.add(deleteBtn);
         actionGroup.add(Box.createHorizontalStrut(8));
 
@@ -350,20 +352,16 @@ public class ImportManagement extends JPanel implements Scrollable {
     // --------- DATA OPERATIONS ---------
 
     private void loadData(String keyword) {
-        List<ImportItem> all = ImportMockData.createSampleImports();
-
-        if (keyword != null && !keyword.isBlank()) {
-            String lower = keyword.toLowerCase().trim();
-            all = all.stream()
-                    .filter(item -> item.manh().toLowerCase().contains(lower)
-                            || item.tenNcc().toLowerCase().contains(lower)
-                            || item.maChungTu().toLowerCase().contains(lower))
-                    .toList();
+        try {
+            List<ImportRow> all = controller.searchImports(keyword);
+            importList = new ArrayList<>(all);
+            sortList();
+            renderTable();
+        } catch (SQLException e) {
+            importList = new ArrayList<>();
+            renderTable();
+            JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
-
-        importList = new ArrayList<>(all);
-        sortList();
-        renderTable();
     }
 
 
@@ -374,7 +372,7 @@ public class ImportManagement extends JPanel implements Scrollable {
             tablePanel.add(createEmptyRow());
         } else {
             int index = 0;
-            for (ImportItem item : importList) {
+            for (ImportRow item : importList) {
                 tablePanel.add(createDataRow(item, index++));
             }
         }
@@ -424,15 +422,14 @@ public class ImportManagement extends JPanel implements Scrollable {
 
     private void sortList() {
         String sortType = (String) cbSort.getSelectedItem();
-        Comparator<ImportItem> comparator;
+        Comparator<ImportRow> comparator;
 
         if ("Trị giá".equals(sortType)) {
-            comparator = Comparator.comparing(ImportItem::triGia);
+            comparator = Comparator.comparing(ImportRow::getTriGia, Comparator.nullsLast(Comparator.naturalOrder()));
         } else if ("NCC".equals(sortType)) {
-            comparator = Comparator.comparing(item -> item.tenNcc().toLowerCase());
+            comparator = Comparator.comparing(item -> item.getTenNcc() == null ? "" : item.getTenNcc().toLowerCase());
         } else {
-            // Ngày nhập (default)
-            comparator = Comparator.comparing(ImportItem::createdAt);
+            comparator = Comparator.comparing(ImportRow::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()));
         }
 
         if (!sortAscending) {
@@ -444,11 +441,24 @@ public class ImportManagement extends JPanel implements Scrollable {
     // --------- DIALOGS ---------
 
     private void openCreateDialog() {
-        ImportCreateDialog.show(this, null);
+        ImportCreateDialog.show(this, null, controller, () -> loadData(searchField.getText()));
     }
 
-    private void openUpdateDialog(ImportItem item) {
-        ImportUpdateDialog.show(this, item);
+    private void openUpdateDialog(ImportRow item) {
+        ImportUpdateDialog.show(this, item, controller, () -> loadData(searchField.getText()));
+    }
+
+    private void handleDelete(ImportRow item) {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Bạn có chắc chắn muốn xóa phiếu nhập " + item.getManh() + "?",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+        try {
+            controller.deleteImport(item.getManh());
+            loadData(searchField.getText());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi xóa: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // --------- UTILS ---------
