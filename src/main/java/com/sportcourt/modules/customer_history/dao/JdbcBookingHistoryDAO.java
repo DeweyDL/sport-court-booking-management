@@ -1,12 +1,9 @@
 package com.sportcourt.modules.customer_history.dao;
 
 import com.sportcourt.common.db.ConnectionUtils;
-import com.sportcourt.modules.customer_history.dto.BookingAddCourtRequest;
 import com.sportcourt.modules.customer_history.dto.BookingDetailDTO;
 import com.sportcourt.modules.customer_history.dto.BookingHistoryItemDTO;
-import com.sportcourt.modules.customer_history.dto.PriceBoardOptionDTO;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,12 +14,12 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
     private static final String SQL_FIND_BY_CUSTOMER = """
             SELECT
                 HD.MAHD,
-                CT.TRANGTHAI                     AS TRANGTHAI,
+                MAX(CT.TRANGTHAI)                AS TRANGTHAI,
                 HD.TONGTIEN,
                 HD.CREATED_AT,
-                LTT.TEN                          AS SPORT_TYPE_NAME,
-                CN.TEN_CHI_NHANH                 AS BRANCH_NAME,
-                CN.DIACHI                        AS BRANCH_ADDRESS,
+                MAX(LTT.TEN)                     AS SPORT_TYPE_NAME,
+                MAX(CN.TEN_CHI_NHANH)            AS BRANCH_NAME,
+                MAX(CN.DIACHI)                   AS BRANCH_ADDRESS,
                 MIN(CT.NGAYTHUE)                 AS FIRST_BOOKING_DATE,
                 COUNT(CT.MACT_THUE_SAN)          AS COURT_COUNT
             FROM HOA_DON HD
@@ -42,11 +39,9 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                     OR UPPER(HD.MAHD)           LIKE UPPER(?)
                     OR UPPER(CN.TEN_CHI_NHANH)  LIKE UPPER(?)
                     OR UPPER(LTT.TEN)           LIKE UPPER(?)
-                    OR UPPER(CT.TRANGTHAI)      LIKE UPPER(?)
               )
             GROUP BY
-                HD.MAHD, CT.TRANGTHAI, HD.TONGTIEN, HD.CREATED_AT,
-                LTT.TEN, CN.TEN_CHI_NHANH, CN.DIACHI
+                HD.MAHD, HD.TONGTIEN, HD.CREATED_AT
             ORDER BY HD.CREATED_AT DESC
             """;
 
@@ -92,8 +87,32 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
             ORDER BY CT.NGAYTHUE, BG.GIOBATDAU
             """;
 
+    private static final String SQL_DETAIL_SERVICES = """
+            SELECT
+                CT.MAHD,
+                NVL(SP.TENSP, DC.TENDC) AS SERVICE_NAME,
+                CT.SL AS QUANTITY,
+                (CT.SL * CT.DON_GIA) AS TOTAL_PRICE
+            FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG CT
+            LEFT JOIN SAN_PHAM SP ON CT.MASP = SP.MASP
+            LEFT JOIN DUNG_CU_THE_THAO DC ON CT.MADC = DC.MADC
+            WHERE CT.MAHD = ? AND CT.IS_DELETED = 0
+            """;
+
     private static LocalDateTime toLocalDateTime(Timestamp ts) {
         return ts == null ? null : ts.toLocalDateTime();
+    }
+
+    @Override
+    public void cancelCourtBooking(String detailId) {
+        String sql = "{call PRC_HUY_CHI_TIET_THUE_SAN(?)}";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             CallableStatement cs = conn.prepareCall(sql)) {
+            cs.setString(1, detailId);
+            cs.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     @Override
@@ -118,14 +137,12 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                 ps.setNull(5, Types.VARCHAR);
                 ps.setNull(6, Types.VARCHAR);
                 ps.setNull(7, Types.VARCHAR);
-                ps.setNull(8, Types.VARCHAR);
             } else {
                 ps.setString(3, like);
                 ps.setString(4, like);
                 ps.setString(5, like);
                 ps.setString(6, like);
                 ps.setString(7, like);
-                ps.setString(8, like);
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -216,91 +233,34 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
             dto.setBranchAddress(lastBranchAddr);
         }
 
+        // Tính trạng thái tổng từ danh sách sân — logic nằm ở DAO, DTO chỉ giữ giá trị
+        dto.setOverallStatus(computeOverallStatus(items, dto.getStatus()));
+
         return dto;
     }
 
-    @Override
-    public List<String> getAvailableCourtIds() {
-        List<String> list = new ArrayList<>();
-        String sql = "SELECT MASAN FROM SAN_CON WHERE IS_DELETED = 0 AND TRANGTHAI = 'ĐANG HOẠT ĐỘNG'";
-
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                list.add(rs.getString("MASAN"));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Lỗi lấy danh sách sân: " + e.getMessage(), e);
+    private static String computeOverallStatus(List<BookingDetailDTO.CourtLineItem> items, String invoiceStatus) {
+        if (items == null || items.isEmpty()) {
+            return invoiceStatus != null ? invoiceStatus : "TRỐNG";
         }
-        return list;
-    }
-
-    @Override
-    public List<PriceBoardOptionDTO> getAvailablePriceBoards() {
-        List<PriceBoardOptionDTO> list = new ArrayList<>();
-        String sql = "SELECT MABG, GIOBATDAU, GIOKETTHUC, GIA FROM BANG_GIA WHERE IS_DELETED = 0 ORDER BY GIOBATDAU";
-
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                PriceBoardOptionDTO dto = new PriceBoardOptionDTO();
-                dto.setPriceBoardId(rs.getString("MABG"));
-                dto.setStartHour(rs.getInt("GIOBATDAU"));
-                dto.setEndHour(rs.getInt("GIOKETTHUC"));
-                dto.setPrice(rs.getBigDecimal("GIA"));
-                list.add(dto);
+        boolean hasWaitDeposit = false;
+        boolean hasConfirmed   = false;
+        boolean allCancelled   = true;
+        for (BookingDetailDTO.CourtLineItem item : items) {
+            String st = item.getStatus() != null ? item.getStatus().toUpperCase() : "";
+            if (!st.contains("HUỶ") && !st.contains("HỦY")) {
+                allCancelled = false;
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Lỗi lấy danh sách bảng giá: " + e.getMessage(), e);
-        }
-        return list;
-    }
-
-    @Override
-    public void addCourtBooking(BookingAddCourtRequest request) {
-        try (Connection conn = ConnectionUtils.getMyConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                BigDecimal price = BigDecimal.ZERO;
-                try (PreparedStatement psPrice = conn.prepareStatement("SELECT GIA FROM BANG_GIA WHERE MABG = ?")) {
-                    psPrice.setString(1, request.getPriceBoardId());
-                    try (ResultSet rs = psPrice.executeQuery()) {
-                        if (rs.next()) {
-                            price = rs.getBigDecimal("GIA");
-                        }
-                    }
-                }
-
-                String detailId = "CTHDTS-" + System.currentTimeMillis();
-                String insertSql = "INSERT INTO CHI_TIET_HOA_DON_THUE_SAN (MACT_THUE_SAN, MAHD, MASAN, MABG, NGAYTHUE, DON_GIA_THUE, TRANGTHAI, CREATED_AT, IS_DELETED) " +
-                        "VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, 'ĐÃ XÁC NHẬN', SYSDATE, 0)";
-
-                try (PreparedStatement psInsert = conn.prepareStatement(insertSql)) {
-                    psInsert.setString(1, detailId);
-                    psInsert.setString(2, request.getInvoiceId());
-                    psInsert.setString(3, request.getCourtId());
-                    psInsert.setString(4, request.getPriceBoardId());
-                    psInsert.setString(5, request.getBookingDateStr());
-                    psInsert.setBigDecimal(6, price);
-                    psInsert.executeUpdate();
-                }
-
-                String updateSql = "UPDATE HOA_DON SET TONGTIEN = TONGTIEN + ? WHERE MAHD = ?";
-                try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
-                    psUpdate.setBigDecimal(1, price);
-                    psUpdate.setString(2, request.getInvoiceId());
-                    psUpdate.executeUpdate();
-                }
-
-                conn.commit();
-            } catch (SQLException ex) {
-                conn.rollback();
-                throw ex;
+            if (st.contains("CHỜ CỌC") || st.contains("CHƯA")) {
+                hasWaitDeposit = true;
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Lỗi thêm sân vào hóa đơn: " + e.getMessage(), e);
+            if (st.contains("XÁC NHẬN") || st.contains("ĐÃ CỌC")) {
+                hasConfirmed = true;
+            }
         }
+        if (allCancelled)   return "Đã hủy";
+        if (hasWaitDeposit) return "Đã đặt chờ cọc";
+        if (hasConfirmed)   return "Đã xác nhận";
+        return "TRỐNG";
     }
 }
