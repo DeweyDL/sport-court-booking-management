@@ -127,7 +127,7 @@ public class Sidebar extends JFrame {
         menuPanel.add(createMenuButton("TRANG CHỦ", "/icon/home.1.png"));
 
         if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) menuPanel.add(createMenuButton("ĐẶT SÂN", "/icon/home.1.png"));
-        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) menuPanel.add(createMenuButton("LỊCH SỬ ĐẶT SÂN", "/icon/report.1.png"));
+        if (canView(FunctionId.CUSTOMER_BOOKING_HISTORY)) menuPanel.add(createMenuButton("LỊCH SỬ ĐẶT SÂN", "/icon/report.1.png"));
         if (canView(FunctionId.BRANCH_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
         if (canView(FunctionId.AREA_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ KHU VỰC", "/icon/branch.1.png"));
         if (canView(FunctionId.COURT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
@@ -348,7 +348,7 @@ public class Sidebar extends JFrame {
     private void registerModuleViews() {
         contentPanel.registerView("TRANG CHỦ", DashBoardScreen::new);
         if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", () -> createPage("ĐẶT SÂN KHÁCH HÀNG"));
-        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("LỊCH SỬ ĐẶT SÂN", BookingHistoryPanel::new);
+        if (canView(FunctionId.CUSTOMER_BOOKING_HISTORY)) contentPanel.registerView("LỊCH SỬ ĐẶT SÂN", BookingHistoryPanel::new);
         if (canView(FunctionId.BRANCH_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView(FunctionId.AREA_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
         if (canView(FunctionId.COURT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);

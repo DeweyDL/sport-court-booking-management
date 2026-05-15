@@ -4,6 +4,89 @@ END PKG_COURT_CTX;
 /
 
 -- ============================================================
+-- FN_LAY_GIA_THUE_SAN (MỚI)
+-- Trích từ TRG_BIUD_CTHD_THUE_SAN_VALIDATE để tái sử dụng.
+-- Validate: sân con và bảng giá cùng khu vực, còn hiệu lực.
+-- Return: giá snapshot từ BANG_GIA.GIA
+-- Raise error nếu:
+--   - Sân con hoặc bảng giá không tồn tại / đã xóa mềm
+--   - Sân con và bảng giá không cùng khu vực
+-- ============================================================
+CREATE OR REPLACE FUNCTION FN_LAY_GIA_THUE_SAN(
+    P_MASAN IN SAN_CON.MASAN%TYPE,
+    P_MABG  IN BANG_GIA.MABG%TYPE
+) RETURN NUMBER
+AS
+    V_MAKV_SAN SAN_CON.MAKV%TYPE;
+    V_MAKV_BG  BANG_GIA.MAKV%TYPE;
+    V_GIA      BANG_GIA.GIA%TYPE;
+BEGIN
+    -- Lấy khu vực của sân con và khu vực + giá của bảng giá
+    SELECT SC.MAKV, BG.MAKV, BG.GIA
+    INTO V_MAKV_SAN, V_MAKV_BG, V_GIA
+    FROM SAN_CON SC
+             CROSS JOIN BANG_GIA BG
+    WHERE SC.MASAN = P_MASAN
+      AND BG.MABG = P_MABG
+      AND SC.IS_DELETED = 0
+      AND BG.IS_DELETED = 0;
+
+    -- Kiểm tra sân con và bảng giá phải thuộc cùng khu vực
+    IF V_MAKV_SAN <> V_MAKV_BG THEN
+        RAISE_APPLICATION_ERROR(-20068, 'Bang gia khong thuoc cung khu vuc voi san con.');
+    END IF;
+
+    RETURN V_GIA;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20068, 'San con hoac bang gia khong ton tai, da xoa mem, hoac khong hop le.');
+END;
+/
+
+
+-- ============================================================
+-- FN_LAY_GIA_DICH_VU (MỚI)
+-- Trích từ TRG_BIUD_CTHD_DV_PRICE để tái sử dụng.
+-- Validate: sản phẩm hoặc dụng cụ tồn tại, chưa xóa mềm.
+-- Return: giá snapshot từ SAN_PHAM.GIA hoặc DUNG_CU_THE_THAO.GIA
+-- Quy tắc RB53: chỉ đúng một trong hai MASP hoặc MADC có giá trị.
+-- ============================================================
+CREATE OR REPLACE FUNCTION FN_LAY_GIA_DICH_VU(
+    P_MASP IN SAN_PHAM.MASP%TYPE,
+    P_MADC IN DUNG_CU_THE_THAO.MADC%TYPE
+) RETURN NUMBER
+AS
+    V_GIA NUMBER(12, 2);
+BEGIN
+    IF P_MASP IS NOT NULL AND P_MADC IS NULL THEN
+        SELECT GIA
+        INTO V_GIA
+        FROM SAN_PHAM
+        WHERE MASP = P_MASP
+          AND IS_DELETED = 0;
+
+    ELSIF P_MADC IS NOT NULL AND P_MASP IS NULL THEN
+        SELECT GIA
+        INTO V_GIA
+        FROM DUNG_CU_THE_THAO
+        WHERE MADC = P_MADC
+          AND IS_DELETED = 0;
+
+    ELSE
+        -- Cả hai đều NULL hoặc cả hai đều có giá trị -> vi phạm RB53
+        RAISE_APPLICATION_ERROR(-20053,
+                                'Moi dong dich vu chi duoc chon dung mot trong hai: MASP hoac MADC.');
+    END IF;
+
+    RETURN V_GIA;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20052, 'San pham/dung cu khong ton tai hoac da bi xoa.');
+END;
+/
+
+
+-- ============================================================
 -- PRC_CAP_NHAT_SO_TIEN_HOA_DON
 -- Tinh lai hoa don bang gia snapshot:
 --   TONGGIATRI = SUM(DON_GIA_THUE) + SUM(SL * DON_GIA)
@@ -58,11 +141,8 @@ BEGIN
     WHERE CT.MAHD = P_MAHD
       AND CT.IS_DELETED = 0;
 
-    IF V_TIEN_COC > 0 THEN
-        IF V_TIEN_THUE_SAN <= 0 THEN
-            RAISE_APPLICATION_ERROR(-20058, 'Hoa don dat truoc phai co chi tiet thue san hop le.');
-        END IF;
 
+    IF V_TIEN_COC > 0 AND V_TIEN_THUE_SAN > 0 THEN
         IF ABS(V_TIEN_COC - ROUND(V_TIEN_THUE_SAN * 0.7, 2)) > 0.01 THEN
             RAISE_APPLICATION_ERROR(-20058, 'TIEN_COC phai bang 70% tong tien thue san cua hoa don dat truoc.');
         END IF;
@@ -97,7 +177,10 @@ BEGIN
     V_GIAM_HOA_DON := ROUND((V_TONG_GIA_TRI - V_GIAM_HANG) * V_GIAMGIA / 100, 2);
     V_TONG_TIEN := ROUND(V_TONG_GIA_TRI - V_GIAM_HANG - V_GIAM_HOA_DON - V_TIEN_COC, 2);
 
-    IF V_TONG_TIEN < 0 THEN
+    -- [FIX] Cho phép TONGTIEN <= 0 khi tất cả chi tiết đã huỷ
+    -- (hoá đơn sẽ bị huỷ ngay sau đó, TONGTIEN không còn ý nghĩa).
+    -- Chỉ raise error khi hoá đơn CÒN chi tiết hợp lệ mà TONGTIEN âm.
+    IF V_TONG_TIEN < 0 AND V_TIEN_THUE_SAN > 0 THEN
         RAISE_APPLICATION_ERROR(-20059, 'TONGTIEN khong duoc am.');
     END IF;
 
@@ -120,12 +203,13 @@ END;
 /
 
 
+-- ============================================================
 -- PRC_DIEU_CHINH_TON_SAN_PHAM
 -- P_DELTA > 0: cong ton; P_DELTA < 0: tru ton.
 -- Lock row ton kho de tranh race condition khi xuat vuot ton.
-
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_DIEU_CHINH_TON_SAN_PHAM(
-    P_MASP IN SAN_PHAM.MASP%TYPE,
+    P_MASP  IN SAN_PHAM.MASP%TYPE,
     P_DELTA IN NUMBER
 )
 AS
@@ -157,12 +241,13 @@ END;
 /
 
 
+-- ============================================================
 -- PRC_DIEU_CHINH_TON_DUNG_CU
 -- P_DELTA > 0: tra/cong ton; P_DELTA < 0: thue/tru ton.
 -- Lock row ton kho de tranh race condition khi thue vuot ton.
-
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_DIEU_CHINH_TON_DUNG_CU(
-    P_MADC IN DUNG_CU_THE_THAO.MADC%TYPE,
+    P_MADC  IN DUNG_CU_THE_THAO.MADC%TYPE,
     P_DELTA IN NUMBER
 )
 AS
@@ -193,6 +278,12 @@ EXCEPTION
 END;
 /
 
+
+-- ============================================================
+-- PRC_CAP_NHAT_THANH_TOAN_CHI_TIET_HD (RB63)
+-- Khi HOA_DON chuyen sang DA THANH TOAN,
+-- chuyen toan bo chi tiet DANG SU DUNG -> DA HOAN THANH.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_CAP_NHAT_THANH_TOAN_CHI_TIET_HD(P_MAHD IN HOA_DON.MAHD%TYPE)
 AS
 BEGIN
@@ -207,36 +298,46 @@ BEGIN
     WHERE MAHD = P_MAHD
       AND TRANGTHAI = 'ĐANG SỬ DỤNG'
       AND IS_DELETED = 0;
-end;
+END;
 /
 
+
+-- ============================================================
+-- FN_KIEM_TRA_SAN_TRONG (RB66)
+-- Return 1 nếu sân trống, 0 nếu đã có lịch.
+-- ============================================================
 CREATE OR REPLACE FUNCTION FN_KIEM_TRA_SAN_TRONG(
-    P_MASAN IN SAN_CON.MASAN%TYPE,
+    P_MASAN    IN SAN_CON.MASAN%TYPE,
     P_NGAYTHUE IN DATE,
-    P_MABG IN BANG_GIA.MABG%TYPE
+    P_MABG     IN BANG_GIA.MABG%TYPE
 ) RETURN NUMBER
 AS
-    v_COUNT NUMBER(1);
+    V_COUNT NUMBER(1);
 BEGIN
     SELECT COUNT(1)
-    INTO v_COUNT
+    INTO V_COUNT
     FROM CHI_TIET_HOA_DON_THUE_SAN
     WHERE MASAN = P_MASAN
       AND TRUNC(NGAYTHUE) = TRUNC(P_NGAYTHUE)
       AND MABG = P_MABG
       AND IS_DELETED = 0
       AND TRANGTHAI <> 'ĐÃ HUỶ';
-    -- Return 1 if court is free (no conflict), 0 if already booked
-    RETURN CASE WHEN v_COUNT = 0 THEN 1 ELSE 0 END;
+
+    RETURN CASE WHEN V_COUNT = 0 THEN 1 ELSE 0 END;
 END;
 /
 
+
+-- ============================================================
+-- FN_TINH_DOANH_THU_NGAY_CHI_NHANH
+-- Tinh tong doanh thu cua mot chi nhanh trong mot ngay.
+-- ============================================================
 CREATE OR REPLACE FUNCTION FN_TINH_DOANH_THU_NGAY_CHI_NHANH(
     P_MACN IN CHI_NHANH.MACN%TYPE,
     P_NGAY IN DATE
 ) RETURN NUMBER
 AS
-    V_TOTAL DOANH_THU.TONGDOANHTHU%type;
+    V_TOTAL DOANH_THU.TONGDOANHTHU%TYPE;
 BEGIN
     SELECT NVL(SUM(HD.TONGTIEN), 0)
     INTO V_TOTAL
@@ -250,11 +351,17 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- FN_TIM_HANG_KHACH_HANG (RB70)
+-- Tim hang khach hang phu hop nhat dua tren doanh thu.
+-- Lay hang co MUC_TIEN cao nhat ma doanh thu >= MUC_TIEN.
+-- ============================================================
 CREATE OR REPLACE FUNCTION FN_TIM_HANG_KHACH_HANG(
     P_DOANH_THU IN NUMBER
 ) RETURN HANG_KHACH_HANG.MA_HANG%TYPE
 AS
-    V_HANG_KHACH_HANG HANG_KHACH_HANG.MA_HANG%type;
+    V_HANG_KHACH_HANG HANG_KHACH_HANG.MA_HANG%TYPE;
 BEGIN
     SELECT MA_HANG
     INTO V_HANG_KHACH_HANG
@@ -265,15 +372,20 @@ BEGIN
         FETCH FIRST 1 ROW ONLY;
 
     RETURN V_HANG_KHACH_HANG;
-end;
+END;
 /
 
+
+-- ============================================================
+-- PRC_TAO_HOA_DON
+-- Tao moi hoa don voi trang thai CHUA THANH TOAN.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_TAO_HOA_DON(
-    P_MAHD IN HOA_DON.MAHD%TYPE,
-    P_MAKH IN KHACH_HANG.MAKH%TYPE,
-    P_MANV IN NHAN_VIEN.MANV%TYPE,
-    P_GIAMGIA IN HOA_DON.GIAMGIA%TYPE DEFAULT 0,
-    P_TIEN_COC IN HOA_DON.TIEN_COC%type
+    P_MAHD     IN HOA_DON.MAHD%TYPE,
+    P_MAKH     IN KHACH_HANG.MAKH%TYPE,
+    P_MANV     IN NHAN_VIEN.MANV%TYPE,
+    P_GIAMGIA  IN HOA_DON.GIAMGIA%TYPE DEFAULT 0,
+    P_TIEN_COC IN HOA_DON.TIEN_COC%TYPE
 )
 AS
     V_COUNT NUMBER := 0;
@@ -314,16 +426,23 @@ BEGIN
                         TONGGIATRI, TRANGTHAI, TONGTIEN, CREATED_AT, IS_DELETED)
     VALUES (P_MAHD, P_MAKH, P_MANV, NVL(P_TIEN_COC, 0), NVL(P_GIAMGIA, 0),
             0, 'CHƯA THANH TOÁN', 0, SYSDATE, 0);
-end;
+END;
 /
 
+
+-- ============================================================
+-- PRC_THEM_CHI_TIET_THUE_SAN
+-- Them chi tiet thue san vao hoa don.
+-- Goi FN_KIEM_TRA_SAN_TRONG de kiem tra trung lich.
+-- Trigger se tu dong gan DON_GIA_THUE snapshot.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_THEM_CHI_TIET_THUE_SAN(
     P_MACT_THUE_SAN IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE,
-    P_MAHD IN HOA_DON.MAHD%TYPE,
-    P_MASAN IN SAN_CON.MASAN%TYPE,
-    P_MABG IN BANG_GIA.MABG%TYPE,
-    P_NGAYTHUE IN DATE,
-    P_TRANGTHAI IN CHI_TIET_HOA_DON_THUE_SAN.TRANGTHAI%TYPE DEFAULT 'ĐÃ XÁC NHẬN'
+    P_MAHD          IN HOA_DON.MAHD%TYPE,
+    P_MASAN         IN SAN_CON.MASAN%TYPE,
+    P_MABG          IN BANG_GIA.MABG%TYPE,
+    P_NGAYTHUE      IN DATE,
+    P_TRANGTHAI     IN CHI_TIET_HOA_DON_THUE_SAN.TRANGTHAI%TYPE DEFAULT 'ĐÃ XÁC NHẬN'
 )
 AS
     V_COUNT NUMBER := 0;
@@ -365,16 +484,21 @@ BEGIN
                                           NGAYTHUE, TRANGTHAI, CREATED_AT, IS_DELETED)
     VALUES (P_MACT_THUE_SAN, P_MAHD, P_MASAN, P_MABG,
             P_NGAYTHUE, NVL(P_TRANGTHAI, 'ĐÃ XÁC NHẬN'), SYSDATE, 0);
-end;
+END;
 /
 
+
+-- ============================================================
+-- PRC_THEM_CHI_TIET_DICH_VU
+-- Them san pham ban kem hoac dung cu cho thue vao hoa don.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_THEM_CHI_TIET_DICH_VU(
     P_MACT_DICH_VU IN CHI_TIET_HOA_DON_DICH_VU_DA_DUNG.MACT_DICH_VU%TYPE,
-    P_MAHD IN HOA_DON.MAHD%TYPE,
-    P_MASP IN SAN_PHAM.MASP%TYPE DEFAULT NULL,
-    P_MADC IN DUNG_CU_THE_THAO.MADC%TYPE DEFAULT NULL,
-    P_SL IN NUMBER,
-    P_TRANGTHAI IN CHI_TIET_HOA_DON_DICH_VU_DA_DUNG.TRANGTHAI%TYPE DEFAULT 'ĐANG SỬ DỤNG'
+    P_MAHD         IN HOA_DON.MAHD%TYPE,
+    P_MASP         IN SAN_PHAM.MASP%TYPE DEFAULT NULL,
+    P_MADC         IN DUNG_CU_THE_THAO.MADC%TYPE DEFAULT NULL,
+    P_SL           IN NUMBER,
+    P_TRANGTHAI    IN CHI_TIET_HOA_DON_DICH_VU_DA_DUNG.TRANGTHAI%TYPE DEFAULT 'ĐANG SỬ DỤNG'
 )
 AS
     V_COUNT NUMBER;
@@ -435,6 +559,14 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- PRC_XAC_NHAN_KHACH_DEN_SAN (RB64)
+-- Chuyen chi tiet thue san tu DA XAC NHAN -> DANG SU DUNG.
+-- Trigger TRG_BIUD_CTHD_THUE_SAN_VALIDATE se kiem tra:
+--   - Chi tiet phai o trang thai DA XAC NHAN
+--   - San con phai DANG HOAT DONG
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_XAC_NHAN_KHACH_DEN_SAN(
     P_MACT_THUE_SAN IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE
 )
@@ -452,6 +584,14 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- PRC_THANH_TOAN_HOA_DON (RB62)
+-- Kiem tra dieu kien thanh toan, tinh lai tien,
+-- chuyen trang thai hoa don -> DA THANH TOAN.
+-- Trigger TRG_AU_HOA_DON_COMPLETE_DETAILS se tu dong
+-- chuyen cac chi tiet DANG SU DUNG -> DA HOAN THANH.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_THANH_TOAN_HOA_DON(
     P_MAHD IN HOA_DON.MAHD%TYPE
 )
@@ -504,17 +644,42 @@ EXCEPTION
 END;
 /
 
+
+-- ============================================================
+-- PRC_HUY_CHI_TIET_THUE_SAN (CẬP NHẬT)
+-- Huỷ chi tiết thuê sân + áp dụng quy tắc hoàn cọc:
+--   - Huỷ TRƯỚC >= 2 ngày so với NGAYTHUE → hoàn 100% cọc
+--   - Huỷ TRONG vòng < 2 ngày → KHÔNG hoàn cọc
+-- Nếu huỷ hết chi tiết → huỷ hoá đơn.
+-- Nếu còn chi tiết → cập nhật lại TIEN_COC = 70% phần còn lại.
+--
+-- Luồng xử lý:
+--   1. Validate trạng thái hoá đơn + chi tiết
+--   2. Tính số ngày còn lại (quy tắc hoàn cọc)
+--   3. Đếm chi tiết còn lại (trừ cái đang huỷ)
+--   4. Cập nhật TIEN_COC trước (dùng G_INTERNAL_RECALC tránh recalc đệ quy)
+--   5. Huỷ chi tiết (compound trigger tự recalc TONGGIATRI/TONGTIEN)
+--   6. Huỷ hoá đơn nếu hết chi tiết
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_HUY_CHI_TIET_THUE_SAN(
     P_MACT_THUE_SAN IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE
 )
 AS
-    V_MAHD      HOA_DON.MAHD%TYPE;
-    V_HD_STATUS HOA_DON.TRANGTHAI%TYPE;
-    V_CT_STATUS CHI_TIET_HOA_DON_THUE_SAN.TRANGTHAI%TYPE;
-    V_REMAINING NUMBER;
+    V_MAHD          HOA_DON.MAHD%TYPE;
+    V_HD_STATUS     HOA_DON.TRANGTHAI%TYPE;
+    V_CT_STATUS     CHI_TIET_HOA_DON_THUE_SAN.TRANGTHAI%TYPE;
+    V_NGAYTHUE      CHI_TIET_HOA_DON_THUE_SAN.NGAYTHUE%TYPE;
+    V_TIEN_COC_CU   HOA_DON.TIEN_COC%TYPE;
+    V_NGAY_CON_LAI  NUMBER;
+    V_REMAINING     NUMBER;
+    V_TONG_SAN_MOI  NUMBER(12, 2) := 0;
+    V_TIEN_COC_MOI  NUMBER(12, 2) := 0;
 BEGIN
-    SELECT CT.MAHD, CT.TRANGTHAI, HD.TRANGTHAI
-    INTO V_MAHD, V_CT_STATUS, V_HD_STATUS
+    -- ====== BƯỚC 1: Lấy thông tin + khoá dòng ======
+    SELECT CT.MAHD, CT.TRANGTHAI, CT.NGAYTHUE,
+           HD.TRANGTHAI, HD.TIEN_COC
+    INTO V_MAHD, V_CT_STATUS, V_NGAYTHUE,
+         V_HD_STATUS, V_TIEN_COC_CU
     FROM CHI_TIET_HOA_DON_THUE_SAN CT
              JOIN HOA_DON HD ON HD.MAHD = CT.MAHD
     WHERE CT.MACT_THUE_SAN = P_MACT_THUE_SAN
@@ -522,6 +687,7 @@ BEGIN
       AND HD.IS_DELETED = 0
         FOR UPDATE;
 
+    -- ====== BƯỚC 2: Validate ======
     IF V_HD_STATUS <> 'CHƯA THANH TOÁN' THEN
         RAISE_APPLICATION_ERROR(-20160, 'Chi duoc huy chi tiet cua hoa don CHUA THANH TOAN.');
     END IF;
@@ -530,29 +696,112 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20161, 'Chi tiet thue san da huy hoac da hoan thanh, khong the huy.');
     END IF;
 
-    UPDATE CHI_TIET_HOA_DON_THUE_SAN
-    SET TRANGTHAI = 'ĐÃ HUỶ'
-    WHERE MACT_THUE_SAN = P_MACT_THUE_SAN;
+    -- ====== BƯỚC 3: Tính số ngày còn lại (quy tắc hoàn cọc) ======
+    V_NGAY_CON_LAI := TRUNC(V_NGAYTHUE) - TRUNC(SYSDATE);
 
+    -- ====== BƯỚC 4: Đếm chi tiết còn lại SAU KHI huỷ cái này ======
     SELECT COUNT(1)
     INTO V_REMAINING
     FROM CHI_TIET_HOA_DON_THUE_SAN
     WHERE MAHD = V_MAHD
       AND IS_DELETED = 0
-      AND TRANGTHAI <> 'ĐÃ HUỶ';
+      AND TRANGTHAI <> 'ĐÃ HUỶ'
+      AND MACT_THUE_SAN <> P_MACT_THUE_SAN;
 
+    -- ====== BƯỚC 5: Cập nhật TIEN_COC TRƯỚC khi huỷ chi tiết ======
+    -- (Tránh PRC_CAP_NHAT_SO_TIEN_HOA_DON bị lỗi khi compound trigger fire)
+    IF V_TIEN_COC_CU > 0 THEN
+        PKG_COURT_CTX.G_INTERNAL_RECALC := TRUE;
+
+        IF V_REMAINING = 0 THEN
+            -- Đây là chi tiết cuối cùng
+            IF V_NGAY_CON_LAI < 2 THEN
+                -- Huỷ trong vòng 2 ngày → KHÔNG hoàn cọc → giữ TIEN_COC
+                NULL;
+            ELSE
+                -- Huỷ trước >= 2 ngày → hoàn 100% cọc → TIEN_COC = 0
+                UPDATE HOA_DON
+                SET TIEN_COC = 0
+                WHERE MAHD = V_MAHD AND IS_DELETED = 0;
+            END IF;
+        ELSE
+            -- Còn chi tiết khác → TIEN_COC = 70% tổng tiền thuê sân còn lại
+            SELECT NVL(SUM(DON_GIA_THUE), 0)
+            INTO V_TONG_SAN_MOI
+            FROM CHI_TIET_HOA_DON_THUE_SAN
+            WHERE MAHD = V_MAHD
+              AND IS_DELETED = 0
+              AND TRANGTHAI <> 'ĐÃ HUỶ'
+              AND MACT_THUE_SAN <> P_MACT_THUE_SAN;
+
+            V_TIEN_COC_MOI := ROUND(V_TONG_SAN_MOI * 0.7, 2);
+
+            UPDATE HOA_DON
+            SET TIEN_COC = V_TIEN_COC_MOI
+            WHERE MAHD = V_MAHD AND IS_DELETED = 0;
+        END IF;
+
+        PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
+    END IF;
+
+    -- ====== BƯỚC 6: Huỷ chi tiết ======
+    -- Compound trigger TRG_FIUD_CTHD_THUE_SAN_RECALC sẽ fire
+    -- và gọi PRC_CAP_NHAT_SO_TIEN_HOA_DON để tính lại TONGGIATRI/TONGTIEN
+    UPDATE CHI_TIET_HOA_DON_THUE_SAN
+    SET TRANGTHAI = 'ĐÃ HUỶ'
+    WHERE MACT_THUE_SAN = P_MACT_THUE_SAN;
+
+    -- ====== BƯỚC 7: Huỷ hoá đơn nếu hết chi tiết ======
     IF V_REMAINING = 0 THEN
         UPDATE HOA_DON
         SET TRANGTHAI = 'ĐÃ HUỶ'
         WHERE MAHD = V_MAHD
           AND TRANGTHAI = 'CHƯA THANH TOÁN';
+
+        IF V_TIEN_COC_CU > 0 THEN
+            IF V_NGAY_CON_LAI < 2 THEN
+                DBMS_OUTPUT.PUT_LINE(
+                    'HOA DON ' || V_MAHD || ' DA HUY. ' ||
+                    'COC ' || TO_CHAR(V_TIEN_COC_CU, 'FM999G999G990') ||
+                    ' KHONG DUOC HOAN (huy trong vong 2 ngay truoc ngay thue).'
+                );
+            ELSE
+                DBMS_OUTPUT.PUT_LINE(
+                    'HOA DON ' || V_MAHD || ' DA HUY. ' ||
+                    'HOAN 100% COC: ' || TO_CHAR(V_TIEN_COC_CU, 'FM999G999G990') || '.'
+                );
+            END IF;
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('HOA DON ' || V_MAHD || ' DA HUY (khong co coc).');
+        END IF;
+    ELSE
+        IF V_TIEN_COC_CU > 0 THEN
+            DBMS_OUTPUT.PUT_LINE(
+                'DA HUY CHI TIET ' || P_MACT_THUE_SAN || '. ' ||
+                'COC CU: ' || TO_CHAR(V_TIEN_COC_CU, 'FM999G999G990') ||
+                ' -> COC MOI: ' || TO_CHAR(V_TIEN_COC_MOI, 'FM999G999G990') ||
+                ' (70% tien thue san con lai).'
+            );
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('DA HUY CHI TIET ' || P_MACT_THUE_SAN || '.');
+        END IF;
     END IF;
+
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
+        PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
         RAISE_APPLICATION_ERROR(-20162, 'Chi tiet thue san khong ton tai hoac da bi xoa.');
+    WHEN OTHERS THEN
+        PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
+        RAISE;
 END;
 /
 
+
+-- ============================================================
+-- PRC_CAP_NHAT_DOANH_THU_NGAY_CHI_NHANH
+-- Tinh lai va cap nhat/tao moi doanh thu ngay cua chi nhanh.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_CAP_NHAT_DOANH_THU_NGAY_CHI_NHANH(
     P_MACN IN CHI_NHANH.MACN%TYPE,
     P_NGAY IN DATE
@@ -592,26 +841,33 @@ BEGIN
 END;
 /
 
+
+-- ============================================================
+-- PRC_DAT_SAN (nghiệp vụ phức tạp nhất)
+-- Orchestrate: tạo/kiểm tra hóa đơn → thêm chi tiết thuê sân
+-- → tính tiền cọc → tính lại tổng tiền.
+-- Hỗ trợ cả đặt trước (cọc 70%) và chơi ngay (cọc = 0).
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_DAT_SAN(
-    P_MAHD           IN HOA_DON.MAHD%TYPE,
-    P_MACT_THUE_SAN  IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE,
-    P_MAKH           IN KHACH_HANG.MAKH%TYPE,
-    P_MANV           IN NHAN_VIEN.MANV%TYPE,
-    P_MASAN          IN SAN_CON.MASAN%TYPE,
-    P_MABG           IN BANG_GIA.MABG%TYPE,
-    P_NGAYTHUE       IN DATE,
-    P_LA_DAT_TRUOC   IN NUMBER DEFAULT 1,
-    P_GIAMGIA        IN HOA_DON.GIAMGIA%TYPE DEFAULT 0
+    P_MAHD          IN HOA_DON.MAHD%TYPE,
+    P_MACT_THUE_SAN IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE,
+    P_MAKH          IN KHACH_HANG.MAKH%TYPE,
+    P_MANV          IN NHAN_VIEN.MANV%TYPE,
+    P_MASAN         IN SAN_CON.MASAN%TYPE,
+    P_MABG          IN BANG_GIA.MABG%TYPE,
+    P_NGAYTHUE      IN DATE,
+    P_LA_DAT_TRUOC  IN NUMBER DEFAULT 1,
+    P_GIAMGIA       IN HOA_DON.GIAMGIA%TYPE DEFAULT 0
 )
 AS
-    V_COUNT_HD        NUMBER := 0;
-    V_COUNT_CT        NUMBER := 0;
-    V_MAKH_HD         HOA_DON.MAKH%TYPE;
-    V_MANV_HD         HOA_DON.MANV%TYPE;
-    V_TRANGTHAI_HD    HOA_DON.TRANGTHAI%TYPE;
-    V_TIEN_COC_CU     HOA_DON.TIEN_COC%TYPE;
-    V_TONG_TIEN_SAN   NUMBER := 0;
-    V_TIEN_COC_MOI    NUMBER := 0;
+    V_COUNT_HD      NUMBER := 0;
+    V_COUNT_CT      NUMBER := 0;
+    V_MAKH_HD       HOA_DON.MAKH%TYPE;
+    V_MANV_HD       HOA_DON.MANV%TYPE;
+    V_TRANGTHAI_HD  HOA_DON.TRANGTHAI%TYPE;
+    V_TIEN_COC_CU   HOA_DON.TIEN_COC%TYPE;
+    V_TONG_TIEN_SAN NUMBER := 0;
+    V_TIEN_COC_MOI  NUMBER := 0;
 BEGIN
     IF P_MAHD IS NULL THEN
         RAISE_APPLICATION_ERROR(-20200, 'MAHD khong duoc null.');
@@ -619,9 +875,9 @@ BEGIN
 
     IF P_LA_DAT_TRUOC NOT IN (0, 1) THEN
         RAISE_APPLICATION_ERROR(
-            -20201,
-            'P_LA_DAT_TRUOC chi duoc nhan 0 hoac 1. 1 = dat truoc, 0 = choi ngay.'
-        );
+                -20201,
+                'P_LA_DAT_TRUOC chi duoc nhan 0 hoac 1. 1 = dat truoc, 0 = choi ngay.'
+            );
     END IF;
 
     SAVEPOINT SP_DAT_SAN;
@@ -635,12 +891,12 @@ BEGIN
     IF V_COUNT_HD = 0 THEN
         -- Chua co hoa don thi tao moi
         PRC_TAO_HOA_DON(
-            P_MAHD     => P_MAHD,
-            P_MAKH     => P_MAKH,
-            P_MANV     => P_MANV,
-            P_GIAMGIA  => P_GIAMGIA,
-            P_TIEN_COC => 0
-        );
+                P_MAHD     => P_MAHD,
+                P_MAKH     => P_MAKH,
+                P_MANV     => P_MANV,
+                P_GIAMGIA  => P_GIAMGIA,
+                P_TIEN_COC => 0
+            );
     ELSE
         -- Da co hoa don thi khoa dong hoa don de kiem tra va tranh update dong thoi
         SELECT MAKH, MANV, TRANGTHAI, TIEN_COC
@@ -648,27 +904,27 @@ BEGIN
         FROM HOA_DON
         WHERE MAHD = P_MAHD
           AND IS_DELETED = 0
-        FOR UPDATE;
+            FOR UPDATE;
 
         IF V_TRANGTHAI_HD <> 'CHƯA THANH TOÁN' THEN
             RAISE_APPLICATION_ERROR(
-                -20202,
-                'Chi duoc them chi tiet thue san vao hoa don CHUA THANH TOAN.'
-            );
+                    -20202,
+                    'Chi duoc them chi tiet thue san vao hoa don CHUA THANH TOAN.'
+                );
         END IF;
 
         IF V_MAKH_HD <> P_MAKH THEN
             RAISE_APPLICATION_ERROR(
-                -20203,
-                'Hoa don da ton tai nhung khong thuoc khach hang nay.'
-            );
+                    -20203,
+                    'Hoa don da ton tai nhung khong thuoc khach hang nay.'
+                );
         END IF;
 
         IF V_MANV_HD <> P_MANV THEN
             RAISE_APPLICATION_ERROR(
-                -20204,
-                'Hoa don da ton tai nhung khong thuoc nhan vien nay.'
-            );
+                    -20204,
+                    'Hoa don da ton tai nhung khong thuoc nhan vien nay.'
+                );
         END IF;
 
         SELECT COUNT(1)
@@ -682,33 +938,29 @@ BEGIN
         IF V_COUNT_CT > 0 THEN
             IF V_TIEN_COC_CU > 0 AND P_LA_DAT_TRUOC = 0 THEN
                 RAISE_APPLICATION_ERROR(
-                    -20205,
-                    'Hoa don nay dang la hoa don dat truoc, khong the them san theo kieu choi ngay.'
-                );
+                        -20205,
+                        'Hoa don nay dang la hoa don dat truoc, khong the them san theo kieu choi ngay.'
+                    );
             END IF;
 
             IF V_TIEN_COC_CU = 0 AND P_LA_DAT_TRUOC = 1 THEN
                 RAISE_APPLICATION_ERROR(
-                    -20206,
-                    'Hoa don nay dang la hoa don choi ngay, khong the them san theo kieu dat truoc.'
-                );
+                        -20206,
+                        'Hoa don nay dang la hoa don choi ngay, khong the them san theo kieu dat truoc.'
+                    );
             END IF;
         END IF;
     END IF;
 
-    -- Them chi tiet thue san
-    -- Procedure con se kiem tra hoa don, san, bang gia va trung lich
-    -- Trigger se tu gan DON_GIA_THUE snapshot
     PRC_THEM_CHI_TIET_THUE_SAN(
-        P_MACT_THUE_SAN => P_MACT_THUE_SAN,
-        P_MAHD          => P_MAHD,
-        P_MASAN         => P_MASAN,
-        P_MABG          => P_MABG,
-        P_NGAYTHUE      => P_NGAYTHUE,
-        P_TRANGTHAI     => 'ĐÃ XÁC NHẬN'
-    );
+            P_MACT_THUE_SAN => P_MACT_THUE_SAN,
+            P_MAHD          => P_MAHD,
+            P_MASAN         => P_MASAN,
+            P_MABG          => P_MABG,
+            P_NGAYTHUE      => P_NGAYTHUE,
+            P_TRANGTHAI     => 'ĐÃ XÁC NHẬN'
+        );
 
-    -- Tinh lai tong tien thue san cua hoa don
     SELECT NVL(SUM(DON_GIA_THUE), 0)
     INTO V_TONG_TIEN_SAN
     FROM CHI_TIET_HOA_DON_THUE_SAN
@@ -716,8 +968,6 @@ BEGIN
       AND IS_DELETED = 0
       AND TRANGTHAI <> 'ĐÃ HUỶ';
 
-    -- Dat truoc thi tien coc = 70% tong tien thue san
-    -- Choi ngay thi tien coc = 0
     IF P_LA_DAT_TRUOC = 1 THEN
         V_TIEN_COC_MOI := ROUND(V_TONG_TIEN_SAN * 0.7, 2);
     ELSE
@@ -738,9 +988,14 @@ EXCEPTION
 END;
 /
 
+
+-- ============================================================
+-- PRC_IN_BANG_GIA_SAN_CON
+-- In thong tin bang gia cua san con ra DBMS_OUTPUT.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_IN_BANG_GIA_SAN_CON(
     P_MASAN IN SAN_CON.MASAN%TYPE,
-    P_MABG IN BANG_GIA.MABG%TYPE DEFAULT NULL
+    P_MABG  IN BANG_GIA.MABG%TYPE DEFAULT NULL
 )
 AS
     V_DA_IN_HEADER BOOLEAN := FALSE;
@@ -810,20 +1065,25 @@ BEGIN
                     ' | KHUNG GIO=' || LPAD(R.GIOBATDAU, 2, '0') || ':00-' ||
                     LPAD(R.GIOKETTHUC, 2, '0') || ':00' ||
                     ' | GIA=' || TO_CHAR(R.GIA, 'FM999G999G999G990D00')
-            );
+                );
         END LOOP;
 
     IF V_SO_DONG = 0 THEN
         RAISE_APPLICATION_ERROR(
                 -20101,
                 'Khong tim thay bang gia hop le cho san con ' || P_MASAN
-        );
+            );
     END IF;
 
     DBMS_OUTPUT.PUT_LINE(RPAD('=', 80, '='));
 END;
 /
 
+
+-- ============================================================
+-- PRC_IN_DOI_CHIEU_GIA_THUE_SAN
+-- In doi chieu gia snapshot vs gia hien tai.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_IN_DOI_CHIEU_GIA_THUE_SAN(
     P_MACT_THUE_SAN IN CHI_TIET_HOA_DON_THUE_SAN.MACT_THUE_SAN%TYPE
 )
@@ -872,10 +1132,14 @@ BEGIN
 
     DBMS_OUTPUT.PUT_LINE(RPAD('=', 80, '='));
 END;
---them khachhang
-CREATE OR REPLACE PROCEDURE PRC_THEM_KHACH_HANG
-(
+/
 
+
+-- ============================================================
+-- PRC_THEM_KHACH_HANG
+-- Them khach hang moi: tao USERS, KHACH_HANG, ACCOUNT, ACCOUNT_ROLE_GROUP.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE PRC_THEM_KHACH_HANG(
     P_USER_ID               IN USERS.USER_ID%TYPE,
     P_MAKH                  IN KHACH_HANG.MAKH%TYPE,
     P_ACCOUNT_ID            IN ACCOUNT.ACCOUNT_ID%TYPE,
@@ -895,82 +1159,25 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20301, 'Vui long nhap so dien thoai.');
     END IF;
 
-    INSERT INTO USERS (
-        USER_ID,
-        HOTEN,
-        SDT,
-        EMAIL,
-        NGAYSINH,
-        DIACHI,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-               P_USER_ID,
-               P_HOTEN,
-               P_SDT,
-               NULL,
-               NULL,
-               NULL,
-               SYSDATE,
-               0
-           );
+    INSERT INTO USERS (USER_ID, HOTEN, SDT, EMAIL, NGAYSINH, DIACHI, CREATED_AT, IS_DELETED)
+    VALUES (P_USER_ID, P_HOTEN, P_SDT, NULL, NULL, NULL, SYSDATE, 0);
 
-    INSERT INTO KHACH_HANG (
-        MAKH,
-        USER_ID,
-        MA_HANG,
-        TRANGTHAI,
-        DOANH_THU,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-               P_MAKH,
-               P_USER_ID,
-               NULL,
-               'ACTIVE',
-               0,
-               SYSDATE,
-               0
-           );
+    INSERT INTO KHACH_HANG (MAKH, USER_ID, MA_HANG, TRANGTHAI, DOANH_THU, CREATED_AT, IS_DELETED)
+    VALUES (P_MAKH, P_USER_ID, NULL, 'ACTIVE', 0, SYSDATE, 0);
 
-    INSERT INTO ACCOUNT (
-        ACCOUNT_ID,
-        USER_ID,
-        USERNAME,
-        PASSWORD_HASH,
-        STATUS,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-               P_ACCOUNT_ID,
-               P_USER_ID,
-               P_SDT,
-               P_PASSWORD_HASH,
-               'ACTIVE',
-               SYSDATE,
-               0
-           );
+    INSERT INTO ACCOUNT (ACCOUNT_ID, USER_ID, USERNAME, PASSWORD_HASH, STATUS, CREATED_AT, IS_DELETED)
+    VALUES (P_ACCOUNT_ID, P_USER_ID, P_SDT, P_PASSWORD_HASH, 'ACTIVE', SYSDATE, 0);
 
-    INSERT INTO ACCOUNT_ROLE_GROUP (
-        ACCOUNT_ROLE_GROUP_ID,
-        ACCOUNT_ID,
-        GROUP_ID,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-               P_ACCOUNT_ROLE_GROUP_ID,
-               P_ACCOUNT_ID,
-               V_GROUP_ID,
-               SYSDATE,
-               0
-           );
+    INSERT INTO ACCOUNT_ROLE_GROUP (ACCOUNT_ROLE_GROUP_ID, ACCOUNT_ID, GROUP_ID, CREATED_AT, IS_DELETED)
+    VALUES (P_ACCOUNT_ROLE_GROUP_ID, P_ACCOUNT_ID, V_GROUP_ID, SYSDATE, 0);
 END;
 /
 
+
+-- ============================================================
+-- PRC_XOA_KHACH_HANG
+-- Xoa mem khach hang: KHACH_HANG, USERS, ACCOUNT, ACCOUNT_ROLE_GROUP.
+-- ============================================================
 CREATE OR REPLACE PROCEDURE PRC_XOA_KHACH_HANG(
     P_MAKH IN KHACH_HANG.MAKH%TYPE
 )
@@ -979,8 +1186,6 @@ AS
     V_ACCOUNT_ID ACCOUNT.ACCOUNT_ID%TYPE;
     V_COUNT      NUMBER := 0;
 BEGIN
-
-
     SELECT COUNT(1)
     INTO V_COUNT
     FROM KHACH_HANG
@@ -996,15 +1201,15 @@ BEGIN
     FROM KHACH_HANG kh
              JOIN ACCOUNT a
                   ON a.USER_ID = kh.USER_ID
-                 AND a.IS_DELETED = 0
+                      AND a.IS_DELETED = 0
              JOIN USERS u
                   ON u.USER_ID = kh.USER_ID
-                 AND u.IS_DELETED = 0
+                      AND u.IS_DELETED = 0
     WHERE kh.MAKH = P_MAKH
       AND kh.IS_DELETED = 0;
 
     UPDATE KHACH_HANG
-    SET TRANGTHAI = 'INACTIVE',
+    SET TRANGTHAI  = 'INACTIVE',
         IS_DELETED = 1
     WHERE MAKH = P_MAKH
       AND IS_DELETED = 0;
@@ -1015,7 +1220,7 @@ BEGIN
       AND IS_DELETED = 0;
 
     UPDATE ACCOUNT
-    SET STATUS = 'INACTIVE',
+    SET STATUS     = 'INACTIVE',
         IS_DELETED = 1
     WHERE ACCOUNT_ID = V_ACCOUNT_ID
       AND IS_DELETED = 0;
@@ -1028,274 +1233,5 @@ BEGIN
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         RAISE_APPLICATION_ERROR(-20321, 'Khach hang khong ton tai hoac da bi xoa.');
-END;
-/
-
-CREATE OR REPLACE PROCEDURE PRC_THEM_NHAN_VIEN(
-    P_USER_ID IN USERS.USER_ID%TYPE,
-    P_MANV IN NHAN_VIEN.MANV%TYPE,
-    P_ACCOUNT_ID IN ACCOUNT.ACCOUNT_ID%TYPE,
-    P_ACCOUNT_ROLE_GROUP_ID IN ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID%TYPE,
-    P_ACCOUNT_ROLE_ID IN ACCOUNT_ROLE.ACCOUNT_ROLE_ID%TYPE,
-    P_ROLE_GROUP_ID IN ROLE_GROUP.GROUP_ID%TYPE,
-    P_ROLE_ID IN ROLE.ROLE_ID%TYPE,
-    P_HOTEN IN USERS.HOTEN%TYPE,
-    P_SDT IN USERS.SDT%TYPE,
-    P_MALNV IN NHAN_VIEN.MALNV%TYPE,
-    P_MACN IN NHAN_VIEN.MACN%TYPE,
-    P_CCCD IN NHAN_VIEN.CCCD%TYPE DEFAULT NULL,
-    P_IS_QL IN NHAN_VIEN.IS_QL%TYPE DEFAULT 0,
-    P_TRANG_THAI IN NHAN_VIEN.TRANG_THAI%TYPE DEFAULT 'ACTIVE',
-    P_PASSWORD_HASH IN ACCOUNT.PASSWORD_HASH%TYPE,
-    P_DIACHI IN USERS.DIACHI%TYPE DEFAULT NULL
-)
-AS
-    V_COUNT NUMBER := 0;
-BEGIN
-    IF  TRIM(P_USER_ID) IS NULL
-        OR TRIM(P_MANV) IS NULL
-        OR TRIM(P_ACCOUNT_ID) IS NULL
-        OR TRIM(P_ACCOUNT_ROLE_GROUP_ID) IS NULL
-        OR TRIM(P_ACCOUNT_ROLE_ID) IS NULL
-        OR TRIM(P_ROLE_GROUP_ID) IS NULL
-        OR TRIM(P_ROLE_ID) IS NULL
-        OR TRIM(P_HOTEN) IS NULL
-        OR TRIM(P_SDT) IS NULL
-        OR TRIM(P_MALNV) IS NULL
-        OR TRIM(P_MACN) IS NULL
-        OR TRIM(P_CCCD) IS NULL
-        OR TRIM(P_PASSWORD_HASH) IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20330, 'Thong tin them nhan vien khong duoc de trong.');
-    END IF;
-
-    IF NOT REGEXP_LIKE(TRIM(P_SDT), '^0[0-9]{9}$') THEN
-        RAISE_APPLICATION_ERROR(-20331, 'So dien thoai phai gom 10 chu so va bat dau bang 0.');
-    END IF;
-
-    IF P_CCCD IS NOT NULL
-       AND TRIM(P_CCCD) IS NOT NULL
-       AND NOT REGEXP_LIKE(TRIM(P_CCCD), '^[0-9]{12}$') THEN
-        RAISE_APPLICATION_ERROR(-20332, 'Can cuoc cong dan phai gom 12 chu so.');
-    END IF;
-
-    IF P_IS_QL IS NOT NULL AND P_IS_QL NOT IN (0, 1) THEN
-        RAISE_APPLICATION_ERROR(-20333, 'Chuc vu nhan vien khong hop le.');
-    END IF;
-
-
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM NHAN_VIEN NV
-    WHERE MANV = TRIM(P_MANV)
-      AND IS_DELETED = 0;
-    IF V_COUNT > 0 THEN
-        RAISE_APPLICATION_ERROR(-20334, 'Nhan vien da ton tai.');
-    END IF;
-
-    IF P_CCCD IS NOT NULL AND TRIM(P_CCCD) IS NOT NULL THEN
-        SELECT COUNT(1)
-        INTO V_COUNT
-        FROM NHAN_VIEN
-        WHERE CCCD = TRIM(P_CCCD);
-        IF V_COUNT > 0 THEN
-            RAISE_APPLICATION_ERROR(-20335, 'Can cuoc cong dan da ton tai.');
-        END IF;
-    END IF;
-
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM CHI_NHANH
-    WHERE MACN = TRIM(P_MACN)
-      AND IS_DELETED = 0;
-    IF V_COUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20336, 'Chi nhanh khong ton tai hoac da bi xoa.');
-    END IF;
-
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM USERS
-    WHERE SDT = TRIM(P_SDT)
-      AND IS_DELETED = 0;
-    IF V_COUNT > 0 THEN
-        RAISE_APPLICATION_ERROR(-20340, 'So dien thoai da ton tai.');
-    END IF;
-
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM ACCOUNT_ROLE_GROUP_MAPPING
-    WHERE ROLE_ID = TRIM(P_ROLE_ID)
-      AND GROUP_ID = TRIM(P_ROLE_GROUP_ID)
-      AND IS_DELETED = 0;
-    IF V_COUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20339, 'ROLE khong hop le voi ROLE_GROUP.');
-    END IF;
-
-
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM LOAI_NHAN_VIEN
-    WHERE MALNV = TRIM(P_MALNV)
-      AND IS_DELETED = 0;
-    IF V_COUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20338, 'Loai nhan vien khong ton tai hoac da bi xoa.');
-    END IF;
-
-    INSERT INTO USERS (
-        USER_ID,
-        HOTEN,
-        SDT,
-        EMAIL,
-        NGAYSINH,
-        DIACHI,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-        TRIM(P_USER_ID),
-        TRIM(P_HOTEN),
-        TRIM(P_SDT),
-        NULL,
-        NULL,
-        TRIM(P_DIACHI),
-        SYSDATE,
-        0
-    );
-
-    INSERT INTO ACCOUNT (
-        ACCOUNT_ID,
-        USER_ID,
-        USERNAME,
-        PASSWORD_HASH,
-        STATUS,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-        TRIM(P_ACCOUNT_ID),
-        TRIM(P_USER_ID),
-        TRIM(P_SDT),
-        P_PASSWORD_HASH,
-        NVL(TRIM(P_TRANG_THAI), 'ACTIVE'),
-        SYSDATE,
-        0
-    );
-
-    INSERT INTO NHAN_VIEN (
-        MANV,
-        USER_ID,
-        MALNV,
-        MACN,
-        NVL,
-        CCCD,
-        IS_QL,
-        TRANG_THAI,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-        TRIM(P_MANV),
-        TRIM(P_USER_ID),
-        TRIM(P_MALNV),
-        TRIM(P_MACN),
-        SYSDATE,
-        TRIM(P_CCCD),
-        NVL(P_IS_QL, 0),
-        NVL(TRIM(P_TRANG_THAI), 'ACTIVE'),
-        SYSDATE,
-        0
-    );
-
-    INSERT INTO ACCOUNT_ROLE_GROUP (
-        ACCOUNT_ROLE_GROUP_ID,
-        ACCOUNT_ID,
-        GROUP_ID,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-        TRIM(P_ACCOUNT_ROLE_GROUP_ID),
-        TRIM(P_ACCOUNT_ID),
-        TRIM(P_ROLE_GROUP_ID),
-        SYSDATE,
-        0
-    );
-
-    INSERT INTO ACCOUNT_ROLE (
-        ACCOUNT_ROLE_ID,
-        ACCOUNT_ID,
-        ROLE_ID,
-        CREATED_AT,
-        IS_DELETED
-    )
-    VALUES (
-        TRIM(P_ACCOUNT_ROLE_ID),
-        TRIM(P_ACCOUNT_ID),
-        TRIM(P_ROLE_ID),
-        SYSDATE,
-        0
-    );
-END;
-/
-
-CREATE OR REPLACE PROCEDURE PRC_XOA_NHAN_VIEN(
-    P_MANV IN NHAN_VIEN.MANV%TYPE
-)
-AS
-    V_USER_ID    NHAN_VIEN.USER_ID%TYPE;
-    V_ACCOUNT_ID ACCOUNT.ACCOUNT_ID%TYPE;
-    V_COUNT      NUMBER := 0;
-BEGIN
-    SELECT COUNT(1)
-    INTO V_COUNT
-    FROM NHAN_VIEN
-    WHERE MANV = P_MANV
-      AND IS_DELETED = 0;
-
-    IF V_COUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20341, 'Nhan vien khong ton tai hoac da bi xoa.');
-    END IF;
-
-    SELECT nv.USER_ID, a.ACCOUNT_ID
-    INTO V_USER_ID, V_ACCOUNT_ID
-    FROM NHAN_VIEN nv
-             JOIN ACCOUNT a
-                  ON a.USER_ID = nv.USER_ID
-                 AND a.IS_DELETED = 0
-             JOIN USERS u
-                  ON u.USER_ID = nv.USER_ID
-                 AND u.IS_DELETED = 0
-    WHERE nv.MANV = P_MANV
-      AND nv.IS_DELETED = 0;
-
-    UPDATE NHAN_VIEN
-    SET TRANG_THAI = 'INACTIVE',
-        IS_DELETED = 1
-    WHERE MANV = P_MANV
-      AND IS_DELETED = 0;
-
-    UPDATE USERS
-    SET IS_DELETED = 1
-    WHERE USER_ID = V_USER_ID
-      AND IS_DELETED = 0;
-
-    UPDATE ACCOUNT
-    SET STATUS = 'INACTIVE',
-        IS_DELETED = 1
-    WHERE ACCOUNT_ID = V_ACCOUNT_ID
-      AND IS_DELETED = 0;
-
-    UPDATE ACCOUNT_ROLE_GROUP
-    SET IS_DELETED = 1
-    WHERE ACCOUNT_ID = V_ACCOUNT_ID
-      AND IS_DELETED = 0;
-
-    UPDATE ACCOUNT_ROLE
-    SET IS_DELETED = 1
-    WHERE ACCOUNT_ID = V_ACCOUNT_ID
-      AND IS_DELETED = 0;
-
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20341, 'Nhan vien khong ton tai hoac da bi xoa.');
 END;
 /
