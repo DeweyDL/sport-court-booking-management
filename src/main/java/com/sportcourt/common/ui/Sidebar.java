@@ -22,6 +22,7 @@ import com.sportcourt.modules.imports.view.ImportManagement;
 import com.sportcourt.modules.product.view.ProductPanel;
 import com.sportcourt.modules.revenue.view.RevenuePanel;
 import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
+import com.sportcourt.modules.staff_type.view.ManageStaffTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
 import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
@@ -147,6 +148,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.SUPPLIER_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ NHÀ CUNG CẤP", "/icon/products.1.png"));
         if (canView(FunctionId.REVENUE_MANAGEMENT)) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI THỂ THAO", "/icon/tools.1.png"));
+        if (canView(FunctionId.STAFF_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI NHÂN VIÊN", "/icon/staff.1.png"));
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
 
         JScrollPane menuScrollPane = new JScrollPane(menuPanel);
@@ -368,6 +370,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", SupplierManagementPanel::new);
         if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", RevenuePanel::new);
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
+        if (canView(FunctionId.STAFF_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI NHÂN VIÊN", ManageStaffTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
         if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
             contentPanel.registerView(PROFILE_VIEW_KEY, UserProfilePanel::new);

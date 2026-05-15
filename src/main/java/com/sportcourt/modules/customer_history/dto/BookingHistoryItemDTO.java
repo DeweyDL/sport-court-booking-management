@@ -102,4 +102,13 @@ public class BookingHistoryItemDTO {
                 bookingDate.getMonthValue(),
                 bookingDate.getYear());
     }
+
+    public boolean matchSearchKeyword(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) return true;
+        String kw = keyword.trim().toLowerCase();
+        return (invoiceId != null && invoiceId.toLowerCase().contains(kw))
+                || (sportTypeName != null && sportTypeName.toLowerCase().contains(kw))
+                || (branchName != null && branchName.toLowerCase().contains(kw))
+                || (status != null && status.toLowerCase().contains(kw));
+    }
 }

@@ -1,9 +1,7 @@
 package com.sportcourt.modules.customer_history.controller;
 
-import com.sportcourt.modules.customer_history.dto.BookingAddCourtRequest;
 import com.sportcourt.modules.customer_history.dto.BookingDetailDTO;
 import com.sportcourt.modules.customer_history.dto.BookingHistoryItemDTO;
-import com.sportcourt.modules.customer_history.dto.PriceBoardOptionDTO;
 import com.sportcourt.modules.customer_history.service.BookingHistoryService;
 import com.sportcourt.modules.customer_history.service.BookingHistoryServiceImpl;
 
@@ -28,16 +26,8 @@ public class BookingHistoryController {
     public BookingDetailDTO loadDetail(String invoiceId) {
         return service.getBookingDetail(invoiceId);
     }
-
-    public List<String> loadAvailableCourts() {
-        return service.getAvailableCourtIds();
-    }
-
-    public List<PriceBoardOptionDTO> loadAvailablePriceBoards() {
-        return service.getAvailablePriceBoards();
-    }
-
-    public void addCourtBooking(BookingAddCourtRequest request) {
-        service.addCourtBooking(request);
+    
+    public void cancelCourtBooking(String detailId) {
+        service.cancelCourtBooking(detailId);
     }
 }
