@@ -13,6 +13,3 @@ public interface CustomerBookingOrderDAO {
     public void insertCourtBookingDetails(String invoiceId, List<SelectedBookingSlot> selectedBookingSlot);
     public void cancelPendingBooking(String invoiceId);
 }
-
-'
-        /'
