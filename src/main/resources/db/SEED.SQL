@@ -545,3 +545,6 @@ COMMIT;
 --   thungan01..thungan07 / 123456
 --   khachhang01..khachhang10 / 123456
 -- ============================================================
+
+-- thêm roll cho sportype
+
