@@ -555,40 +555,41 @@ public class BookingDetailPanel extends JPanel {
 
         Color bg = new Color(220, 220, 220);
         Color fg = Color.DARK_GRAY;
-        String displayStatus = st; // Mặc định
+        String displayStatus = st;
 
         if (upperSt.contains("CHỜ CỌC") || upperSt.contains("CHƯA")) {
-            bg = new Color(255, 77, 77); // Red
+            bg = new Color(255, 77, 77);
             fg = Color.WHITE;
             displayStatus = "Đã đặt chờ cọc";
         } else if (upperSt.contains("XÁC NHẬN") && upperSt.contains("CHỜ")) {
-            bg = new Color(204, 255, 204); // Light green
+            bg = new Color(204, 255, 204);
             fg = new Color(0, 100, 0);
             displayStatus = "Chờ xác nhận";
         } else if (upperSt.contains("XÁC NHẬN") || upperSt.contains("ĐÃ CỌC")) {
-            bg = new Color(102, 255, 102); // Bright green
+            bg = new Color(102, 255, 102);
             fg = new Color(0, 100, 0);
             displayStatus = "Đã xác nhận";
         } else if (upperSt.contains("HUỶ") || upperSt.contains("HỦY")) {
-            bg = new Color(230, 230, 230); // Màu xám cho đơn đã hủy
+            bg = new Color(230, 230, 230);
             fg = Color.DARK_GRAY;
             displayStatus = "Đã hủy";
         }
 
         RoundedPanel badge = new RoundedPanel(UIScale.scale(50), bg, false);
-        badge.setLayout(new FlowLayout(FlowLayout.CENTER, UIScale.scale(20), UIScale.scale(8)));
+        badge.setLayout(new BorderLayout());
         badge.setAlignmentX(Component.LEFT_ALIGNMENT);
+        badge.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
+        badge.setPreferredSize(new Dimension(10, UIScale.scale(45)));
 
-        JLabel lbl = new JLabel(displayStatus);
+        JLabel lbl = new JLabel(displayStatus, SwingConstants.CENTER);
         lbl.setFont(AppFonts.lexendBold(14f));
         lbl.setForeground(fg);
-        badge.add(lbl);
+        badge.add(lbl, BorderLayout.CENTER);
 
         return badge;
     }
 
     private JButton createActionButton(String text, Color bg, Color fg) {
-        // ĐÃ SỬA LỖI Ở ĐÂY: Loại bỏ setPreferredSize(Integer.MAX_VALUE)
         JButton btn = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -600,7 +601,7 @@ public class BookingDetailPanel extends JPanel {
                 g2.dispose();
             }
         };
-        btn.setFont(AppFonts.lexendBold(16f));
+        btn.setFont(AppFonts.lexendBold(14f));
         btn.setForeground(fg);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
@@ -608,6 +609,7 @@ public class BookingDetailPanel extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
+        btn.setPreferredSize(new Dimension(10, UIScale.scale(45)));
         return btn;
     }
 
