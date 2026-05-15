@@ -22,6 +22,8 @@ public class BookingDetailDTO {
     private String branchAddress;
 
     private List<CourtLineItem> courtItems;
+    private List<ServiceDetailDTO> serviceItems;
+    private String overallStatus;
 
     public BookingDetailDTO() {
     }
@@ -130,6 +132,14 @@ public class BookingDetailDTO {
         this.courtItems = v;
     }
 
+    public List<ServiceDetailDTO> getServiceItems() {
+        return serviceItems;
+    }
+
+    public void setServiceItems(List<ServiceDetailDTO> serviceItems) {
+        this.serviceItems = serviceItems;
+    }
+
     public String getFormattedTotalAmount() {
         if (totalAmount == null) return "0đ";
         return String.format("%,.0fđ", totalAmount).replace(",", ".");
@@ -140,8 +150,15 @@ public class BookingDetailDTO {
         return String.format("%,.0fđ", totalValue).replace(",", ".");
     }
 
-    public static class CourtLineItem {
+    public String getOverallStatus() {
+        return overallStatus;
+    }
 
+    public void setOverallStatus(String v) {
+        this.overallStatus = v;
+    }
+
+    public static class CourtLineItem {
         private String bookingDetailId;
         private String courtId;
         private String timeSlot;
@@ -211,15 +228,17 @@ public class BookingDetailDTO {
 
         public String getFormattedCourtDate() {
             if (courtDate == null) return "--";
-            return String.format("%02d/%02d/%d",
-                    courtDate.getDayOfMonth(),
-                    courtDate.getMonthValue(),
-                    courtDate.getYear());
+            return String.format("%02d/%02d/%d", courtDate.getDayOfMonth(), courtDate.getMonthValue(), courtDate.getYear());
         }
 
         public String getFormattedUnitPrice() {
             if (unitPrice == null) return "0đ/giờ";
             return String.format("%,.0fđ/giờ", unitPrice).replace(",", ".");
+        }
+
+        public boolean canBeCancelled() {
+            String st = status != null ? status.toUpperCase() : "";
+            return !st.contains("HUỶ") && !st.contains("HỦY") && !st.contains("HOÀN THÀNH");
         }
     }
 }
