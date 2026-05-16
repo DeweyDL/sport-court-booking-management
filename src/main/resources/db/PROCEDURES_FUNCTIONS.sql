@@ -45,6 +45,85 @@ END;
 
 
 -- ============================================================
+-- PRC_THEM_BANG_GIA_THEO_KHUNG_GIO
+-- Tao nhieu dong BANG_GIA 1 gio theo khoang gio bat dau.
+-- Vi du P_GIO_BAT_DAU = 1, P_GIO_BAT_DAU_CUOI = 5:
+-- insert 1-2, 2-3, 3-4, 4-5, 5-6 voi cung P_GIA.
+-- MABG duoc sinh theo dang BG-<so tiep theo>.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE PRC_THEM_BANG_GIA_THEO_KHUNG_GIO(
+    P_MAKV             IN BANG_GIA.MAKV%TYPE,
+    P_GIO_BAT_DAU      IN BANG_GIA.GIOBATDAU%TYPE,
+    P_GIO_BAT_DAU_CUOI IN BANG_GIA.GIOBATDAU%TYPE,
+    P_GIA              IN BANG_GIA.GIA%TYPE
+)
+AS
+    V_COUNT       NUMBER := 0;
+    V_NEXT_ID     NUMBER := 0;
+    V_CURRENT_GIO NUMBER := 0;
+BEGIN
+    IF P_MAKV IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20130, 'MAKV khong duoc null.');
+    END IF;
+
+    IF P_GIA IS NULL OR P_GIA <= 0 THEN
+        RAISE_APPLICATION_ERROR(-20131, 'Gia bang gia phai lon hon 0.');
+    END IF;
+
+    IF P_GIO_BAT_DAU IS NULL OR P_GIO_BAT_DAU_CUOI IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20132, 'Gio bat dau va gio bat dau cuoi khong duoc null.');
+    END IF;
+
+    IF P_GIO_BAT_DAU < 0 OR P_GIO_BAT_DAU > 23
+        OR P_GIO_BAT_DAU_CUOI < 0 OR P_GIO_BAT_DAU_CUOI > 23 THEN
+        RAISE_APPLICATION_ERROR(-20133, 'Gio phai nam trong khoang 0 den 23.');
+    END IF;
+
+    IF P_GIO_BAT_DAU_CUOI < P_GIO_BAT_DAU THEN
+        RAISE_APPLICATION_ERROR(-20134, 'Gio bat dau cuoi phai lon hon hoac bang gio bat dau.');
+    END IF;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM KHU_VUC
+    WHERE MAKV = P_MAKV
+      AND IS_DELETED = 0;
+
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20135, 'Khu vuc khong ton tai hoac da bi xoa.');
+    END IF;
+
+    LOCK TABLE BANG_GIA IN EXCLUSIVE MODE;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM BANG_GIA
+    WHERE MAKV = P_MAKV
+      AND IS_DELETED = 0
+      AND GIOBATDAU BETWEEN P_GIO_BAT_DAU AND P_GIO_BAT_DAU_CUOI;
+
+    IF V_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20136, 'Da ton tai bang gia trong mot hoac nhieu khung gio da chon.');
+    END IF;
+
+    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MABG, '[0-9]+$'))), 0) + 1
+    INTO V_NEXT_ID
+    FROM BANG_GIA
+    WHERE REGEXP_LIKE(MABG, '^BG-[0-9]+$');
+
+    V_CURRENT_GIO := P_GIO_BAT_DAU;
+    WHILE V_CURRENT_GIO <= P_GIO_BAT_DAU_CUOI LOOP
+        INSERT INTO BANG_GIA(MABG, MAKV, GIOBATDAU, GIOKETTHUC, GIA, CREATED_AT, IS_DELETED)
+        VALUES ('BG-' || V_NEXT_ID, P_MAKV, V_CURRENT_GIO, V_CURRENT_GIO + 1, P_GIA, SYSDATE, 0);
+
+        V_NEXT_ID := V_NEXT_ID + 1;
+        V_CURRENT_GIO := V_CURRENT_GIO + 1;
+    END LOOP;
+END;
+/
+
+
+-- ============================================================
 -- FN_LAY_GIA_DICH_VU (MỚI)
 -- Trích từ TRG_BIUD_CTHD_DV_PRICE để tái sử dụng.
 -- Validate: sản phẩm hoặc dụng cụ tồn tại, chưa xóa mềm.
@@ -952,6 +1031,8 @@ BEGIN
         END IF;
     END IF;
 
+    PKG_COURT_CTX.G_INTERNAL_RECALC := TRUE;
+
     PRC_THEM_CHI_TIET_THUE_SAN(
             P_MACT_THUE_SAN => P_MACT_THUE_SAN,
             P_MAHD          => P_MAHD,
@@ -979,10 +1060,13 @@ BEGIN
     WHERE MAHD = P_MAHD
       AND IS_DELETED = 0;
 
+    PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
+
     PRC_CAP_NHAT_SO_TIEN_HOA_DON(P_MAHD);
 
 EXCEPTION
     WHEN OTHERS THEN
+        PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
         ROLLBACK TO SP_DAT_SAN;
         RAISE;
 END;
