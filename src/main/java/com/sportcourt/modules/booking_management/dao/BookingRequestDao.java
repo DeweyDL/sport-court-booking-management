@@ -22,7 +22,17 @@ public interface BookingRequestDao {
 
     List<BookingSlotDTO> findBookingsByInvoiceId(String invoiceId) throws SQLException;
 
+    List<PendingBookingRequestDTO> findPendingDepositRequests(
+            String branchIdOrNull,
+            LocalDate dateOrNull,
+            String customerPhoneOrNull
+    ) throws SQLException;
+
+    int countPendingDepositRequests(String branchIdOrNull) throws SQLException;
+
     BookingInvoiceDTO getInvoiceDetails(String invoiceId) throws SQLException;
+
+    boolean confirmPendingDepositBooking(String invoiceId) throws SQLException;
 
     boolean cancelBookingInvoice(String bookingDetailId) throws SQLException;
 }

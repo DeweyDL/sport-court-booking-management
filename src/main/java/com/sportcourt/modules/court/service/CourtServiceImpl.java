@@ -27,10 +27,6 @@ public class CourtServiceImpl implements CourtService {
             throw new IllegalArgumentException("Điều kiện tìm kiếm không được rỗng.");
         }
 
-        if (isBlank(criteria.getBranchId())) {
-            throw new IllegalArgumentException("Không xác định được chi nhánh hiện tại.");
-        }
-
         return courtDAO.findByCriteria(criteria);
     }
 
@@ -49,9 +45,6 @@ public class CourtServiceImpl implements CourtService {
 
     @Override
     public List<String> getAreaIdsByBranch(String branchId) throws SQLException {
-        if (isBlank(branchId)) {
-            throw new IllegalArgumentException("Không xác định được chi nhánh hiện tại.");
-        }
         return courtDAO.findAreaIdsByBranch(branchId);
     }
 
@@ -59,15 +52,11 @@ public class CourtServiceImpl implements CourtService {
     public void create(Court court, String branchId) throws SQLException {
         validateCourtRequiredFields(court);
 
-        if (isBlank(branchId)) {
-            throw new IllegalArgumentException("Không xác định được chi nhánh hiện tại.");
-        }
-
         if (courtDAO.existsById(court.getCourtId())) {
             throw new IllegalArgumentException("Mã sân con đã tồn tại.");
         }
 
-        if (!courtDAO.areaBelongsToBranch(court.getAreaId(), branchId)) {
+        if (!isBlank(branchId) && !courtDAO.areaBelongsToBranch(court.getAreaId(), branchId)) {
             throw new IllegalArgumentException("Khu vực không thuộc chi nhánh hiện tại.");
         }
 

@@ -15,6 +15,9 @@ public interface BookingRequestService {
     List<SportTypeAreaOption> getSportTypeAreaOptionsByBranch(String branchId);
     BookingInvoiceDTO getInvoiceDetails(String invoiceId);
     List<BookingSlotDTO> getBookingsByInvoiceId(String invoiceId);
+    List<PendingBookingRequestDTO> getPendingDepositRequests(String branchIdOrNull, LocalDate dateOrNull, String customerPhoneOrNull);
+    int countPendingDepositRequests(String branchIdOrNull);
+    boolean confirmPendingDepositBooking(String invoiceId);
 
     boolean cancelBooking(String invoiceId);
 }

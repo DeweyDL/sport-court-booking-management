@@ -135,6 +135,39 @@ public class BookingRequestServiceImpl implements BookingRequestService {
         }
     }
 
+    @Override
+    public List<PendingBookingRequestDTO> getPendingDepositRequests(String branchIdOrNull,
+                                                                    LocalDate dateOrNull,
+                                                                    String customerPhoneOrNull) {
+        try {
+            return dao.findPendingDepositRequests(branchIdOrNull, dateOrNull, customerPhoneOrNull);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Không thể tải yêu cầu đã cọc chờ xác nhận: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public int countPendingDepositRequests(String branchIdOrNull) {
+        try {
+            return dao.countPendingDepositRequests(branchIdOrNull);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    @Override
+    public boolean confirmPendingDepositBooking(String invoiceId) {
+        try {
+            return dao.confirmPendingDepositBooking(invoiceId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
     public boolean cancelBooking(String invoiceId) {
         try {
             return dao.cancelBookingInvoice(invoiceId);

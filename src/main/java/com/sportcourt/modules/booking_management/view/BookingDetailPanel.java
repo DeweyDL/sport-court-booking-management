@@ -34,15 +34,24 @@ public class BookingDetailPanel extends JFrame {
     private JLabel totalPaymentLabel;
     private JLabel subTotalLabel;
     private JButton btnCancel; // Nút hủy đặt sân toàn cục để điều khiển trạng thái ẩn/hiện
+    private JButton btnConfirm;
+    private final boolean allowConfirmAction;
+    private final Runnable onConfirmed;
 
     // Thành phần chứa Icon/Ảnh động
     private JLabel bannerImageLabel;
     private JLabel infoIconLabel;
 
     public BookingDetailPanel(BookingSlotDTO clickedSlot) {
+        this(clickedSlot, false, null);
+    }
+
+    public BookingDetailPanel(BookingSlotDTO clickedSlot, boolean allowConfirmAction, Runnable onConfirmed) {
         this.bookingDetailId = clickedSlot.bookingDetailId();
         this.invoiceId = clickedSlot.invoiceId();
         this.controller = new BookingRequestController();
+        this.allowConfirmAction = allowConfirmAction;
+        this.onConfirmed = onConfirmed;
 
         setTitle("Chi tiết đặt sân - RENTSTA");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -131,6 +140,7 @@ public class BookingDetailPanel extends JFrame {
             double totalAmount, String status,
             List<BookingPitchDetailDTO> pitches) {
 
+        this.invoiceId = invoiceId;
         customerNameLabel.setText(customerName != null ? customerName : "");
         customerPhoneLabel.setText(phone != null ? phone : "");
         bookingIdLabel.setText(invoiceId != null ? invoiceId : "");
@@ -145,22 +155,31 @@ public class BookingDetailPanel extends JFrame {
         paymentStatusLabel.setText(status != null ? status : "Chờ xác nhận");
 
         // Thiết kế nhãn và ẩn nút dựa vào trạng thái đơn đặt
-        if (status != null && (status.trim().equalsIgnoreCase("ĐÃ XÁC NHẬN") || status.trim().equalsIgnoreCase("Đã xác nhận"))) {
+        String normalizedStatus = status == null ? "" : status.trim();
+        if (normalizedStatus.equalsIgnoreCase("ĐÃ XÁC NHẬN") || normalizedStatus.equalsIgnoreCase("Đã xác nhận")) {
             paymentStatusLabel.setForeground(new Color(22, 101, 52));
             paymentStatusLabel.getParent().setBackground(new Color(220, 252, 231));
             btnCancel.setVisible(true);
-        } else if (status != null && (status.trim().equalsIgnoreCase("ĐÃ HUỶ") || status.trim().equalsIgnoreCase("Đã hủy") || status.trim().equalsIgnoreCase("ĐÃ HỦY"))) {
+        } else if (normalizedStatus.equalsIgnoreCase("ĐÃ HUỶ")
+                || normalizedStatus.equalsIgnoreCase("Đã hủy")
+                || normalizedStatus.equalsIgnoreCase("ĐÃ HỦY")
+                || normalizedStatus.equalsIgnoreCase("ĐÃ HUỶ")) {
             // Đã thêm "ĐÃ HUỶ" (chuẩn Oracle của bạn) và bọc .trim() để chống khoảng trắng thừa
             paymentStatusLabel.setText("Đã hủy"); // Ép chữ hiển thị đẹp mắt
             paymentStatusLabel.setForeground(new Color(153, 27, 27));
             paymentStatusLabel.getParent().setBackground(new Color(254, 226, 226));
             btnCancel.setVisible(false); // Ẩn hoàn toàn nút hủy khi đơn đã ở trạng thái hủy
+        } else if (normalizedStatus.equalsIgnoreCase("ĐÃ CỌC")) {
+            paymentStatusLabel.setForeground(new Color(180, 83, 9));
+            paymentStatusLabel.getParent().setBackground(new Color(254, 243, 199));
+            btnCancel.setVisible(true);
         } else {
             // Các trạng thái còn lại như 'ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC', 'ĐANG SỬ DỤNG'...
             paymentStatusLabel.setForeground(new Color(180, 83, 9));
             paymentStatusLabel.getParent().setBackground(new Color(254, 243, 199));
             btnCancel.setVisible(true);
         }
+        btnConfirm.setVisible(allowConfirmAction && normalizedStatus.equalsIgnoreCase("ĐÃ CỌC"));
 
         pitchesPanel.removeAll();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -401,6 +420,14 @@ public class BookingDetailPanel extends JFrame {
         panel.add(Box.createVerticalStrut(20));
 
         // Nút HỦY ĐẶT SÂN tích hợp logic kiểm soát và kết nối xử lý cơ sở dữ liệu
+        btnConfirm = new JButton("XÁC NHẬN");
+        styleButton(btnConfirm, new Color(57, 255, 20), new Color(16, 110, 0));
+        btnConfirm.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnConfirm.setVisible(false);
+        btnConfirm.addActionListener(e -> executeConfirmBookingAction());
+        panel.add(btnConfirm);
+        panel.add(Box.createVerticalStrut(12));
+
         btnCancel = new JButton("HỦY ĐẶT SÂN");
         styleButton(btnCancel, new Color(239, 68, 68), Color.WHITE);
         btnCancel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -411,6 +438,46 @@ public class BookingDetailPanel extends JFrame {
         panel.add(btnCancel);
 
         return panel;
+    }
+
+    private void executeConfirmBookingAction() {
+        if (invoiceId == null || invoiceId.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy mã hóa đơn hợp lệ!", "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Xác nhận yêu cầu đặt sân đã cọc này?",
+                "Xác nhận đặt sân",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        btnConfirm.setEnabled(false);
+        new Thread(() -> {
+            boolean success = controller.confirmPendingDepositBooking(invoiceId);
+            SwingUtilities.invokeLater(() -> {
+                btnConfirm.setEnabled(true);
+                if (success) {
+                    paymentStatusLabel.setText("ĐÃ XÁC NHẬN");
+                    paymentStatusLabel.setForeground(new Color(22, 101, 52));
+                    paymentStatusLabel.getParent().setBackground(new Color(220, 252, 231));
+                    btnConfirm.setVisible(false);
+                    if (onConfirmed != null) {
+                        onConfirmed.run();
+                    }
+                    JOptionPane.showMessageDialog(this, "Xác nhận đặt sân thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không còn yêu cầu đã cọc chờ xác nhận cho hóa đơn này.", "Không thể xác nhận", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+        }).start();
     }
 
     /**
