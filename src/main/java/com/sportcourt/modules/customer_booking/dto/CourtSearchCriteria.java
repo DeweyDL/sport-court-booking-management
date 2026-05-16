@@ -9,12 +9,6 @@ public record CourtSearchCriteria(
 ) {
 }
 
-enum CourtSortBy {
-    PRICE,
-    COURT_NAME,
-    BRANCH_NAME
-}
-
 enum SortDirection {
     ASC,
     DESC

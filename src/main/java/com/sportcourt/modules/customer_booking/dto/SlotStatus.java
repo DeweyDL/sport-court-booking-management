@@ -1,14 +1,15 @@
 package com.sportcourt.modules.customer_booking.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record SlotStatus(
         String courtId,
-        Integer priceBoardId,
+        String priceBoardId,
         LocalDate bookingDate,
-        Integer startHour,
-        Integer endHour,
-        Integer price,
+        int startHour,
+        int endHour,
+        BigDecimal price,
         BookingSlotStatus status
 ) {
 }
