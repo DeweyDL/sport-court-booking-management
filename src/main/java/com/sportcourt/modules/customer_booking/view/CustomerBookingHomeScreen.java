@@ -6,28 +6,32 @@ import com.sportcourt.modules.customer_booking.dto.BranchOption;
 import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
 import com.sportcourt.modules.customer_booking.dto.CourtSortBy;
 import com.sportcourt.modules.customer_booking.dto.SportTypeOption;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.DatePickerSettings;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewStyle.*;
 
 public class CustomerBookingHomeScreen extends JPanel {
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final CustomerBookingController controller;
-    private final BiConsumer<BranchOption, CourtSearchResult> onBookingRequested;
+    private final BookingRequestHandler onBookingRequested;
 
     private final JTextField searchField = new JTextField();
     private final JComboBox<SortOption> sortBox = new JComboBox<>(new SortOption[]{
-            new SortOption("Gia thap den cao", CourtSortBy.PRICE, true),
-            new SortOption("Gia cao den thap", CourtSortBy.PRICE, false),
-            new SortOption("Ma san A-Z", CourtSortBy.COURT_NAME, true)
+            new SortOption("Giá thấp đến cao", CourtSortBy.PRICE, true),
+            new SortOption("Giá cao đến thấp", CourtSortBy.PRICE, false),
+            new SortOption("Mã sân A-Z", CourtSortBy.COURT_NAME, true)
     });
 
     private JLabel filterValueLabel;
@@ -35,9 +39,10 @@ public class CustomerBookingHomeScreen extends JPanel {
     private JPanel courtContainer;
     private BranchOption selectedBranch;
     private SportTypeOption selectedSportType;
+    private LocalDate selectedDate = LocalDate.now();
 
     public CustomerBookingHomeScreen(CustomerBookingController controller,
-                                     BiConsumer<BranchOption, CourtSearchResult> onBookingRequested) {
+                                     BookingRequestHandler onBookingRequested) {
         this.controller = controller;
         this.onBookingRequested = onBookingRequested;
         AppFonts.register();
@@ -45,7 +50,7 @@ public class CustomerBookingHomeScreen extends JPanel {
         setBackground(PAGE_BG);
         setBorder(new EmptyBorder(s(24), s(24), s(32), s(24)));
         add(cleanScrollPane(buildContent()), BorderLayout.CENTER);
-        renderEmptyState("Nhan Dat san de chon chi nhanh va loai the thao.");
+        renderEmptyState("Nhấn đặt sân để chọn chi nhánh và loại thể thao");
     }
 
     public void refreshCourts() {
@@ -84,6 +89,11 @@ public class CustomerBookingHomeScreen extends JPanel {
         courtContainer.setOpaque(false);
         content.add(courtContainer, gbc);
 
+        gbc.gridy++;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        content.add(Box.createVerticalGlue(), gbc);
+
         return content;
     }
 
@@ -114,14 +124,14 @@ public class CustomerBookingHomeScreen extends JPanel {
         wrapper.setMinimumSize(new Dimension(s(320), s(48)));
 
         JLabel searchIcon = new JLabel(icon("/icon/search.png", 16, 16));
-        searchField.putClientProperty("JTextField.placeholderText", "Tim theo ma san...");
+        searchField.putClientProperty("JTextField.placeholderText", "Tìm theo mã sân...");
         searchField.setFont(regular(15f));
         searchField.setForeground(TEXT_DARK);
         searchField.setOpaque(false);
         searchField.setBorder(null);
         searchField.addActionListener(e -> reloadCourts());
 
-        JButton searchButton = pillButton("Tim", GREEN, GREEN_DARK);
+        JButton searchButton = pillButton("Tìm", GREEN, GREEN_DARK);
         searchButton.addActionListener(e -> reloadCourts());
 
         wrapper.add(searchIcon, BorderLayout.WEST);
@@ -145,9 +155,9 @@ public class CustomerBookingHomeScreen extends JPanel {
         JPanel info = new JPanel();
         info.setOpaque(false);
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-        JLabel title = label("BO LOC DAT SAN", bold(12f), TEXT_MUTED);
+        JLabel title = label("Bộ lọc đặt sân", bold(12f), TEXT_MUTED);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterValueLabel = label("Chua chon chi nhanh va loai the thao", bold(15f), TEXT_DARK);
+        filterValueLabel = label("Chưa chọn chi nhánh và loại thể thao", bold(15f), TEXT_DARK);
         filterValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         info.add(title);
         info.add(Box.createVerticalStrut(s(6)));
@@ -157,7 +167,7 @@ public class CustomerBookingHomeScreen extends JPanel {
         gbc.gridx = 1;
         gbc.weightx = 0;
         gbc.insets = new Insets(0, s(16), 0, 0);
-        JButton selectFilterButton = pillButton("Dat san", GREEN, GREEN_DARK);
+        JButton selectFilterButton = pillButton("Chọn chi nhánh", GREEN, GREEN_DARK);
         selectFilterButton.addActionListener(e -> openFilterDialog());
         card.add(selectFilterButton, gbc);
 
@@ -170,14 +180,14 @@ public class CustomerBookingHomeScreen extends JPanel {
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, s(10), 0));
         left.setOpaque(false);
-        left.add(label("Ket qua tim kiem", bold(20f), TEXT_DARK));
-        resultCountLabel = label("(0 san)", regular(12f), new Color(161, 161, 170));
+        left.add(label("Kết quả tìm kiếm", bold(20f), TEXT_DARK));
+        resultCountLabel = label("(0 sân)", regular(12f), new Color(161, 161, 170));
         left.add(resultCountLabel);
         row.add(left, BorderLayout.WEST);
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(8), 0));
         right.setOpaque(false);
-        right.add(label("Sap xep:", regular(13f), new Color(161, 161, 170)));
+        right.add(label("Sắp xếp:", regular(13f), new Color(161, 161, 170)));
         sortBox.setFont(regular(13f));
         sortBox.setPreferredSize(new Dimension(s(185), s(36)));
         sortBox.addActionListener(e -> reloadCourts());
@@ -192,7 +202,8 @@ public class CustomerBookingHomeScreen extends JPanel {
                     this,
                     controller,
                     selectedBranch,
-                    selectedSportType
+                    selectedSportType,
+                    selectedDate
             );
             if (selection == null) {
                 return;
@@ -200,9 +211,11 @@ public class CustomerBookingHomeScreen extends JPanel {
 
             selectedBranch = selection.branch();
             selectedSportType = selection.sportType();
+            selectedDate = selection.bookingDate();
             filterValueLabel.setText(selectedBranch.branchName()
                     + " - " + selectedBranch.address()
-                    + " | " + selectedSportType.sportTypeName());
+                    + " | " + selectedSportType.sportTypeName()
+                    + " | " + selectedDate.format(DATE_FORMATTER));
             reloadCourts();
         } catch (RuntimeException e) {
             showError(e.getMessage());
@@ -211,14 +224,14 @@ public class CustomerBookingHomeScreen extends JPanel {
 
     private void reloadCourts() {
         if (selectedBranch == null || selectedSportType == null) {
-            renderEmptyState("Nhan Dat san de chon chi nhanh va loai the thao.");
+            renderEmptyState("Nhấn Đặt sân để chọn chi nhánh và loại thể thao");
             return;
         }
 
         try {
             SortOption sort = (SortOption) sortBox.getSelectedItem();
             if (sort == null) {
-                sort = new SortOption("Gia thap den cao", CourtSortBy.PRICE, true);
+                sort = new SortOption("Giá thấp đến cao", CourtSortBy.PRICE, true);
             }
             List<CourtSearchResult> courts = controller.searchCourts(
                     searchField.getText(),
@@ -235,10 +248,10 @@ public class CustomerBookingHomeScreen extends JPanel {
 
     private void renderCourts(List<CourtSearchResult> courts) {
         courtContainer.removeAll();
-        resultCountLabel.setText("(" + courts.size() + " san)");
+        resultCountLabel.setText("(" + courts.size() + " sân)");
 
         if (courts.isEmpty()) {
-            renderEmptyState("Khong tim thay san phu hop.");
+            renderEmptyState("Không tìm thấy sân phù hợp.");
             return;
         }
 
@@ -264,7 +277,7 @@ public class CustomerBookingHomeScreen extends JPanel {
         label.setHorizontalAlignment(SwingConstants.CENTER);
         empty.add(label, BorderLayout.CENTER);
         courtContainer.add(empty, BorderLayout.NORTH);
-        resultCountLabel.setText("(0 san)");
+        resultCountLabel.setText("(0 sân)");
         courtContainer.revalidate();
         courtContainer.repaint();
     }
@@ -272,8 +285,8 @@ public class CustomerBookingHomeScreen extends JPanel {
     private void showError(String message) {
         JOptionPane.showMessageDialog(
                 this,
-                message == null || message.isBlank() ? "Co loi xay ra." : message,
-                "Dat san",
+                message == null || message.isBlank() ? "Có lỗi xảy ra." : message,
+                "Đặt sân",
                 JOptionPane.ERROR_MESSAGE
         );
     }
@@ -334,7 +347,7 @@ public class CustomerBookingHomeScreen extends JPanel {
             badge.setOpaque(false);
             badge.setBorder(new EmptyBorder(s(4), s(12), s(4), s(12)));
 
-            JLabel price = label(money(court.minPrice()) + " / gio", bold(16f), TEXT_DARK);
+            JLabel price = label(money(court.minPrice()) + " / giờ", bold(16f), TEXT_DARK);
             price.setHorizontalAlignment(SwingConstants.RIGHT);
 
             row.add(badge, BorderLayout.WEST);
@@ -357,7 +370,7 @@ public class CustomerBookingHomeScreen extends JPanel {
             row.setOpaque(false);
             row.setAlignmentX(Component.LEFT_ALIGNMENT);
             JButton book = pillButton("Đặt ngay", GREEN, GREEN_DARK);
-            book.addActionListener(e -> onBookingRequested.accept(selectedBranch, court));
+            book.addActionListener(e -> onBookingRequested.accept(selectedBranch, court, selectedDate));
             row.add(book);
             return row;
         }
@@ -370,18 +383,26 @@ public class CustomerBookingHomeScreen extends JPanel {
         }
     }
 
+    @FunctionalInterface
+    public interface BookingRequestHandler {
+        void accept(BranchOption branch, CourtSearchResult court, LocalDate bookingDate);
+    }
+
     private static final class BookingFilterDialog extends JDialog {
         private final CustomerBookingController controller;
         private final JComboBox<BranchOption> branchCombo = new JComboBox<>();
         private final JComboBox<SportTypeOption> sportTypeCombo = new JComboBox<>();
+        private final DatePicker datePicker = createDatePicker();
         private Selection result;
 
         static Selection showDialog(Component parent,
                                     CustomerBookingController controller,
                                     BranchOption currentBranch,
-                                    SportTypeOption currentSportType) {
+                                    SportTypeOption currentSportType,
+                                    LocalDate currentDate) {
             Window owner = SwingUtilities.getWindowAncestor(parent);
-            BookingFilterDialog dialog = new BookingFilterDialog(owner, controller, currentBranch, currentSportType);
+            BookingFilterDialog dialog = new BookingFilterDialog(owner, controller, currentBranch, currentSportType,
+                    currentDate);
             dialog.setVisible(true);
             return dialog.result;
         }
@@ -389,27 +410,34 @@ public class CustomerBookingHomeScreen extends JPanel {
         private BookingFilterDialog(Window owner,
                                     CustomerBookingController controller,
                                     BranchOption currentBranch,
-                                    SportTypeOption currentSportType) {
+                                    SportTypeOption currentSportType,
+                                    LocalDate currentDate) {
             super(owner, "Đặt sân", ModalityType.APPLICATION_MODAL);
             this.controller = controller;
             setDefaultCloseOperation(DISPOSE_ON_CLOSE);
             setContentPane(buildContent());
-            pack();
-            setMinimumSize(new Dimension(s(760), s(0)));
-            setLocationRelativeTo(owner);
+            setInitialDate(currentDate);
             loadBranches(currentBranch, currentSportType);
+            pack();
+            fitToScreen(owner);
+            setLocationRelativeTo(owner);
         }
 
         private JComponent buildContent() {
-            JPanel root = new JPanel(new BorderLayout(0, s(18)));
+            JPanel root = new JPanel();
+            root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
             root.setBackground(Color.WHITE);
             root.setBorder(new EmptyBorder(s(25), s(25), s(25), s(25)));
 
             JLabel heading = label("Vui lòng chọn chi nhánh để tiếp tục!", bold(20f), TEXT_DARK);
-            root.add(heading, BorderLayout.NORTH);
+            heading.setAlignmentX(Component.LEFT_ALIGNMENT);
+            root.add(heading);
+            root.add(Box.createVerticalStrut(s(18)));
 
-            JPanel controls = new JPanel(new GridBagLayout());
+            JPanel controls = new JPanel();
+            controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
             controls.setOpaque(false);
+            controls.setAlignmentX(Component.LEFT_ALIGNMENT);
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.gridy = 0;
             gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -430,6 +458,8 @@ public class CustomerBookingHomeScreen extends JPanel {
             gbc.gridx = 2;
             gbc.weightx = 0;
             gbc.insets = new Insets(0, 0, 0, 0);
+            controls.add(buildDatePickerField("NGÀY ĐẶT", datePicker));
+            controls.add(Box.createVerticalStrut(s(18)));
             controls.add(buildApplyWrapper(), gbc);
 
             root.add(controls, BorderLayout.CENTER);
@@ -442,7 +472,36 @@ public class CustomerBookingHomeScreen extends JPanel {
             col.add(label(labelText, bold(12f), TEXT_MUTED), BorderLayout.NORTH);
             combo.setFont(regular(15f));
             col.add(combo, BorderLayout.CENTER);
+            col.setBorder(new EmptyBorder(0, 0, s(10), 0));
+            col.setAlignmentX(Component.LEFT_ALIGNMENT);
+            col.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(82)));
             return col;
+        }
+
+        private JComponent buildDatePickerField(String labelText, DatePicker picker) {
+            JPanel col = new JPanel(new BorderLayout(0, s(8)));
+            col.setOpaque(false);
+            col.add(label(labelText, bold(12f), TEXT_MUTED), BorderLayout.NORTH);
+            col.add(picker, BorderLayout.CENTER);
+            col.setBorder(new EmptyBorder(0, 0, s(10), 0));
+            col.setAlignmentX(Component.LEFT_ALIGNMENT);
+            col.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(82)));
+            return col;
+        }
+
+        private DatePicker createDatePicker() {
+            DatePickerSettings settings = new DatePickerSettings();
+            settings.setFormatForDatesCommonEra("dd/MM/yyyy");
+            settings.setAllowEmptyDates(false);
+            settings.setColor(DatePickerSettings.DateArea.BackgroundOverallCalendarPanel, Color.WHITE);
+            settings.setColor(DatePickerSettings.DateArea.BackgroundMonthAndYearMenuLabels, Color.WHITE);
+            DatePicker picker = new DatePicker(settings);
+            picker.setFont(regular(15f));
+            picker.setDate(LocalDate.now());
+            picker.setOpaque(false);
+            picker.getComponentDateTextField().setFont(regular(15f));
+            picker.getComponentDateTextField().setForeground(TEXT_DARK);
+            return picker;
         }
 
         private JComponent buildApplyWrapper() {
@@ -472,7 +531,19 @@ public class CustomerBookingHomeScreen extends JPanel {
             apply.setBorder(new EmptyBorder(s(9), s(28), s(9), s(28)));
             apply.addActionListener(e -> accept());
             wrapper.add(apply, BorderLayout.CENTER);
+            wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+            wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(46)));
             return wrapper;
+        }
+
+        private void fitToScreen(Window owner) {
+            Rectangle bounds = owner == null
+                    ? GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds()
+                    : owner.getGraphicsConfiguration().getBounds();
+            int width = Math.min(s(520), Math.max(s(340), bounds.width - s(60)));
+            int height = Math.min(getPreferredSize().height, Math.max(s(320), bounds.height - s(80)));
+            setMinimumSize(new Dimension(Math.min(width, s(340)), s(300)));
+            setSize(new Dimension(width, height));
         }
 
         private void loadBranches(BranchOption currentBranch, SportTypeOption currentSportType) {
@@ -523,15 +594,25 @@ public class CustomerBookingHomeScreen extends JPanel {
             BranchOption branch = (BranchOption) branchCombo.getSelectedItem();
             SportTypeOption sportType = (SportTypeOption) sportTypeCombo.getSelectedItem();
             if (branch == null || sportType == null) {
-                JOptionPane.showMessageDialog(this, "Vui long chon day du thong tin.", "Dat san",
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn đầy đủ thông tin", "Đặt sân",
                         JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            result = new Selection(branch, sportType);
+            result = new Selection(branch, sportType, selectedDate());
             dispose();
         }
 
-        private record Selection(BranchOption branch, SportTypeOption sportType) {
+        private void setInitialDate(LocalDate date) {
+            LocalDate value = date == null ? LocalDate.now() : date;
+            datePicker.setDate(value);
+        }
+
+        private LocalDate selectedDate() {
+            LocalDate value = datePicker.getDate();
+            return value == null ? LocalDate.now() : value;
+        }
+
+        private record Selection(BranchOption branch, SportTypeOption sportType, LocalDate bookingDate) {
         }
 
         private static final class BranchRenderer extends DefaultListCellRenderer {

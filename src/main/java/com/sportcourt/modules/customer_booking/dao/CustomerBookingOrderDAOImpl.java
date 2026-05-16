@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
+    private static final String BOOKING_DETAIL_STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String BOOKING_DETAIL_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
     private static final String BOOKING_DETAIL_STATUS_CANCELLED = "\u0110\u00C3 HU\u1EF6";
     private static final String INVOICE_STATUS_UNPAID = "CH\u01AFA THANH TO\u00C1N";
     private static final String INVOICE_STATUS_CANCELLED = "\u0110\u00C3 HU\u1EF6";
@@ -89,7 +91,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                 );
 
                 BookingPreview preview = findBookingPreview(connection, invoiceId)
-                        .orElseThrow(() -> new SQLException("Khong tim thay hoa don vua tao: " + invoiceId));
+                        .orElseThrow(() -> new SQLException("Không tìm thấy hóa đơn vừa tạo: " + invoiceId));
                 connection.commit();
                 return preview;
             } catch (SQLException | RuntimeException e) {
@@ -113,7 +115,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
             connection.setAutoCommit(false);
             try {
                 InvoiceContext invoice = findInvoiceContext(connection, invoiceId)
-                        .orElseThrow(() -> new SQLException("Hoa don khong ton tai hoac da bi xoa: " + invoiceId));
+                        .orElseThrow(() -> new SQLException("Hóa đơn không tồn tại hoặc đã bị xóa: " + invoiceId));
                 insertCourtBookingDetails(
                         connection,
                         invoiceId,
@@ -184,6 +186,9 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                     advanceBooking,
                     discount
             );
+            if (advanceBooking) {
+                markBookingDetailDeposited(connection, detailId);
+            }
         }
     }
 
@@ -207,6 +212,23 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
             cs.setInt(8, advanceBooking ? 1 : 0);
             cs.setBigDecimal(9, discount);
             cs.execute();
+        }
+    }
+
+    private void markBookingDetailDeposited(Connection connection, String detailId) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MACT_THUE_SAN = ?
+                    AND IS_DELETED = 0
+                    AND TRANGTHAI = ?
+                """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, BOOKING_DETAIL_STATUS_DEPOSITED);
+            ps.setString(2, detailId);
+            ps.setString(3, BOOKING_DETAIL_STATUS_CONFIRMED);
+            ps.executeUpdate();
         }
     }
 
@@ -484,27 +506,27 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
 
     private void validateCreateRequest(CreateBookingRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("CreateBookingRequest khong duoc null.");
+            throw new IllegalArgumentException("CreateBookingRequest không được null.");
         }
         if (isBlank(request.customerId())) {
-            throw new IllegalArgumentException("customerId khong duoc trong.");
+            throw new IllegalArgumentException("customerId không được trống.");
         }
         if (isBlank(request.employeeId())) {
-            throw new IllegalArgumentException("employeeId khong duoc trong.");
+            throw new IllegalArgumentException("employeeId không được trống.");
         }
         validateSelectedSlots(request.selectedSlots());
     }
 
     private void validateSelectedSlots(List<SelectedBookingSlot> selectedSlots) {
         if (selectedSlots == null || selectedSlots.isEmpty()) {
-            throw new IllegalArgumentException("Phai chon it nhat mot khung gio dat san.");
+            throw new IllegalArgumentException("Phải chọn ít nhất một khung giờ đặt sân.");
         }
         for (SelectedBookingSlot slot : selectedSlots) {
             if (slot == null
                     || isBlank(slot.courtId())
                     || isBlank(slot.priceBoardId())
                     || slot.bookingDate() == null) {
-                throw new IllegalArgumentException("Thong tin khung gio dat san khong hop le.");
+                throw new IllegalArgumentException("Thông tin khung giờ đặt sân không hợp lệ.");
             }
         }
     }

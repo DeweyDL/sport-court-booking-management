@@ -9,6 +9,8 @@ import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
 import com.sportcourt.modules.customer_booking.dto.CourtSortBy;
 import com.sportcourt.modules.customer_booking.dto.CreateBookingRequest;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
+import com.sportcourt.modules.customer_booking.dto.CourtSchedule;
+import com.sportcourt.modules.customer_booking.dto.PriceSlot;
 import com.sportcourt.modules.customer_booking.dto.SlotStatus;
 import com.sportcourt.modules.customer_booking.dto.SportTypeOption;
 import com.sportcourt.modules.customer_booking.service.CustomerBookingService;
@@ -17,6 +19,8 @@ import com.sportcourt.modules.customer_booking.service.CustomerBookingServiceImp
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class CustomerBookingController {
     private final CustomerBookingService customerBookingService;
@@ -55,6 +59,26 @@ public class CustomerBookingController {
         return customerBookingService.findAvailableSlots(courtId, bookingDate);
     }
 
+    public List<CourtSchedule> loadAreaSchedule(String areaId, LocalDate date) {
+        List<String> courtIds = customerBookingService.findCourtsByArea(areaId);
+        return courtIds.stream()
+                .map(id -> new CourtSchedule(id, id,
+                        customerBookingService.findAvailableSlots(id, date)))
+                .collect(Collectors.toList());
+    }
+
+    public List<Integer> loadPriceHours(String areaId) {
+        return customerBookingService.findPriceBoardsByArea(areaId).stream()
+                .map(PriceSlot::startHour)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    public Optional<CourtSearchResult> findCourt(String courtId) {
+        return customerBookingService.findCourtDetail(courtId);
+    }
+
     public BookingPreview createBooking(String branchId, List<SelectedBookingSlot> selectedSlots) {
         UserSession session = SessionManager.requireSession();
         String customerId = resolveCustomerId(session);
@@ -77,7 +101,7 @@ public class CustomerBookingController {
 
         customerId = customerBookingService.findCustomerByUserId(session.getUserId());
         if (customerId == null || customerId.isBlank()) {
-            throw new IllegalStateException("Tai khoan hien tai khong phai khach hang hop le.");
+            throw new IllegalStateException("Tài khoản hiện tại không phải khách hàng hợp lệ.");
         }
 
         return customerId;
@@ -91,7 +115,7 @@ public class CustomerBookingController {
 
         return customerBookingService.findBookingEmployeeByBranch(branchId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Chi nhanh nay chua co nhan vien active de xu ly dat san."
+                        "Chi nhánh này chưa có nhân viên đang hoạt động để xử lý đặt sân."
                 ));
     }
 }

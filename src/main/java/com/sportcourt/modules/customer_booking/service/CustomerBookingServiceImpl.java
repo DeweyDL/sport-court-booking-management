@@ -48,17 +48,17 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         try {
             return catalogDAO.findAvailableBranches();
         } catch (SQLException e) {
-            throw databaseError("Khong the tai danh sach chi nhanh.", e);
+            throw databaseError("Không thể tải danh sách chi nhánh.", e);
         }
     }
 
     @Override
     public List<SportTypeOption> findAvailableSportTypes(String branchId) {
-        requireNotBlank(branchId, "Thieu ma chi nhanh.");
+        requireNotBlank(branchId, "Thiếu mã chi nhánh.");
         try {
             return catalogDAO.findAvailableSportTypes(branchId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tai danh sach loai the thao.", e);
+            throw databaseError("Không thể tải danh sách loại thể thao.", e);
         }
     }
 
@@ -67,91 +67,91 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         try {
             return catalogDAO.searchCourts(criteria);
         } catch (SQLException e) {
-            throw databaseError("Khong the tim kiem san.", e);
+            throw databaseError("Không thể tìm kiếm sân.", e);
         }
     }
 
     @Override
     public Optional<CourtSearchResult> findCourtDetail(String courtId) {
-        requireNotBlank(courtId, "Thieu ma san.");
+        requireNotBlank(courtId, "Thiếu mã sân.");
         try {
             return catalogDAO.findCourtDetail(courtId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tai chi tiet san.", e);
+            throw databaseError("Không thể tải chi tiết sân.", e);
         }
     }
 
     @Override
     public List<PriceSlot> findPriceBoardsByArea(String areaId) {
-        requireNotBlank(areaId, "Thieu ma khu vuc.");
+        requireNotBlank(areaId, "Thiếu mã khu vực.");
         try {
             return scheduleDAO.findPriceBoardsByArea(areaId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tai bang gia cua khu vuc.", e);
+            throw databaseError("Không thể tải bảng giá của khu vực.", e);
         }
     }
 
     @Override
     public List<SlotStatus> findAvailableSlots(String courtId, LocalDate bookingDate) {
-        requireNotBlank(courtId, "Thieu ma san.");
-        requireNotNull(bookingDate, "Thieu ngay dat san.");
+        requireNotBlank(courtId, "Thiếu mã sân.");
+        requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
             return scheduleDAO.findAvailableSlots(courtId.trim(), bookingDate);
         } catch (SQLException e) {
-            throw databaseError("Khong the tai lich san trong.", e);
+            throw databaseError("Không thể tải lịch sân trống.", e);
         }
     }
 
     @Override
     public List<SlotStatus> findBookedSlots(String areaId, LocalDate bookingDate) {
-        requireNotBlank(areaId, "Thieu ma khu vuc.");
-        requireNotNull(bookingDate, "Thieu ngay dat san.");
+        requireNotBlank(areaId, "Thiếu mã khu vực.");
+        requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
             return scheduleDAO.findBookedSlots(areaId.trim(), bookingDate);
         } catch (SQLException e) {
-            throw databaseError("Khong the tai danh sach khung gio da dat.", e);
+            throw databaseError("Không thể tải danh sách khung giờ đã đặt.", e);
         }
     }
 
     @Override
     public List<String> findCourtsByArea(String areaId) {
-        requireNotBlank(areaId, "Thieu ma khu vuc.");
+        requireNotBlank(areaId, "Thiếu mã khu vực.");
         try {
             return scheduleDAO.findCourtsByArea(areaId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tai danh sach san trong khu vuc.", e);
+            throw databaseError("Không thể tải danh sách sân trong khu vực.", e);
         }
     }
 
     @Override
     public boolean isSlotAvailable(String courtId, String priceBoardId, LocalDate bookingDate) {
-        requireNotBlank(courtId, "Thieu ma san.");
-        requireNotBlank(priceBoardId, "Thieu ma bang gia.");
-        requireNotNull(bookingDate, "Thieu ngay dat san.");
+        requireNotBlank(courtId, "Thiếu mã sân.");
+        requireNotBlank(priceBoardId, "Thiếu mã bảng giá.");
+        requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
             return scheduleDAO.isSlotAvailable(courtId.trim(), priceBoardId.trim(), bookingDate);
         } catch (SQLException e) {
-            throw databaseError("Khong the kiem tra trang thai khung gio.", e);
+            throw databaseError("Không thể kiểm tra trạng thái khung giờ.", e);
         }
     }
 
     @Override
     public String findCustomerByUserId(String userId) {
-        requireNotBlank(userId, "Thieu ma nguoi dung.");
+        requireNotBlank(userId, "Thiếu mã người dùng.");
         try {
             return orderDAO.findCustomerByUserId(userId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tim thong tin khach hang.", e);
+            throw databaseError("Không thể tìm thông tin khách hàng.", e);
         }
     }
 
     @Override
     public Optional<String> findBookingEmployeeByBranch(String branchId) {
-        requireNotBlank(branchId, "Thieu ma chi nhanh.");
+        requireNotBlank(branchId, "Thiếu mã chi nhánh.");
         try {
             return orderDAO.findBookingEmployeeByBranch(branchId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the tim nhan vien xu ly dat san.", e);
+            throw databaseError("Không thể tìm nhân viên xử lý đặt sân.", e);
         }
     }
 
@@ -161,28 +161,28 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         try {
             return orderDAO.createPendingInvoice(request);
         } catch (SQLException e) {
-            throw databaseError("Khong the tao hoa don dat san.", e);
+            throw databaseError("Không thể tạo hóa đơn đặt sân.", e);
         }
     }
 
     @Override
     public void insertCourtBookingDetails(String invoiceId, List<SelectedBookingSlot> selectedBookingSlots) {
-        requireNotBlank(invoiceId, "Thieu ma hoa don.");
+        requireNotBlank(invoiceId, "Thiếu mã hóa đơn.");
         validateSelectedSlots(selectedBookingSlots);
         try {
             orderDAO.insertCourtBookingDetails(invoiceId.trim(), selectedBookingSlots);
         } catch (SQLException e) {
-            throw databaseError("Khong the them chi tiet dat san vao hoa don.", e);
+            throw databaseError("Không thể thêm chi tiết đặt sân vào hóa đơn.", e);
         }
     }
 
     @Override
     public void cancelPendingBooking(String invoiceId) {
-        requireNotBlank(invoiceId, "Thieu ma hoa don.");
+        requireNotBlank(invoiceId, "Thiếu mã hóa đơn.");
         try {
             orderDAO.cancelPendingBooking(invoiceId.trim());
         } catch (SQLException e) {
-            throw databaseError("Khong the huy booking dang cho thanh toan.", e);
+            throw databaseError("Không thể hủy đặt sân đang chờ thanh toán.", e);
         }
     }
 
@@ -228,7 +228,7 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
             current = current.getNextException();
         }
 
-        return fallback != null ? fallback : "Du lieu dat san khong hop le.";
+        return fallback != null ? fallback : "Dữ liệu đặt sân không hợp lệ.";
     }
 
     private String extractOracleApplicationMessage(String message) {
@@ -248,22 +248,22 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
     }
 
     private void validateCreateRequest(CreateBookingRequest request) {
-        requireNotNull(request, "Thong tin dat san khong duoc null.");
-        requireNotBlank(request.customerId(), "Thieu ma khach hang.");
-        requireNotBlank(request.employeeId(), "Thieu ma nhan vien.");
+        requireNotNull(request, "Thông tin đặt sân không được null.");
+        requireNotBlank(request.customerId(), "Thiếu mã khách hàng.");
+        requireNotBlank(request.employeeId(), "Thiếu mã nhân viên.");
         validateSelectedSlots(request.selectedSlots());
     }
 
     private void validateSelectedSlots(List<SelectedBookingSlot> selectedSlots) {
         if (selectedSlots == null || selectedSlots.isEmpty()) {
-            throw new IllegalArgumentException("Phai chon it nhat mot khung gio dat san.");
+            throw new IllegalArgumentException("Phải chọn ít nhất một khung giờ đặt sân.");
         }
 
         for (SelectedBookingSlot slot : selectedSlots) {
-            requireNotNull(slot, "Thong tin khung gio dat san khong hop le.");
-            requireNotBlank(slot.courtId(), "Thieu ma san trong khung gio dat san.");
-            requireNotBlank(slot.priceBoardId(), "Thieu ma bang gia trong khung gio dat san.");
-            requireNotNull(slot.bookingDate(), "Thieu ngay dat san trong khung gio dat san.");
+            requireNotNull(slot, "Thông tin khung giờ đặt sân không hợp lệ.");
+            requireNotBlank(slot.courtId(), "Thiếu mã sân trong khung giờ đặt sân.");
+            requireNotBlank(slot.priceBoardId(), "Thiếu mã bảng giá trong khung giờ đặt sân.");
+            requireNotNull(slot.bookingDate(), "Thiếu ngày đặt sân trong khung giờ đặt sân.");
         }
     }
 
