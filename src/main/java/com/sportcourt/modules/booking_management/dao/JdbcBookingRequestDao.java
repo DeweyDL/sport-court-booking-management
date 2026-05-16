@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcBookingRequestDao implements BookingRequestDao {
+    private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
 
     @Override
     public List<BookingBranchOption> findBranchOptions() throws SQLException {
@@ -379,5 +381,157 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
             }
         }
         return list;
+    }
+
+    @Override
+    public List<PendingBookingRequestDTO> findPendingDepositRequests(String branchIdOrNull,
+                                                                     LocalDate dateOrNull,
+                                                                     String customerPhoneOrNull) throws SQLException {
+        String sql = """
+                SELECT
+                    MIN(ct.MACT_THUE_SAN) KEEP (
+                        DENSE_RANK FIRST ORDER BY ct.NGAYTHUE, bg.GIOBATDAU, ct.MACT_THUE_SAN
+                    ) AS FIRST_DETAIL_ID,
+                    ct.MAHD,
+                    u.HOTEN AS CUSTOMER_NAME,
+                    u.SDT AS CUSTOMER_PHONE,
+                    cn.TEN_CHI_NHANH,
+                    MIN(ltt.TEN) AS SPORT_TYPE_NAME,
+                    MIN(ct.MASAN) AS FIRST_COURT_ID,
+                    COUNT(DISTINCT ct.MASAN) AS COURT_COUNT,
+                    TRUNC(MIN(ct.NGAYTHUE)) AS BOOKING_DATE,
+                    MIN(bg.GIOBATDAU) AS START_HOUR,
+                    MAX(bg.GIOKETTHUC) AS END_HOUR,
+                    COUNT(1) AS SLOT_COUNT,
+                    NVL(SUM(ct.DON_GIA_THUE), 0) AS TOTAL_AMOUNT,
+                    NVL(hd.TIEN_COC, 0) AS DEPOSIT_AMOUNT,
+                    MIN(ct.TRANGTHAI) AS DETAIL_STATUS
+                FROM CHI_TIET_HOA_DON_THUE_SAN ct
+                JOIN HOA_DON hd ON hd.MAHD = ct.MAHD AND hd.IS_DELETED = 0
+                JOIN KHACH_HANG kh ON kh.MAKH = hd.MAKH
+                JOIN USERS u ON u.USER_ID = kh.USER_ID AND u.IS_DELETED = 0
+                JOIN BANG_GIA bg ON bg.MABG = ct.MABG AND bg.IS_DELETED = 0
+                JOIN SAN_CON sc ON sc.MASAN = ct.MASAN AND sc.IS_DELETED = 0
+                JOIN KHU_VUC kv ON kv.MAKV = sc.MAKV AND kv.IS_DELETED = 0
+                JOIN LOAI_THE_THAO ltt ON ltt.MATT = kv.MATT AND ltt.IS_DELETED = 0
+                JOIN CHI_NHANH cn ON cn.MACN = kv.MACN AND cn.IS_DELETED = 0
+                WHERE ct.IS_DELETED = 0
+                  AND ct.TRANGTHAI = ?
+                  AND NVL(hd.TIEN_COC, 0) > 0
+                  AND (? IS NULL OR kv.MACN = ?)
+                  AND (? IS NULL OR TRUNC(ct.NGAYTHUE) = ?)
+                  AND (? IS NULL OR u.SDT LIKE '%' || ? || '%')
+                GROUP BY ct.MAHD, u.HOTEN, u.SDT, cn.TEN_CHI_NHANH, hd.TIEN_COC
+                ORDER BY BOOKING_DATE ASC, START_HOUR ASC, CUSTOMER_NAME ASC
+                """;
+
+        String phoneFilter = normalizeFilter(customerPhoneOrNull);
+        List<PendingBookingRequestDTO> list = new ArrayList<>();
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int index = 1;
+            ps.setString(index++, STATUS_DEPOSITED);
+            bindNullableString(ps, index++, branchIdOrNull);
+            bindNullableString(ps, index++, branchIdOrNull);
+            bindNullableDate(ps, index++, dateOrNull);
+            bindNullableDate(ps, index++, dateOrNull);
+            bindNullableString(ps, index++, phoneFilter);
+            bindNullableString(ps, index++, phoneFilter);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.sql.Date bookingDateSql = rs.getDate("BOOKING_DATE");
+                    LocalDate bookingDate = bookingDateSql == null ? null : bookingDateSql.toLocalDate();
+                    String firstCourt = rs.getString("FIRST_COURT_ID");
+                    int courtCount = rs.getInt("COURT_COUNT");
+                    String courtSummary = courtCount <= 1 ? firstCourt : firstCourt + " +" + (courtCount - 1);
+
+                    list.add(new PendingBookingRequestDTO(
+                            rs.getString("MAHD"),
+                            rs.getString("FIRST_DETAIL_ID"),
+                            rs.getString("CUSTOMER_NAME"),
+                            rs.getString("CUSTOMER_PHONE"),
+                            rs.getString("TEN_CHI_NHANH"),
+                            rs.getString("SPORT_TYPE_NAME"),
+                            courtSummary,
+                            bookingDate,
+                            rs.getInt("START_HOUR"),
+                            rs.getInt("END_HOUR"),
+                            rs.getInt("SLOT_COUNT"),
+                            rs.getDouble("TOTAL_AMOUNT"),
+                            rs.getDouble("DEPOSIT_AMOUNT"),
+                            rs.getString("DETAIL_STATUS")
+                    ));
+                }
+            }
+        }
+        return list;
+    }
+
+    @Override
+    public int countPendingDepositRequests(String branchIdOrNull) throws SQLException {
+        String sql = """
+                SELECT COUNT(DISTINCT ct.MAHD) AS REQUEST_COUNT
+                FROM CHI_TIET_HOA_DON_THUE_SAN ct
+                JOIN HOA_DON hd ON hd.MAHD = ct.MAHD AND hd.IS_DELETED = 0
+                JOIN SAN_CON sc ON sc.MASAN = ct.MASAN AND sc.IS_DELETED = 0
+                JOIN KHU_VUC kv ON kv.MAKV = sc.MAKV AND kv.IS_DELETED = 0
+                WHERE ct.IS_DELETED = 0
+                  AND ct.TRANGTHAI = ?
+                  AND NVL(hd.TIEN_COC, 0) > 0
+                  AND (? IS NULL OR kv.MACN = ?)
+                """;
+
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, STATUS_DEPOSITED);
+            bindNullableString(ps, 2, branchIdOrNull);
+            bindNullableString(ps, 3, branchIdOrNull);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("REQUEST_COUNT") : 0;
+            }
+        }
+    }
+
+    @Override
+    public boolean confirmPendingDepositBooking(String invoiceId) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MAHD = ?
+                  AND IS_DELETED = 0
+                  AND TRANGTHAI = ?
+                """;
+
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, STATUS_CONFIRMED);
+            ps.setString(2, invoiceId);
+            ps.setString(3, STATUS_DEPOSITED);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private void bindNullableString(PreparedStatement ps, int index, String value) throws SQLException {
+        if (value == null || value.isBlank()) {
+            ps.setNull(index, Types.VARCHAR);
+        } else {
+            ps.setString(index, value.trim());
+        }
+    }
+
+    private void bindNullableDate(PreparedStatement ps, int index, LocalDate value) throws SQLException {
+        if (value == null) {
+            ps.setNull(index, Types.DATE);
+        } else {
+            ps.setDate(index, Date.valueOf(value));
+        }
     }
 }
