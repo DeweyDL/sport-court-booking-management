@@ -1,16 +1,29 @@
 package com.sportcourt.modules.customer_booking.view;
 
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.modules.customer_booking.dto.BranchOption;
+import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
+import com.sportcourt.modules.customer_booking.dto.SlotStatus;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.util.List;
 
 import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewStyle.*;
 
 public class CustomerBookingConfirmScreen extends JPanel {
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+
     private final Runnable onBack;
     private final Runnable onSubmit;
+    private final JPanel content = new JPanel(new GridBagLayout());
+
+    private BranchOption branch;
+    private CourtSearchResult court;
+    private List<SlotStatus> slots = List.of();
 
     public CustomerBookingConfirmScreen(Runnable onBack, Runnable onSubmit) {
         this.onBack = onBack;
@@ -19,12 +32,20 @@ public class CustomerBookingConfirmScreen extends JPanel {
         setLayout(new BorderLayout());
         setBackground(PAGE_BG);
         setBorder(new EmptyBorder(s(24), s(24), s(40), s(24)));
-        add(buildContent(), BorderLayout.NORTH);
+        content.setOpaque(false);
+        add(content, BorderLayout.NORTH);
+        renderDraft();
     }
 
-    private JComponent buildContent() {
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
+    public void showDraft(BranchOption branch, CourtSearchResult court, List<SlotStatus> slots) {
+        this.branch = branch;
+        this.court = court;
+        this.slots = slots == null ? List.of() : List.copyOf(slots);
+        renderDraft();
+    }
+
+    private void renderDraft() {
+        content.removeAll();
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -37,19 +58,21 @@ public class CustomerBookingConfirmScreen extends JPanel {
         content.add(buildTopLine(), gbc);
 
         gbc.gridy++;
-        gbc.insets = new Insets(0, 0, s(32), 0);
-        content.add(new HeroPanel("XÁC NHẬN ĐẶT SÂN"), gbc);
+        gbc.insets = new Insets(0, 0, s(28), 0);
+        content.add(new HeroPanel("XAC NHAN DAT SAN"), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, 0, 0);
         content.add(buildCardsRow(), gbc);
-        return content;
+
+        content.revalidate();
+        content.repaint();
     }
 
     private JComponent buildTopLine() {
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        JButton back = new JButton("← Quay lại");
+        JButton back = new JButton("< Quay lai");
         back.setFont(bold(14f));
         back.setForeground(GREEN_DARK);
         back.setContentAreaFilled(false);
@@ -75,7 +98,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
 
         gbc.gridx = 0;
         gbc.weightx = 0.62;
-        gbc.insets = new Insets(0, 0, 0, s(24));
+        gbc.insets = new Insets(0, 0, 0, s(22));
         row.add(buildBookingInfoCard(), gbc);
 
         gbc.gridx = 1;
@@ -86,63 +109,64 @@ public class CustomerBookingConfirmScreen extends JPanel {
     }
 
     private JComponent buildBookingInfoCard() {
-        RoundedPanel card = new RoundedPanel(s(32), PANEL_BG, false);
+        RoundedPanel card = new RoundedPanel(s(24), PANEL_BG, false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(s(24), s(28), s(28), s(28)));
 
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.add(label("▣ THÔNG TIN ĐẶT SÂN", bold(20f), TEXT_DARK), BorderLayout.WEST);
-        JButton addCourt = pillButton("Thêm sân", GREEN_DARK, Color.WHITE);
-        addCourt.setFont(bold(13f));
-        header.add(addCourt, BorderLayout.EAST);
-        card.add(header);
-        card.add(Box.createVerticalStrut(s(22)));
-
-        card.add(infoRow("Khách hàng", "Nguyễn Văn A"));
-        card.add(Box.createVerticalStrut(s(16)));
-        card.add(infoRow("Số điện thoại", "0123456789"));
-        card.add(Box.createVerticalStrut(s(16)));
-        card.add(infoRow("Mã đơn", "xxxxxxxxx"));
+        JLabel title = label("THONG TIN DAT SAN", bold(20f), TEXT_DARK);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(title);
         card.add(Box.createVerticalStrut(s(18)));
+
+        card.add(infoRow("Chi nhanh", branch == null ? "--" : branch.branchName()));
+        card.add(Box.createVerticalStrut(s(12)));
+        card.add(infoRow("Dia chi", branch == null ? "--" : branch.address()));
+        card.add(Box.createVerticalStrut(s(12)));
+        card.add(infoRow("Ma san", court == null ? "--" : court.courtId()));
+        card.add(Box.createVerticalStrut(s(12)));
+        card.add(infoRow("Loai the thao", court == null ? "--" : court.sportTypeName()));
+        card.add(Box.createVerticalStrut(s(16)));
         card.add(line());
         card.add(Box.createVerticalStrut(s(14)));
-        card.add(infoRow("Chi nhánh", "KINETIC Central Park"));
-        card.add(Box.createVerticalStrut(s(16)));
-        card.add(infoRow("Địa chỉ", "Quận 1, TP. Hồ Chí Minh"));
-        card.add(Box.createVerticalStrut(s(18)));
-        card.add(courtLine("Mã sân 1", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-        card.add(Box.createVerticalStrut(s(10)));
-        card.add(courtLine("Mã sân 2", "18:00 - 20:00 | 29/12/2026", "250.000đ/giờ"));
-        card.add(Box.createVerticalStrut(s(18)));
+
+        if (slots.isEmpty()) {
+            card.add(infoRow("Khung gio", "--"));
+        } else {
+            for (SlotStatus slot : slots) {
+                card.add(slotLine(slot));
+                card.add(Box.createVerticalStrut(s(10)));
+            }
+        }
+        card.add(Box.createVerticalStrut(s(8)));
         card.add(line());
-        card.add(Box.createVerticalStrut(s(16)));
-        card.add(totalRow("Tổng tiền thuê sân", "500.000đ", TEXT_DARK));
+        card.add(Box.createVerticalStrut(s(14)));
+        card.add(totalRow("Tong tien thue san", money(totalPrice()), TEXT_DARK));
         return card;
     }
 
     private JComponent buildPaymentSummaryCard() {
-        RoundedPanel card = new RoundedPanel(s(32), SOFT_GRAY, false);
+        RoundedPanel card = new RoundedPanel(s(24), SOFT_GRAY, false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(s(24), s(28), s(28), s(28)));
 
-        JLabel title = label("CHI TIẾT THANH TOÁN", bold(20f), TEXT_DARK);
+        JLabel title = label("CHI TIET THANH TOAN", bold(20f), TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(s(22)));
-        card.add(infoRow("Tiền thuê sân", "500.000đ"));
+        card.add(infoRow("Tong tien thue san", money(totalPrice())));
+        card.add(Box.createVerticalStrut(s(14)));
+        card.add(infoRow("Tien coc (70%)", money(deposit())));
         card.add(Box.createVerticalStrut(s(22)));
         card.add(line());
         card.add(Box.createVerticalStrut(s(18)));
-        card.add(totalRow("TỔNG CỘNG", "500.000đ", GREEN_DARK));
+        card.add(totalRow("TONG COC PHAI TRA", money(deposit()), GREEN_DARK));
         card.add(Box.createVerticalStrut(s(26)));
 
-        JButton submit = pillButton("ĐẶT NGAY", GREEN, GREEN_DARK);
-        submit.setFont(bold(28f));
+        JButton submit = pillButton("Đặt cọc", GREEN, GREEN_DARK);
+        submit.setFont(bold(24f));
         submit.setAlignmentX(Component.LEFT_ALIGNMENT);
-        submit.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(64)));
-        submit.addActionListener(e -> onSubmit.run());
+        submit.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(58)));
+        submit.addActionListener(e -> showDepositDialog());
         card.add(submit);
         return card;
     }
@@ -151,9 +175,9 @@ public class CustomerBookingConfirmScreen extends JPanel {
         JPanel row = new JPanel(new BorderLayout(s(16), 0));
         row.setOpaque(false);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(30)));
-        row.add(label(leftText, regular(16f), TEXT_OLIVE), BorderLayout.WEST);
-        JLabel value = label(rightText, bold(16f), TEXT_DARK);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(32)));
+        row.add(label(leftText, regular(15f), TEXT_OLIVE), BorderLayout.WEST);
+        JLabel value = label(rightText == null ? "--" : rightText, bold(15f), TEXT_DARK);
         value.setHorizontalAlignment(SwingConstants.RIGHT);
         row.add(value, BorderLayout.EAST);
         return row;
@@ -164,19 +188,19 @@ public class CustomerBookingConfirmScreen extends JPanel {
         row.setOpaque(false);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(42)));
-        row.add(label(leftText, bold(17f), TEXT_DARK), BorderLayout.WEST);
-        JLabel value = label(rightText, bold(28f), valueColor);
+        row.add(label(leftText, bold(16f), TEXT_DARK), BorderLayout.WEST);
+        JLabel value = label(rightText, bold(24f), valueColor);
         value.setHorizontalAlignment(SwingConstants.RIGHT);
         row.add(value, BorderLayout.EAST);
         return row;
     }
 
-    private JComponent courtLine(String courtCode, String time, String price) {
-        RoundedPanel row = new RoundedPanel(s(14), SURFACE_BG);
+    private JComponent slotLine(SlotStatus slot) {
+        RoundedPanel row = new RoundedPanel(s(12), SURFACE_BG);
         row.setLayout(new GridBagLayout());
         row.setBorder(new EmptyBorder(s(8), s(12), s(8), s(12)));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(42)));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(46)));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
@@ -184,16 +208,17 @@ public class CustomerBookingConfirmScreen extends JPanel {
         gbc.anchor = GridBagConstraints.CENTER;
 
         gbc.gridx = 0;
-        gbc.weightx = 0.22;
-        row.add(label(courtCode, regular(15f), TEXT_OLIVE), gbc);
+        gbc.weightx = 0.26;
+        row.add(label(slot.courtId(), regular(14f), TEXT_OLIVE), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.52;
-        row.add(label(time, bold(15f), GREEN_DARK), gbc);
+        gbc.weightx = 0.48;
+        row.add(label(slot.bookingDate() + " | " + formatHour(slot.startHour()) + " - " + formatHour(slot.endHour()),
+                bold(14f), GREEN_DARK), gbc);
 
         gbc.gridx = 2;
         gbc.weightx = 0.26;
-        JLabel priceLabel = label(price, bold(15f), GREEN_DARK);
+        JLabel priceLabel = label(money(slot.price()), bold(14f), GREEN_DARK);
         priceLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         row.add(priceLabel, gbc);
         return row;
@@ -207,5 +232,143 @@ public class CustomerBookingConfirmScreen extends JPanel {
         line.setPreferredSize(new Dimension(0, 1));
         line.setAlignmentX(Component.LEFT_ALIGNMENT);
         return line;
+    }
+
+    private BigDecimal totalPrice() {
+        BigDecimal total = BigDecimal.ZERO;
+        for (SlotStatus slot : slots) {
+            if (slot.price() != null) {
+                total = total.add(slot.price());
+            }
+        }
+        return total;
+    }
+
+    private BigDecimal deposit() {
+        return totalPrice().multiply(new BigDecimal("0.70"));
+    }
+
+    private String formatHour(int hour) {
+        return String.format("%02d:00", hour);
+    }
+
+    private String money(BigDecimal value) {
+        return MONEY_FORMAT.format(value == null ? BigDecimal.ZERO : value) + " VND";
+    }
+
+    private void showDepositDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        DepositDialog dialog = new DepositDialog(owner);
+        dialog.setVisible(true);
+        if (dialog.isConfirmed()) {
+            onSubmit.run();
+        }
+    }
+
+    private final class DepositDialog extends JDialog {
+        private boolean confirmed = false;
+
+        DepositDialog(Window owner) {
+            super(owner, "Xác nhận đặt cọc", ModalityType.APPLICATION_MODAL);
+            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            setContentPane(buildContent());
+            pack();
+            setMinimumSize(new Dimension(s(480), s(360)));
+            setLocationRelativeTo(owner);
+        }
+
+        boolean isConfirmed() {
+            return confirmed;
+        }
+
+        private JComponent buildContent() {
+            JPanel root = new JPanel(new BorderLayout(0, s(20)));
+            root.setBackground(PAGE_BG);
+            root.setBorder(new EmptyBorder(s(28), s(32), s(24), s(32)));
+
+            JLabel title = label("CHI TIẾT ĐẶT CỌC", bold(20f), TEXT_DARK);
+            root.add(title, BorderLayout.NORTH);
+
+            JPanel body = new JPanel();
+            body.setOpaque(false);
+            body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+
+            for (SlotStatus slot : slots) {
+                body.add(depositSlotRow(slot));
+                body.add(Box.createVerticalStrut(s(10)));
+            }
+            body.add(Box.createVerticalStrut(s(6)));
+            body.add(dividerLine());
+            body.add(Box.createVerticalStrut(s(14)));
+            body.add(depositTotalRow("TỔNG CỌC PHẢI TRẢ", money(deposit()), GREEN_DARK));
+
+            root.add(body, BorderLayout.CENTER);
+
+            JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(12), 0));
+            actions.setOpaque(false);
+            JButton cancel = pillButton("Hủy", Color.WHITE, TEXT_DARK);
+            cancel.setBorder(BorderFactory.createCompoundBorder(
+                    new RoundedBorder(BORDER, s(999)),
+                    new EmptyBorder(s(8), s(22), s(8), s(22))
+            ));
+            cancel.addActionListener(e -> dispose());
+            JButton confirm = pillButton("Xác nhận đặt cọc", GREEN, GREEN_DARK);
+            confirm.addActionListener(e -> {
+                confirmed = true;
+                dispose();
+            });
+            actions.add(cancel);
+            actions.add(confirm);
+            root.add(actions, BorderLayout.SOUTH);
+
+            return root;
+        }
+
+        private JComponent depositSlotRow(SlotStatus slot) {
+            RoundedPanel row = new RoundedPanel(s(12), SURFACE_BG);
+            row.setLayout(new BorderLayout(s(16), 0));
+            row.setBorder(new EmptyBorder(s(10), s(14), s(10), s(14)));
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(56)));
+
+            JPanel left = new JPanel();
+            left.setOpaque(false);
+            left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+            left.add(label("Tiền cọc", regular(13f), TEXT_OLIVE));
+            left.add(label(formatHour(slot.startHour()) + " - " + formatHour(slot.endHour())
+                    + "  |  " + slot.bookingDate(), bold(13f), TEXT_DARK));
+            row.add(left, BorderLayout.WEST);
+
+            BigDecimal slotDeposit = slot.price() != null
+                    ? slot.price().multiply(new BigDecimal("0.70")).setScale(0, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            JLabel amount = label(money(slotDeposit), bold(15f), GREEN_DARK);
+            amount.setHorizontalAlignment(SwingConstants.RIGHT);
+            row.add(amount, BorderLayout.EAST);
+
+            return row;
+        }
+
+        private JComponent dividerLine() {
+            JPanel line = new JPanel();
+            line.setOpaque(true);
+            line.setBackground(new Color(113, 113, 122, 130));
+            line.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+            line.setPreferredSize(new Dimension(0, 1));
+            line.setAlignmentX(Component.LEFT_ALIGNMENT);
+            return line;
+        }
+
+        private JComponent depositTotalRow(String leftText, String rightText, Color valueColor) {
+            JPanel row = new JPanel(new BorderLayout(s(16), 0));
+            row.setOpaque(false);
+            row.setAlignmentX(Component.LEFT_ALIGNMENT);
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(42)));
+            row.add(label(leftText, bold(16f), TEXT_DARK), BorderLayout.WEST);
+            JLabel value = label(rightText, bold(24f), valueColor);
+            value.setHorizontalAlignment(SwingConstants.RIGHT);
+            row.add(value, BorderLayout.EAST);
+            return row;
+        }
     }
 }

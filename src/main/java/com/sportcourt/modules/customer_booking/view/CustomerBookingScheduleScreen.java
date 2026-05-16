@@ -1,22 +1,50 @@
 package com.sportcourt.modules.customer_booking.view;
 
 import com.sportcourt.common.style.AppFonts;
+import com.sportcourt.modules.customer_booking.controller.CustomerBookingController;
+import com.sportcourt.modules.customer_booking.dto.BookingSlotStatus;
+import com.sportcourt.modules.customer_booking.dto.BranchOption;
+import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
+import com.sportcourt.modules.customer_booking.dto.SlotStatus;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewStyle.*;
 
 public class CustomerBookingScheduleScreen extends JPanel {
-    private final Runnable onBack;
-    private final Runnable onConfirm;
-    private final JLabel selectedSlotLabel = label("10:00 - 12:00 | 02/08/2024", bold(14f), GREEN_DARK);
-    private final JLabel totalLabel = label("Tổng tiền: 300.000VNĐ", bold(14f), GREEN_DARK);
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
 
-    public CustomerBookingScheduleScreen(Runnable onBack, Runnable onConfirm) {
+    private final CustomerBookingController controller;
+    private final Runnable onBack;
+    private final Consumer<List<SlotStatus>> onConfirm;
+
+    private final JLabel titleLabel = label("DAT SAN", bold(28f), Color.WHITE);
+    private final JLabel courtInfoLabel = label("--", bold(13f), TEXT_DARK);
+    private final JLabel selectedSlotLabel = label("Chua chon khung gio", bold(14f), GREEN_DARK);
+    private final JLabel totalLabel = label("Tong tien: 0 VND", bold(14f), GREEN_DARK);
+    private final JSpinner dateSpinner = new JSpinner(new SpinnerDateModel(new Date(), null, null, java.util.Calendar.DAY_OF_MONTH));
+
+    private JPanel slotGrid;
+    private BranchOption currentBranch;
+    private CourtSearchResult currentCourt;
+    private LocalDate bookingDate = LocalDate.now();
+    private List<SlotStatus> currentSlots = List.of();
+    private SlotStatus selectedSlot;
+    private boolean adjustingDate;
+
+    public CustomerBookingScheduleScreen(CustomerBookingController controller,
+                                         Runnable onBack,
+                                         Consumer<List<SlotStatus>> onConfirm) {
+        this.controller = controller;
         this.onBack = onBack;
         this.onConfirm = onConfirm;
         AppFonts.register();
@@ -29,12 +57,25 @@ public class CustomerBookingScheduleScreen extends JPanel {
         add(buildFooter(), BorderLayout.SOUTH);
     }
 
+    public void showCourt(BranchOption branch, CourtSearchResult court) {
+        currentBranch = branch;
+        currentCourt = court;
+        selectedSlot = null;
+        bookingDate = LocalDate.now();
+        adjustingDate = true;
+        dateSpinner.setValue(Date.from(bookingDate.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        adjustingDate = false;
+        titleLabel.setText("DAT SAN - " + court.courtId());
+        courtInfoLabel.setText(branch.branchName() + " | " + court.sportTypeName() + " | " + court.branchAddress());
+        updateFooter();
+        loadSlots();
+    }
+
     private JComponent buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(GREEN_DARK);
         header.setBorder(new EmptyBorder(s(16), s(24), s(16), s(24)));
-        JLabel title = label("ĐẶT SÂN", bold(28f), Color.WHITE);
-        header.add(title, BorderLayout.WEST);
+        header.add(titleLabel, BorderLayout.WEST);
         return header;
     }
 
@@ -47,109 +88,107 @@ public class CustomerBookingScheduleScreen extends JPanel {
     }
 
     private JComponent buildFilterStrip() {
-        JPanel strip = new JPanel(new BorderLayout());
+        JPanel strip = new JPanel(new BorderLayout(s(24), 0));
         strip.setBackground(new Color(243, 243, 246));
-        strip.setBorder(new EmptyBorder(s(22), s(24), s(22), s(24)));
+        strip.setBorder(new EmptyBorder(s(18), s(24), s(18), s(24)));
 
-        JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, s(36), 0));
-        filters.setOpaque(false);
-        filters.add(filterControl("LOẠI THỂ THAO - KHU VỰC", "Bóng đá - A", "/icon/branch.png"));
-        filters.add(filterControl("THỜI LƯỢNG", "90 phút", "/icon/calendar.png"));
-        filters.add(filterControl("NGÀY ĐẶT", "02/08/2024", "/icon/calendar.png"));
-        strip.add(filters, BorderLayout.WEST);
-        strip.add(buildLegend(), BorderLayout.EAST);
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.add(label("THONG TIN SAN", bold(12f), TEXT_OLIVE));
+        left.add(Box.createVerticalStrut(s(8)));
+        left.add(courtInfoLabel);
+        strip.add(left, BorderLayout.CENTER);
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(12), 0));
+        right.setOpaque(false);
+        right.add(buildLegend());
+        right.add(label("Ngay dat", bold(12f), TEXT_OLIVE));
+        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
+        dateSpinner.setPreferredSize(new Dimension(s(140), s(36)));
+        dateSpinner.addChangeListener(e -> {
+            if (!adjustingDate) {
+                bookingDate = selectedDate();
+                selectedSlot = null;
+                loadSlots();
+            }
+        });
+        right.add(dateSpinner);
+        JButton reload = pillButton("Tai lai", Color.WHITE, GREEN_DARK);
+        reload.setBorder(BorderFactory.createCompoundBorder(
+                new RoundedBorder(GREEN_DARK, s(999)),
+                new EmptyBorder(s(7), s(16), s(7), s(16))
+        ));
+        reload.addActionListener(e -> loadSlots());
+        right.add(reload);
+        strip.add(right, BorderLayout.EAST);
         return strip;
     }
 
-    private JComponent filterControl(String labelText, String valueText, String iconPath) {
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setOpaque(false);
-        JLabel label = label(labelText, bold(12f), TEXT_OLIVE);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrapper.add(label);
-        wrapper.add(Box.createVerticalStrut(s(8)));
-
-        RoundedPanel pill = new RoundedPanel(s(48), PAGE_BG, true);
-        pill.setLayout(new BorderLayout(s(10), 0));
-        pill.setBorder(new EmptyBorder(s(9), s(16), s(9), s(16)));
-        pill.setPreferredSize(new Dimension(s(210), s(48)));
-        pill.setMaximumSize(new Dimension(s(230), s(48)));
-        Icon icon = icon(iconPath, 16, 16);
-        if (icon != null) {
-            pill.add(new JLabel(icon), BorderLayout.WEST);
-        }
-        pill.add(label(valueText, regular(14f), TEXT_DARK), BorderLayout.CENTER);
-        wrapper.add(pill);
-        return wrapper;
-    }
-
     private JComponent buildLegend() {
-        RoundedPanel legend = new RoundedPanel(s(16), new Color(232, 232, 234, 130));
-        legend.setLayout(new FlowLayout(FlowLayout.RIGHT, s(16), s(12)));
-        legend.add(legendItem("Trống", Color.WHITE, true));
-        legend.add(legendItem("Đang chọn", new Color(59, 130, 246), false));
-        legend.add(legendItem("Đã hết", new Color(148, 163, 184), false));
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, s(10), 0));
+        legend.setBackground(new Color(232, 232, 234, 128));
+        legend.setBorder(new EmptyBorder(s(8), s(12), s(8), s(12)));
+        legend.add(legendDot(Color.WHITE, true));
+        legend.add(label("Trong", regular(12f), TEXT_DARK));
+        legend.add(Box.createHorizontalStrut(s(4)));
+        legend.add(legendDot(new Color(59, 130, 246), false));
+        legend.add(label("Dang chon", regular(12f), TEXT_DARK));
+        legend.add(Box.createHorizontalStrut(s(4)));
+        legend.add(legendDot(new Color(148, 163, 184), false));
+        legend.add(label("Da het", regular(12f), TEXT_DARK));
         return legend;
     }
 
-    private JComponent legendItem(String text, Color color, boolean border) {
-        JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, s(6), 0));
-        item.setOpaque(false);
-        JPanel dot = new JPanel() {
+    private JLabel legendDot(Color fill, boolean bordered) {
+        JLabel dot = new JLabel() {
             @Override
-            protected void paintComponent(Graphics graphics) {
-                Graphics2D g2 = (Graphics2D) graphics.create();
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(color);
+                g2.setColor(fill);
                 g2.fillOval(0, 0, getWidth(), getHeight());
-                if (border) {
-                    g2.setColor(new Color(186, 204, 176));
+                if (bordered) {
+                    g2.setColor(new Color(186, 204, 176, 128));
                     g2.drawOval(0, 0, getWidth() - 1, getHeight() - 1);
                 }
                 g2.dispose();
             }
         };
-        dot.setOpaque(false);
         dot.setPreferredSize(new Dimension(s(12), s(12)));
-        item.add(dot);
-        item.add(label(text, bold(11f), TEXT_DARK));
-        return item;
+        dot.setOpaque(false);
+        return dot;
     }
 
     private JComponent buildGridScroll() {
-        ScheduleGrid grid = new ScheduleGrid();
-        grid.setSelectionChangedListener((slot, total) -> {
-            selectedSlotLabel.setText(slot);
-            totalLabel.setText(total);
-        });
+        slotGrid = new JPanel(new GridLayout(0, 4, s(16), s(16)));
+        slotGrid.setOpaque(false);
 
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(s(16), s(16), s(16), s(16)));
-        wrapper.add(grid, BorderLayout.CENTER);
+        wrapper.setBorder(new EmptyBorder(s(18), s(18), s(18), s(18)));
+        wrapper.add(slotGrid, BorderLayout.NORTH);
 
         JScrollPane scroll = new JScrollPane(wrapper);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(PAGE_BG);
         scroll.setBackground(PAGE_BG);
-        scroll.getHorizontalScrollBar().setUnitIncrement(s(20));
         scroll.getVerticalScrollBar().setUnitIncrement(s(20));
         return scroll;
     }
 
     private JComponent buildFooter() {
-        JPanel footer = new JPanel(new BorderLayout(s(48), 0));
+        JPanel footer = new JPanel(new BorderLayout(s(32), 0));
         footer.setBackground(Color.WHITE);
         footer.setBorder(new EmptyBorder(s(18), s(24), s(18), s(24)));
 
-        JPanel summary = new JPanel(new FlowLayout(FlowLayout.LEFT, s(46), 0));
+        JPanel summary = new JPanel(new FlowLayout(FlowLayout.LEFT, s(36), 0));
         summary.setOpaque(false);
         summary.add(selectedSlotLabel);
         summary.add(totalLabel);
         footer.add(summary, BorderLayout.WEST);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(24), 0));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(18), 0));
         actions.setOpaque(false);
         JButton reset = pillButton("Chọn lại", Color.WHITE, GREEN_DARK);
         reset.setBorder(BorderFactory.createCompoundBorder(
@@ -159,139 +198,140 @@ public class CustomerBookingScheduleScreen extends JPanel {
         reset.addActionListener(e -> onBack.run());
 
         JButton book = pillButton("Đặt lịch", GREEN, GREEN_DARK);
-        book.addActionListener(e -> onConfirm.run());
+        book.addActionListener(e -> confirmSelection());
         actions.add(reset);
         actions.add(book);
         footer.add(actions, BorderLayout.EAST);
         return footer;
     }
 
-    private static final class ScheduleGrid extends JPanel {
-        private final String[] courts = {"Sân 1", "Sân 2", "Sân 3", "Sân 4", "Sân 5"};
-        private final String[] times = {"05:00", "06:00", "07:00", "08:00", "9:00", "10:00", "11:00",
-                "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"};
-        private final boolean[][] booked = new boolean[courts.length][times.length];
-        private int selectedRow = 1;
-        private int selectedCol = 5;
-        private SelectionChangedListener listener;
-
-        ScheduleGrid() {
-            setOpaque(false);
-            setPreferredSize(new Dimension(s(1260), s(456)));
-            markBooked();
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent event) {
-                    handleClick(event.getX(), event.getY());
-                }
-            });
+    private void loadSlots() {
+        if (currentCourt == null) {
+            renderEmpty("Chua chon san.");
+            return;
         }
 
-        void setSelectionChangedListener(SelectionChangedListener listener) {
-            this.listener = listener;
-        }
-
-        private void markBooked() {
-            booked[0][0] = true;
-            booked[0][9] = true;
-            booked[0][10] = true;
-            booked[1][10] = true;
-            booked[1][11] = true;
-            booked[3][6] = true;
-            booked[3][7] = true;
-            booked[3][8] = true;
-            booked[4][10] = true;
-            booked[4][11] = true;
-        }
-
-        private void handleClick(int x, int y) {
-            int left = s(96);
-            int header = s(48);
-            int rowHeight = s(80);
-            int colWidth = (getWidth() - left) / times.length;
-            if (x < left || y < header) {
-                return;
-            }
-            int row = (y - header) / rowHeight;
-            int col = (x - left) / Math.max(1, colWidth);
-            if (row < 0 || row >= courts.length || col < 0 || col >= times.length || booked[row][col]) {
-                return;
-            }
-            selectedRow = row;
-            selectedCol = col;
-            if (listener != null) {
-                String end = times[Math.min(times.length - 1, col + 2)];
-                listener.selectionChanged(times[col] + " - " + end + " | 02/08/2024", "Tổng tiền: 300.000VNĐ");
-            }
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), s(32), s(32));
-
-            int left = s(96);
-            int header = s(48);
-            int rowHeight = s(80);
-            int gridWidth = getWidth() - left;
-            int colWidth = gridWidth / times.length;
-
-            g2.setColor(new Color(232, 232, 234));
-            g2.fillRoundRect(0, 0, left, header, s(24), s(24));
-            g2.fillRect(left, 0, gridWidth, header);
-            g2.setColor(new Color(243, 243, 246));
-            g2.fillRect(0, header, left, courts.length * rowHeight);
-
-            g2.setFont(bold(10f));
-            g2.setColor(TEXT_OLIVE);
-            drawCentered(g2, "COURTS", 0, 0, left, header);
-            for (int col = 0; col < times.length; col++) {
-                drawCentered(g2, times[col], left + col * colWidth, 0, colWidth, header);
-            }
-
-            g2.setFont(bold(13f));
-            g2.setColor(TEXT_DARK);
-            for (int row = 0; row < courts.length; row++) {
-                drawCentered(g2, courts[row], 0, header + row * rowHeight, left, rowHeight);
-            }
-
-            for (int row = 0; row < courts.length; row++) {
-                for (int col = 0; col < times.length; col++) {
-                    if (booked[row][col]) {
-                        g2.setColor(new Color(161, 161, 170));
-                        g2.fillRect(left + col * colWidth, header + row * rowHeight, colWidth, rowHeight);
-                    }
-                }
-            }
-
-            g2.setColor(new Color(59, 130, 246));
-            int selectedWidth = Math.min(colWidth * 2, getWidth() - (left + selectedCol * colWidth));
-            g2.fillRect(left + selectedCol * colWidth, header + selectedRow * rowHeight, selectedWidth, rowHeight);
-
-            g2.setColor(new Color(186, 204, 176, 90));
-            for (int col = 0; col <= times.length; col++) {
-                int x = left + col * colWidth;
-                g2.drawLine(x, 0, x, header + courts.length * rowHeight);
-            }
-            for (int row = 0; row <= courts.length; row++) {
-                int y = header + row * rowHeight;
-                g2.drawLine(0, y, getWidth(), y);
-            }
-            g2.dispose();
-        }
-
-        private void drawCentered(Graphics2D g2, String text, int x, int y, int width, int height) {
-            FontMetrics metrics = g2.getFontMetrics();
-            int tx = x + (width - metrics.stringWidth(text)) / 2;
-            int ty = y + (height - metrics.getHeight()) / 2 + metrics.getAscent();
-            g2.drawString(text, tx, ty);
+        try {
+            currentSlots = controller.loadSlots(currentCourt.courtId(), bookingDate);
+            renderSlots();
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this, errorMessage(e), "Dat san", JOptionPane.ERROR_MESSAGE);
+            renderEmpty("Khong the tai lich san.");
         }
     }
 
-    private interface SelectionChangedListener {
-        void selectionChanged(String slot, String total);
+    private void renderSlots() {
+        slotGrid.removeAll();
+        if (currentSlots.isEmpty()) {
+            renderEmpty("San nay chua co bang gia hoac khung gio.");
+            return;
+        }
+
+        slotGrid.setLayout(new GridLayout(0, 4, s(16), s(16)));
+        for (SlotStatus slot : currentSlots) {
+            slotGrid.add(slotButton(slot));
+        }
+        slotGrid.revalidate();
+        slotGrid.repaint();
+    }
+
+    private void renderEmpty(String message) {
+        slotGrid.removeAll();
+        slotGrid.setLayout(new BorderLayout());
+        RoundedPanel empty = new RoundedPanel(s(18), SURFACE_BG);
+        empty.setLayout(new BorderLayout());
+        empty.setBorder(new EmptyBorder(s(34), s(24), s(34), s(24)));
+        JLabel label = label(message, bold(15f), TEXT_MUTED);
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        empty.add(label, BorderLayout.CENTER);
+        slotGrid.add(empty, BorderLayout.NORTH);
+        slotGrid.revalidate();
+        slotGrid.repaint();
+    }
+
+    private JButton slotButton(SlotStatus slot) {
+        boolean available = slot.status() == BookingSlotStatus.AVAILABLE;
+        boolean selected = selectedSlot != null
+                && selectedSlot.priceBoardId().equals(slot.priceBoardId())
+                && selectedSlot.bookingDate().equals(slot.bookingDate());
+
+        Color bg = selected ? new Color(59, 130, 246)
+                : slot.status() == BookingSlotStatus.AVAILABLE ? Color.WHITE
+                : slot.status() == BookingSlotStatus.BOOKED ? new Color(148, 163, 184)
+                : new Color(254, 226, 226);
+        Color fg = selected || slot.status() == BookingSlotStatus.BOOKED ? Color.WHITE : TEXT_DARK;
+
+        JButton button = new JButton("<html><center>"
+                + formatHour(slot.startHour()) + " - " + formatHour(slot.endHour())
+                + "<br>" + money(slot.price())
+                + "</center></html>") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), s(14), s(14));
+                g2.setColor(selected ? new Color(59, 130, 246, 80) : BORDER);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, s(14), s(14));
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        button.setFont(bold(13f));
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setPreferredSize(new Dimension(s(200), s(90)));
+        button.setCursor(available ? new Cursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
+        button.setEnabled(available || selected);
+        button.setForeground(fg);
+        if (available) {
+            button.addActionListener(e -> {
+                selectedSlot = slot;
+                updateFooter();
+                renderSlots();
+            });
+        }
+        return button;
+    }
+
+    private void confirmSelection() {
+        if (selectedSlot == null) {
+            JOptionPane.showMessageDialog(this, "Vui long chon mot khung gio.", "Dat san",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        onConfirm.accept(List.of(selectedSlot));
+    }
+
+    private void updateFooter() {
+        if (selectedSlot == null) {
+            selectedSlotLabel.setText("Chua chon khung gio");
+            totalLabel.setText("Tong tien: 0 VND");
+            return;
+        }
+
+        selectedSlotLabel.setText(formatHour(selectedSlot.startHour())
+                + " - " + formatHour(selectedSlot.endHour())
+                + " | " + selectedSlot.bookingDate());
+        totalLabel.setText("Tong tien: " + money(selectedSlot.price()));
+    }
+
+    private LocalDate selectedDate() {
+        Date date = (Date) dateSpinner.getValue();
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private String formatHour(int hour) {
+        return String.format("%02d:00", hour);
+    }
+
+    private String money(BigDecimal value) {
+        return MONEY_FORMAT.format(value == null ? BigDecimal.ZERO : value) + " VND";
+    }
+
+    private String errorMessage(RuntimeException e) {
+        return e.getMessage() == null || e.getMessage().isBlank() ? "Co loi xay ra." : e.getMessage();
     }
 }

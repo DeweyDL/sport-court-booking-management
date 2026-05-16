@@ -33,10 +33,12 @@ public class CourtDAOImpl implements CourtDAO {
                             ON cn.MACN = kv.MACN
                             AND cn.IS_DELETED = 0
                         WHERE sc.IS_DELETED = 0
-                        AND kv.MACN = ?
                 """;
         List<Object> params = new ArrayList<>();
-        params.add(criteria.getBranchId());
+        if (criteria.getBranchId() != null && !criteria.getBranchId().isBlank()) {
+            sql += "AND kv.MACN = ?\n";
+            params.add(criteria.getBranchId());
+        }
         if (criteria.getKeyWord() != null && !criteria.getKeyWord().isBlank()) {
             sql += ("""
                     AND (
@@ -269,18 +271,28 @@ public class CourtDAOImpl implements CourtDAO {
 
     @Override
     public List<String> findAreaIdsByBranch(String branchId) throws SQLException {
-        String sql = """
-            SELECT kv.MAKV
-            FROM KHU_VUC kv
-            WHERE kv.MACN = ?
-              AND kv.IS_DELETED = 0
-            ORDER BY kv.MAKV
-            """;
+        boolean filterByBranch = branchId != null && !branchId.isBlank();
+        String sql = filterByBranch
+                ? """
+                  SELECT kv.MAKV
+                  FROM KHU_VUC kv
+                  WHERE kv.MACN = ?
+                    AND kv.IS_DELETED = 0
+                  ORDER BY kv.MAKV
+                  """
+                : """
+                  SELECT kv.MAKV
+                  FROM KHU_VUC kv
+                  WHERE kv.IS_DELETED = 0
+                  ORDER BY kv.MAKV
+                  """;
 
         try (Connection connection = ConnectionUtils.getMyConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
 
-            ps.setString(1, branchId);
+            if (filterByBranch) {
+                ps.setString(1, branchId);
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
                 List<String> areaIds = new ArrayList<>();
