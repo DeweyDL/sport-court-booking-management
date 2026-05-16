@@ -58,6 +58,20 @@ public class BookingRequestController {
         return service.getBookingsByInvoiceId(invoiceId);
     }
 
+    public List<PendingBookingRequestDTO> getPendingDepositRequests(String branchIdOrNull,
+                                                                    LocalDate dateOrNull,
+                                                                    String customerPhoneOrNull) {
+        return service.getPendingDepositRequests(branchIdOrNull, dateOrNull, customerPhoneOrNull);
+    }
+
+    public int countPendingDepositRequests(String branchIdOrNull) {
+        return service.countPendingDepositRequests(branchIdOrNull);
+    }
+
+    public boolean confirmPendingDepositBooking(String invoiceId) {
+        return service.confirmPendingDepositBooking(invoiceId);
+    }
+
     public boolean cancelBooking(String id) {
         return service.cancelBooking(id); // ID này tự động chuyển tiếp xuống DAO xử lý MACT_THUE_SAN
     }

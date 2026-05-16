@@ -16,11 +16,16 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class BookingRequest extends JPanel {
@@ -33,14 +38,19 @@ public class BookingRequest extends JPanel {
     private static final Color COLOR_BOOKED_BLUE = new Color(0, 97, 171);
     private static final Color COLOR_BORDER_LIGHT = new Color(230, 230, 230);
     private static final int ROUND_ARC = 20;
+    private static final String STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
+    private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final BookingRequestController controller = new BookingRequestController();
 
     private JComboBox<BookingBranchOption> branchCombo;
     private JComboBox<SportTypeAreaOption> sportTypeAreaCombo;
     private DatePicker bookingDatePicker;
+    private JLabel pendingCountLabel;
 
-    private BookingOpenHours openHours = BookingOpenHours.defaultHours();
+    private BookingOpenHours openHours = BookingOpenHours.fullDay();
     private JTable table;
     private DefaultTableModel model;
     private final Set<String> selectedEmptySlots = new HashSet<>();
@@ -64,16 +74,39 @@ public class BookingRequest extends JPanel {
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 15));
+        JPanel header = new JPanel(new BorderLayout());
         header.setBackground(COLOR_PRIMARY_GREEN);
+        header.setBorder(new EmptyBorder(14, 36, 14, 36));
 
-        JLabel subTitle = new JLabel("Yêu cầu đặt sân");
-        subTitle.setFont(new Font("Lexend", Font.BOLD, 16));
-        subTitle.setForeground(new Color(248, 250, 252));
-        subTitle.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Color.WHITE));
+        JLabel title = new JLabel("Quản lý đặt sân");
+        title.setFont(new Font("Lexend", Font.BOLD, 22));
+        title.setForeground(new Color(248, 250, 252));
 
-        header.add(Box.createRigidArea(new Dimension(20, 0)));
-        header.add(subTitle, BorderLayout.WEST);
+        JPanel requestWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        requestWrapper.setOpaque(false);
+
+        JButton pendingButton = new JButton("Yêu cầu đặt sân");
+        pendingButton.setFont(new Font("Lexend", Font.BOLD, 14));
+        pendingButton.setForeground(COLOR_TEXT_DARK);
+        pendingButton.setBackground(Color.WHITE);
+        pendingButton.setFocusPainted(false);
+        pendingButton.setBorder(new EmptyBorder(10, 18, 10, 18));
+        pendingButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        pendingButton.putClientProperty(FlatClientProperties.STYLE, "arc: 999");
+        pendingButton.addActionListener(e -> showPendingRequestsDialog());
+
+        pendingCountLabel = new JLabel("0", SwingConstants.CENTER);
+        pendingCountLabel.setFont(new Font("Lexend", Font.BOLD, 13));
+        pendingCountLabel.setForeground(COLOR_PRIMARY_GREEN);
+        pendingCountLabel.setOpaque(true);
+        pendingCountLabel.setBackground(new Color(57, 255, 20));
+        pendingCountLabel.setBorder(new EmptyBorder(6, 10, 6, 10));
+
+        requestWrapper.add(pendingButton);
+        requestWrapper.add(pendingCountLabel);
+
+        header.add(title, BorderLayout.WEST);
+        header.add(requestWrapper, BorderLayout.EAST);
         return header;
     }
 
@@ -163,6 +196,7 @@ public class BookingRequest extends JPanel {
         table.setShowGrid(true);
         table.setGridColor(new Color(235, 235, 235));
         table.setIntercellSpacing(new Dimension(0, 0));
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         JTableHeader header = table.getTableHeader();
         header.setBackground(Color.WHITE);
@@ -172,7 +206,7 @@ public class BookingRequest extends JPanel {
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_BORDER_LIGHT));
 
         table.setDefaultRenderer(Object.class, new BookingGridRenderer());
-        table.getColumnModel().getColumn(0).setPreferredWidth(100);
+        configureTableColumns();
 
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -183,7 +217,7 @@ public class BookingRequest extends JPanel {
 
                 Object val = table.getValueAt(r, c);
                 if (val instanceof BookingCell cell) {
-                    handleBookingClicked(cell.slot);
+                    handleBookingClicked(cell.slot());
                 } else {
                     String courtId = (String) model.getValueAt(r, 0);
                     int hour = openHours.startHourInclusive() + (c - 1);
@@ -210,13 +244,12 @@ public class BookingRequest extends JPanel {
     private void loadInitialOptions() {
         new Thread(() -> {
             try {
-                // Gọi API backend lấy cấu hình giờ mở cửa và DS chi nhánh
-                BookingOpenHours hours = controller.getOpenHours();
+                // Gọi API backend lấy DS chi nhánh. Lưới quản lý luôn hiển thị đủ 24 giờ.
                 List<BookingBranchOption> branches = controller.getBranchOptions();
 
                 // Cập nhật lại giao diện trên EDT sau khi đã nhận được dữ liệu thành công
                 SwingUtilities.invokeLater(() -> {
-                    this.openHours = hours;
+                    this.openHours = BookingOpenHours.fullDay();
                     rebuildTableColumns();
 
                     isUpdatingCombos = true;
@@ -228,6 +261,8 @@ public class BookingRequest extends JPanel {
 
                     if (!branches.isEmpty()) {
                         branchCombo.setSelectedIndex(0); // Trigger hàm onBranchChanged()
+                    } else {
+                        refreshPendingRequestCount();
                     }
                 });
             } catch (Exception ex) {
@@ -241,6 +276,7 @@ public class BookingRequest extends JPanel {
         selectedEmptySlots.clear();
         BookingBranchOption selectedBranch = (BookingBranchOption) branchCombo.getSelectedItem();
         if (selectedBranch == null) return;
+        refreshPendingRequestCount();
 
         new Thread(() -> {
             try {
@@ -298,7 +334,7 @@ public class BookingRequest extends JPanel {
                     List<BookingCourtOption> courts = controller.getCourtsByArea(areaId);
                     if (courts != null) localCourts.addAll(courts);
 
-                    List<BookingSlotDTO> bookings = controller.getBookings(branch.branchId(), areaId, date, "ĐÃ XÁC NHẬN");
+                    List<BookingSlotDTO> bookings = controller.getBookings(branch.branchId(), areaId, date, STATUS_CONFIRMED);
 
                     if (bookings != null) {
                         // Lọc chỉ lấy những lịch đặt có ngày trùng với ngày chọn từ DatePicker
@@ -327,6 +363,7 @@ public class BookingRequest extends JPanel {
         model.setRowCount(0);
         int start = hours.startHourInclusive();
         int end = hours.endHourExclusive();
+        List<BookingBlock> bookingBlocks = buildBookingBlocks(bookings);
 
         for (BookingCourtOption court : courts) {
             Object[] row = new Object[(end - start) + 1];
@@ -334,23 +371,64 @@ public class BookingRequest extends JPanel {
 
             for (int h = start; h < end; h++) {
                 final int hour = h;
-                // Kiểm tra xem giờ hiện tại của sân này có khớp với điều kiện đặt từ backend không
-                BookingSlotDTO slot = bookings.stream()
+                BookingBlock block = bookingBlocks.stream()
                         .filter(b -> b.courtId().equals(court.courtId()) && hour >= b.startHour() && hour < b.endHour())
                         .findFirst().orElse(null);
 
-                // Nếu khớp điều kiện -> Tạo class bọc BookingCell, nếu không -> Để null (ô trống)
-                row[(h - start) + 1] = (slot == null) ? null : new BookingCell(slot);
+                row[(h - start) + 1] = (block == null) ? null : new BookingCell(block);
             }
             model.addRow(row);
         }
     }
 
+    private List<BookingBlock> buildBookingBlocks(List<BookingSlotDTO> bookings) {
+        if (bookings == null || bookings.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, List<BookingSlotDTO>> grouped = new LinkedHashMap<>();
+        bookings.stream()
+                .filter(slot -> slot != null && slot.courtId() != null && slot.invoiceId() != null)
+                .sorted(Comparator.comparing(BookingSlotDTO::courtId, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(BookingSlotDTO::invoiceId, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(BookingSlotDTO::bookingDate, Comparator.nullsLast(LocalDate::compareTo))
+                        .thenComparingInt(BookingSlotDTO::startHour))
+                .forEach(slot -> {
+                    String key = slot.courtId() + "|" + slot.invoiceId() + "|" + slot.bookingDate();
+                    grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(slot);
+                });
+
+        List<BookingBlock> blocks = new ArrayList<>();
+        for (List<BookingSlotDTO> slots : grouped.values()) {
+            BookingBlock current = null;
+            for (BookingSlotDTO slot : slots) {
+                if (current == null || slot.startHour() > current.endHour()) {
+                    current = new BookingBlock(slot, slot.startHour(), slot.endHour(), 1);
+                    blocks.add(current);
+                } else {
+                    current.merge(slot);
+                }
+            }
+        }
+        return blocks;
+    }
+
     private void rebuildTableColumns() {
         String[] cols = buildColumns(openHours);
         model.setColumnIdentifiers(cols);
-        if (table != null && table.getColumnModel().getColumnCount() > 0) {
-            table.getColumnModel().getColumn(0).setPreferredWidth(100);
+        configureTableColumns();
+    }
+
+    private void configureTableColumns() {
+        if (table == null || table.getColumnModel().getColumnCount() == 0) {
+            return;
+        }
+
+        table.getColumnModel().getColumn(0).setPreferredWidth(110);
+        table.getColumnModel().getColumn(0).setMinWidth(100);
+        for (int i = 1; i < table.getColumnModel().getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setPreferredWidth(74);
+            table.getColumnModel().getColumn(i).setMinWidth(68);
         }
     }
 
@@ -361,6 +439,62 @@ public class BookingRequest extends JPanel {
             cols.add(String.format("%02d:00", h));
         }
         return cols.toArray(new String[0]);
+    }
+
+    private void refreshPendingRequestCount() {
+        String branchId = selectedBranchIdOrNull();
+        new Thread(() -> {
+            int count = controller.countPendingDepositRequests(branchId);
+            SwingUtilities.invokeLater(() -> {
+                if (pendingCountLabel != null) {
+                    pendingCountLabel.setText(String.valueOf(count));
+                }
+            });
+        }).start();
+    }
+
+    private String selectedBranchIdOrNull() {
+        if (branchCombo == null) {
+            return null;
+        }
+        Object selected = branchCombo.getSelectedItem();
+        if (selected instanceof BookingBranchOption branch) {
+            return branch.branchId();
+        }
+        return null;
+    }
+
+    private void showPendingRequestsDialog() {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        PendingRequestsDialog dialog = new PendingRequestsDialog(owner, selectedBranchIdOrNull());
+        dialog.setVisible(true);
+    }
+
+    private BookingSlotDTO toSlot(PendingBookingRequestDTO request) {
+        return new BookingSlotDTO(
+                request.bookingDetailId(),
+                request.invoiceId(),
+                request.courtSummary(),
+                "",
+                request.sportTypeName(),
+                request.customerName(),
+                request.customerPhone(),
+                request.startHour(),
+                request.endHour(),
+                request.bookingDate()
+        );
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? "--" : date.format(DATE_FORMATTER);
+    }
+
+    private String formatHourRange(int startHour, int endHour) {
+        return String.format("%02d:00 - %02d:00", startHour, endHour);
+    }
+
+    private String money(double value) {
+        return MONEY_FORMAT.format(value) + " VND";
     }
 
     private void handleBookingClicked(BookingSlotDTO slot) {
@@ -376,16 +510,371 @@ public class BookingRequest extends JPanel {
         return v == null ? "" : v;
     }
 
-    private static class BookingCell {
-        final BookingSlotDTO slot;
+    private static class RoundedPanel extends JPanel {
+        private final int radius;
+        private final Color backgroundColor;
 
-        BookingCell(BookingSlotDTO s) {
-            this.slot = s;
+        private RoundedPanel(int radius, Color backgroundColor) {
+            this.radius = radius;
+            this.backgroundColor = backgroundColor;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(backgroundColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private final class PendingRequestsDialog extends JDialog {
+        private final String branchId;
+        private final JTextField phoneSearchField = new JTextField();
+        private final DatePicker requestDatePicker = createDatePicker();
+        private final JCheckBox allDatesCheck = new JCheckBox("Tất cả ngày", true);
+        private final JPanel requestListPanel = new JPanel();
+        private final JLabel requestResultLabel = new JLabel("Đang tải...");
+
+        private PendingRequestsDialog(Window owner, String branchId) {
+            super(owner, "Yêu cầu đặt sân", ModalityType.MODELESS);
+            this.branchId = branchId;
+            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            setContentPane(buildContent());
+            setSize(820, 680);
+            setMinimumSize(new Dimension(700, 560));
+            setLocationRelativeTo(owner);
+            loadRequests();
+        }
+
+        private JComponent buildContent() {
+            JPanel root = new JPanel(new BorderLayout(0, 18));
+            root.setBackground(new Color(249, 249, 252));
+            root.setBorder(new EmptyBorder(28, 32, 28, 32));
+
+            JPanel top = new JPanel();
+            top.setOpaque(false);
+            top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+
+            JLabel title = new JLabel("YÊU CẦU ĐẶT SÂN");
+            title.setFont(new Font("Lexend", Font.BOLD, 28));
+            title.setForeground(COLOR_TEXT_DARK);
+            title.setAlignmentX(Component.LEFT_ALIGNMENT);
+            top.add(title);
+            top.add(Box.createVerticalStrut(18));
+
+            JPanel searchPanel = new JPanel(new BorderLayout(12, 0));
+            searchPanel.setOpaque(false);
+            searchPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            searchPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+
+            phoneSearchField.setFont(new Font("Lexend", Font.PLAIN, 14));
+            phoneSearchField.setBackground(Color.WHITE);
+            phoneSearchField.setBorder(new EmptyBorder(0, 14, 0, 14));
+            phoneSearchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Nhập số điện thoại khách hàng");
+            phoneSearchField.putClientProperty(FlatClientProperties.STYLE, "arc: 18");
+            phoneSearchField.addActionListener(e -> loadRequests());
+
+            JButton searchButton = smallPillButton("Tìm kiếm", new Color(57, 255, 20), COLOR_PRIMARY_GREEN);
+            searchButton.addActionListener(e -> loadRequests());
+            searchPanel.add(phoneSearchField, BorderLayout.CENTER);
+            searchPanel.add(searchButton, BorderLayout.EAST);
+            top.add(searchPanel);
+            top.add(Box.createVerticalStrut(14));
+
+            JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+            filters.setOpaque(false);
+            filters.setAlignmentX(Component.LEFT_ALIGNMENT);
+            filters.add(filterLabel("Ngày đặt"));
+            requestDatePicker.setPreferredSize(new Dimension(170, 38));
+            filters.add(requestDatePicker);
+
+            allDatesCheck.setOpaque(false);
+            allDatesCheck.setFont(new Font("Lexend", Font.PLAIN, 13));
+            allDatesCheck.setForeground(COLOR_TEXT_LABEL);
+            allDatesCheck.addActionListener(e -> {
+                requestDatePicker.setEnabled(!allDatesCheck.isSelected());
+                loadRequests();
+            });
+            requestDatePicker.setEnabled(false);
+            requestDatePicker.addDateChangeListener(e -> {
+                if (!allDatesCheck.isSelected()) {
+                    loadRequests();
+                }
+            });
+            filters.add(allDatesCheck);
+
+            JButton reloadButton = smallPillButton("Tải lại", Color.WHITE, COLOR_TEXT_DARK);
+            reloadButton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(COLOR_BORDER_LIGHT),
+                    new EmptyBorder(8, 16, 8, 16)));
+            reloadButton.addActionListener(e -> loadRequests());
+            filters.add(reloadButton);
+            top.add(filters);
+
+            root.add(top, BorderLayout.NORTH);
+
+            RoundedPanel listBox = new RoundedPanel(24, Color.WHITE);
+            listBox.setLayout(new BorderLayout(0, 12));
+            listBox.setBorder(new EmptyBorder(18, 18, 18, 18));
+
+            requestResultLabel.setFont(new Font("Lexend", Font.BOLD, 14));
+            requestResultLabel.setForeground(COLOR_TEXT_LABEL);
+            listBox.add(requestResultLabel, BorderLayout.NORTH);
+
+            requestListPanel.setLayout(new BoxLayout(requestListPanel, BoxLayout.Y_AXIS));
+            requestListPanel.setOpaque(false);
+
+            JScrollPane scroll = new JScrollPane(requestListPanel);
+            scroll.setBorder(BorderFactory.createEmptyBorder());
+            scroll.getViewport().setBackground(Color.WHITE);
+            scroll.getVerticalScrollBar().setUnitIncrement(18);
+            listBox.add(scroll, BorderLayout.CENTER);
+            root.add(listBox, BorderLayout.CENTER);
+
+            return root;
+        }
+
+        private JLabel filterLabel(String text) {
+            JLabel label = new JLabel(text);
+            label.setFont(new Font("Lexend", Font.BOLD, 12));
+            label.setForeground(COLOR_TEXT_LABEL);
+            return label;
+        }
+
+        private JButton smallPillButton(String text, Color background, Color foreground) {
+            JButton button = new JButton(text);
+            button.setFont(new Font("Lexend", Font.BOLD, 13));
+            button.setForeground(foreground);
+            button.setBackground(background);
+            button.setFocusPainted(false);
+            button.setBorder(new EmptyBorder(9, 18, 9, 18));
+            button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            button.putClientProperty(FlatClientProperties.STYLE, "arc: 999");
+            return button;
+        }
+
+        private void loadRequests() {
+            requestResultLabel.setText("Đang tải yêu cầu...");
+            requestListPanel.removeAll();
+            requestListPanel.add(emptyState("Đang tải dữ liệu"));
+            requestListPanel.revalidate();
+            requestListPanel.repaint();
+
+            LocalDate filterDate = allDatesCheck.isSelected() ? null : requestDatePicker.getDate();
+            String phone = phoneSearchField.getText();
+
+            new Thread(() -> {
+                try {
+                    List<PendingBookingRequestDTO> requests =
+                            controller.getPendingDepositRequests(branchId, filterDate, phone);
+                    SwingUtilities.invokeLater(() -> renderRequests(requests));
+                } catch (RuntimeException ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        requestResultLabel.setText("Không thể tải yêu cầu");
+                        requestListPanel.removeAll();
+                        requestListPanel.add(emptyState(ex.getMessage()));
+                        requestListPanel.revalidate();
+                        requestListPanel.repaint();
+                    });
+                }
+            }).start();
+        }
+
+        private void renderRequests(List<PendingBookingRequestDTO> requests) {
+            requestListPanel.removeAll();
+            int count = requests == null ? 0 : requests.size();
+            requestResultLabel.setText(count + " yêu cầu đã cọc chờ xác nhận");
+
+            if (count == 0) {
+                requestListPanel.add(emptyState("Không có yêu cầu phù hợp"));
+            } else {
+                for (PendingBookingRequestDTO request : requests) {
+                    requestListPanel.add(requestCard(request));
+                    requestListPanel.add(Box.createVerticalStrut(12));
+                }
+            }
+
+            requestListPanel.revalidate();
+            requestListPanel.repaint();
+        }
+
+        private JComponent emptyState(String message) {
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setOpaque(false);
+            panel.setPreferredSize(new Dimension(0, 160));
+            JLabel label = new JLabel(message == null || message.isBlank() ? "Không có dữ liệu" : message);
+            label.setFont(new Font("Lexend", Font.PLAIN, 14));
+            label.setForeground(new Color(113, 113, 122));
+            panel.add(label);
+            return panel;
+        }
+
+        private JComponent requestCard(PendingBookingRequestDTO request) {
+            RoundedPanel card = new RoundedPanel(20, new Color(249, 249, 252));
+            card.setLayout(new BorderLayout(18, 0));
+            card.setBorder(new EmptyBorder(16, 18, 16, 18));
+            card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 112));
+
+            JPanel info = new JPanel();
+            info.setOpaque(false);
+            info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+
+            JLabel customer = new JLabel(safe(request.customerName()) + "  •  " + safe(request.customerPhone()));
+            customer.setFont(new Font("Lexend", Font.BOLD, 15));
+            customer.setForeground(COLOR_TEXT_DARK);
+            info.add(customer);
+            info.add(Box.createVerticalStrut(6));
+
+            JLabel bookingLine = new JLabel(formatDate(request.bookingDate())
+                    + " | " + formatHourRange(request.startHour(), request.endHour())
+                    + " | " + safe(request.courtSummary())
+                    + " | " + request.slotCount() + " slot");
+            bookingLine.setFont(new Font("Lexend", Font.PLAIN, 13));
+            bookingLine.setForeground(COLOR_TEXT_LABEL);
+            info.add(bookingLine);
+            info.add(Box.createVerticalStrut(6));
+
+            JLabel moneyLine = new JLabel("Cọc: " + money(request.depositAmount()) + "  •  Tổng: " + money(request.totalAmount()));
+            moneyLine.setFont(new Font("Lexend", Font.BOLD, 13));
+            moneyLine.setForeground(COLOR_PRIMARY_GREEN);
+            info.add(moneyLine);
+
+            JPanel right = new JPanel(new BorderLayout(0, 10));
+            right.setOpaque(false);
+            JLabel status = new JLabel(STATUS_DEPOSITED, SwingConstants.CENTER);
+            status.setFont(new Font("Lexend", Font.BOLD, 12));
+            status.setForeground(new Color(180, 83, 9));
+            status.setOpaque(true);
+            status.setBackground(new Color(254, 243, 199));
+            status.setBorder(new EmptyBorder(6, 12, 6, 12));
+
+            JButton detailButton = smallPillButton("Chi tiết", new Color(57, 255, 20), COLOR_PRIMARY_GREEN);
+            detailButton.addActionListener(e -> openPendingDetail(request));
+            right.add(status, BorderLayout.NORTH);
+            right.add(detailButton, BorderLayout.SOUTH);
+
+            card.add(info, BorderLayout.CENTER);
+            card.add(right, BorderLayout.EAST);
+            return card;
+        }
+
+        private void openPendingDetail(PendingBookingRequestDTO request) {
+            BookingDetailPanel detailPanel = new BookingDetailPanel(toSlot(request), true, () -> {
+                loadRequests();
+                refreshPendingRequestCount();
+                refreshGridFromSelection();
+            });
+            detailPanel.setLocationRelativeTo(this);
+            detailPanel.setVisible(true);
+        }
+    }
+
+    private static final class BookingBlock {
+        private final BookingSlotDTO firstSlot;
+        private int startHour;
+        private int endHour;
+        private int slotCount;
+
+        private BookingBlock(BookingSlotDTO firstSlot, int startHour, int endHour, int slotCount) {
+            this.firstSlot = firstSlot;
+            this.startHour = startHour;
+            this.endHour = endHour;
+            this.slotCount = slotCount;
+        }
+
+        private void merge(BookingSlotDTO slot) {
+            this.startHour = Math.min(startHour, slot.startHour());
+            this.endHour = Math.max(endHour, slot.endHour());
+            this.slotCount++;
+        }
+
+        private BookingSlotDTO slot() {
+            return firstSlot;
+        }
+
+        private String courtId() {
+            return firstSlot.courtId();
+        }
+
+        private String customerName() {
+            return firstSlot.customerName();
+        }
+
+        private String customerPhone() {
+            return firstSlot.customerPhone();
+        }
+
+        private String sportTypeName() {
+            return firstSlot.sportTypeName();
+        }
+
+        private String areaId() {
+            return firstSlot.areaId();
+        }
+
+        private int startHour() {
+            return startHour;
+        }
+
+        private int endHour() {
+            return endHour;
+        }
+
+        private int slotCount() {
+            return slotCount;
+        }
+    }
+
+    private static class BookingCell {
+        final BookingBlock block;
+
+        BookingCell(BookingBlock block) {
+            this.block = block;
         }
 
         @Override
         public String toString() {
-            return "<html>" + safe(slot.customerName()) + "<br>" + safe(slot.customerPhone()) + "</html>";
+            return "<html>" + safe(block.customerName()) + "<br>" + safe(block.customerPhone()) + "</html>";
+        }
+
+        BookingSlotDTO slot() {
+            return block.slot();
+        }
+
+        int startHour() {
+            return block.startHour();
+        }
+
+        int endHour() {
+            return block.endHour();
+        }
+
+        String customerName() {
+            return block.customerName();
+        }
+
+        String customerPhone() {
+            return block.customerPhone();
+        }
+
+        String areaId() {
+            return block.areaId();
+        }
+
+        String courtId() {
+            return block.courtId();
+        }
+
+        String sportTypeName() {
+            return block.sportTypeName();
+        }
+
+        int slotCount() {
+            return block.slotCount();
         }
     }
 
@@ -428,8 +917,8 @@ public class BookingRequest extends JPanel {
                 if (val instanceof BookingCell bc) {
                     g2.setColor(COLOR_BOOKED_BLUE);
 
-                    boolean isStartHour = (hour == bc.slot.startHour());
-                    boolean isEndHour = (hour == bc.slot.endHour() - 1);
+                    boolean isStartHour = (hour == bc.startHour());
+                    boolean isEndHour = (hour == bc.endHour() - 1);
 
                     int arc = 30;
                     int yOffset = 15;
@@ -449,9 +938,10 @@ public class BookingRequest extends JPanel {
                         g2.setColor(Color.WHITE);
                         g2.setFont(new Font("Lexend", Font.BOLD, 9));
 
-                        String line1 = bc.slot.customerName();
-                        String line2 = bc.slot.customerPhone();
-                        String line3 = bc.slot.areaId() + " - " + bc.slot.courtId() + " - " + bc.slot.sportTypeName();
+                        String line1 = bc.customerName();
+                        String line2 = bc.customerPhone();
+                        String line3 = bc.areaId() + " - " + bc.courtId() + " - " + bc.sportTypeName()
+                                + " (" + bc.slotCount() + " slot)";
 
                         int textX = 15;
                         g2.drawString(line1, textX, h / 2 - 14);
