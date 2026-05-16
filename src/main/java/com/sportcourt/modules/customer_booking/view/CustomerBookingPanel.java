@@ -1,7 +1,6 @@
 package com.sportcourt.modules.customer_booking.view;
 
 import com.sportcourt.modules.customer_booking.controller.CustomerBookingController;
-import com.sportcourt.modules.customer_booking.dto.BookingPreview;
 import com.sportcourt.modules.customer_booking.dto.BranchOption;
 import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
@@ -9,6 +8,7 @@ import com.sportcourt.modules.customer_booking.dto.SlotStatus;
 
 import javax.swing.*;
 import java.awt.*;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +25,7 @@ public class CustomerBookingPanel extends JPanel {
 
     private BranchOption currentBranch;
     private CourtSearchResult currentCourt;
+    private LocalDate currentBookingDate = LocalDate.now();
     private List<SlotStatus> pendingSlots = List.of();
     private boolean firstShow = true;
 
@@ -53,11 +54,12 @@ public class CustomerBookingPanel extends JPanel {
         repaint();
     }
 
-    public void showSchedule(BranchOption branch, CourtSearchResult court) {
+    public void showSchedule(BranchOption branch, CourtSearchResult court, LocalDate bookingDate) {
         currentBranch = branch;
         currentCourt = court;
+        currentBookingDate = bookingDate == null ? LocalDate.now() : bookingDate;
         pendingSlots = List.of();
-        scheduleScreen.showCourt(branch, court);
+        scheduleScreen.showCourt(branch, court, currentBookingDate);
         cardLayout.show(this, SCHEDULE);
         revalidate();
         repaint();
@@ -68,20 +70,25 @@ public class CustomerBookingPanel extends JPanel {
             showHome();
             return;
         }
-        scheduleScreen.showCourt(currentBranch, currentCourt);
+        scheduleScreen.showCourt(currentBranch, currentCourt, currentBookingDate);
         cardLayout.show(this, SCHEDULE);
         revalidate();
         repaint();
     }
 
     private void showConfirm(List<SlotStatus> selectedSlots) {
-        if (currentBranch == null || currentCourt == null || selectedSlots == null || selectedSlots.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui long chon san va khung gio.", "Dat san",
+        if (currentBranch == null || selectedSlots == null || selectedSlots.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn sân và khung giờ", "Đặt sân",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         pendingSlots = List.copyOf(selectedSlots);
+        currentBookingDate = pendingSlots.get(0).bookingDate();
+        String slotCourtId = pendingSlots.get(0).courtId();
+        if (currentCourt == null || !currentCourt.courtId().equals(slotCourtId)) {
+            controller.findCourt(slotCourtId).ifPresent(c -> currentCourt = c);
+        }
         confirmScreen.showDraft(currentBranch, currentCourt, pendingSlots);
         cardLayout.show(this, CONFIRM);
         revalidate();
@@ -90,7 +97,7 @@ public class CustomerBookingPanel extends JPanel {
 
     private void submitBooking() {
         if (currentBranch == null || pendingSlots.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Chua co thong tin dat san.", "Dat san",
+            JOptionPane.showMessageDialog(this, "Chưa có thông tin đặt sân", "Đặt sân",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -104,21 +111,15 @@ public class CustomerBookingPanel extends JPanel {
                             slot.price()
                     ))
                     .collect(Collectors.toList());
-            BookingPreview preview = controller.createBooking(currentBranch.branchId(), selectedBookingSlots);
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Dat san thanh cong. Ma hoa don: " + preview.invoiceId(),
-                    "Dat san",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+            controller.createBooking(currentBranch.branchId(), selectedBookingSlots);
             pendingSlots = List.of();
             homeScreen.refreshCourts();
-            showHome();
+            CustomerBookingDialogs.showSuccessDialog(this, this::showHome, this::showHome);
         } catch (RuntimeException e) {
             JOptionPane.showMessageDialog(
                     this,
-                    e.getMessage() == null || e.getMessage().isBlank() ? "Khong the dat san." : e.getMessage(),
-                    "Dat san",
+                    e.getMessage() == null || e.getMessage().isBlank() ? "Không thể đặt sân" : e.getMessage(),
+                    "Đặt sân",
                     JOptionPane.ERROR_MESSAGE
             );
         }

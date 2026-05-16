@@ -9,6 +9,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewSt
 
 public class CustomerBookingConfirmScreen extends JPanel {
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+    private static final BigDecimal DEPOSIT_RATE = new BigDecimal("0.70");
 
     private final Runnable onBack;
     private final Runnable onSubmit;
@@ -59,7 +61,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, s(28), 0);
-        content.add(new HeroPanel("XAC NHAN DAT SAN"), gbc);
+        content.add(new HeroPanel("Xác nhận đặt sân"), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -72,7 +74,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
     private JComponent buildTopLine() {
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        JButton back = new JButton("< Quay lai");
+        JButton back = new JButton("< Quay lại");
         back.setFont(bold(14f));
         back.setForeground(GREEN_DARK);
         back.setContentAreaFilled(false);
@@ -113,24 +115,24 @@ public class CustomerBookingConfirmScreen extends JPanel {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(s(24), s(28), s(28), s(28)));
 
-        JLabel title = label("THONG TIN DAT SAN", bold(20f), TEXT_DARK);
+        JLabel title = label("THÔNG TIN ĐẶT SÂN", bold(20f), TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(s(18)));
 
-        card.add(infoRow("Chi nhanh", branch == null ? "--" : branch.branchName()));
+        card.add(infoRow("Chi nhánh", branch == null ? "--" : branch.branchName()));
         card.add(Box.createVerticalStrut(s(12)));
-        card.add(infoRow("Dia chi", branch == null ? "--" : branch.address()));
+        card.add(infoRow("Địa chỉ", branch == null ? "--" : branch.address()));
         card.add(Box.createVerticalStrut(s(12)));
-        card.add(infoRow("Ma san", court == null ? "--" : court.courtId()));
+        card.add(infoRow("Mã sân", selectedCourtText()));
         card.add(Box.createVerticalStrut(s(12)));
-        card.add(infoRow("Loai the thao", court == null ? "--" : court.sportTypeName()));
+        card.add(infoRow("Loại thể thao", court == null ? "--" : court.sportTypeName()));
         card.add(Box.createVerticalStrut(s(16)));
         card.add(line());
         card.add(Box.createVerticalStrut(s(14)));
 
         if (slots.isEmpty()) {
-            card.add(infoRow("Khung gio", "--"));
+            card.add(infoRow("Khung giờ", "--"));
         } else {
             for (SlotStatus slot : slots) {
                 card.add(slotLine(slot));
@@ -140,7 +142,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
         card.add(Box.createVerticalStrut(s(8)));
         card.add(line());
         card.add(Box.createVerticalStrut(s(14)));
-        card.add(totalRow("Tong tien thue san", money(totalPrice()), TEXT_DARK));
+        card.add(totalRow("Tổng tiền thuê sân", money(totalPrice()), TEXT_DARK));
         return card;
     }
 
@@ -149,26 +151,40 @@ public class CustomerBookingConfirmScreen extends JPanel {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(s(24), s(28), s(28), s(28)));
 
-        JLabel title = label("CHI TIET THANH TOAN", bold(20f), TEXT_DARK);
+        JLabel title = label("CHI TIẾT THANH TOÁN", bold(20f), TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(s(22)));
-        card.add(infoRow("Tong tien thue san", money(totalPrice())));
+        card.add(infoRow("Tổng tiền thuê sân", money(totalPrice())));
         card.add(Box.createVerticalStrut(s(14)));
-        card.add(infoRow("Tien coc (70%)", money(deposit())));
+        card.add(infoRow("Tiền cọc (70%)", money(deposit())));
         card.add(Box.createVerticalStrut(s(22)));
         card.add(line());
         card.add(Box.createVerticalStrut(s(18)));
-        card.add(totalRow("TONG COC PHAI TRA", money(deposit()), GREEN_DARK));
+        card.add(totalRow("TỔNG CỌC PHẢI TRẢ", money(deposit()), GREEN_DARK));
         card.add(Box.createVerticalStrut(s(26)));
 
-        JButton submit = pillButton("Đặt cọc", GREEN, GREEN_DARK);
+        JButton submit = pillButton("Xác nhận và đặt cọc", GREEN, GREEN_DARK);
         submit.setFont(bold(24f));
         submit.setAlignmentX(Component.LEFT_ALIGNMENT);
         submit.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(58)));
         submit.addActionListener(e -> showDepositDialog());
         card.add(submit);
         return card;
+    }
+
+    private String selectedCourtText() {
+        if (slots.isEmpty()) {
+            return court == null ? "--" : court.courtId();
+        }
+
+        java.util.LinkedHashSet<String> courtIds = new java.util.LinkedHashSet<>();
+        for (SlotStatus slot : slots) {
+            if (slot.courtId() != null && !slot.courtId().isBlank()) {
+                courtIds.add(slot.courtId());
+            }
+        }
+        return courtIds.isEmpty() ? "--" : String.join(", ", courtIds);
     }
 
     private JComponent infoRow(String leftText, String rightText) {
@@ -245,7 +261,13 @@ public class CustomerBookingConfirmScreen extends JPanel {
     }
 
     private BigDecimal deposit() {
-        return totalPrice().multiply(new BigDecimal("0.70"));
+        return depositOf(totalPrice());
+    }
+
+    private BigDecimal depositOf(BigDecimal amount) {
+        return (amount == null ? BigDecimal.ZERO : amount)
+                .multiply(DEPOSIT_RATE)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private String formatHour(int hour) {
@@ -257,10 +279,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
     }
 
     private void showDepositDialog() {
-        Window owner = SwingUtilities.getWindowAncestor(this);
-        DepositDialog dialog = new DepositDialog(owner);
-        dialog.setVisible(true);
-        if (dialog.isConfirmed()) {
+        if (CustomerBookingDialogs.showDepositPaymentDialog(this, deposit())) {
             onSubmit.run();
         }
     }
@@ -339,9 +358,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
                     + "  |  " + slot.bookingDate(), bold(13f), TEXT_DARK));
             row.add(left, BorderLayout.WEST);
 
-            BigDecimal slotDeposit = slot.price() != null
-                    ? slot.price().multiply(new BigDecimal("0.70")).setScale(0, java.math.RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            BigDecimal slotDeposit = depositOf(slot.price());
             JLabel amount = label(money(slotDeposit), bold(15f), GREEN_DARK);
             amount.setHorizontalAlignment(SwingConstants.RIGHT);
             row.add(amount, BorderLayout.EAST);
