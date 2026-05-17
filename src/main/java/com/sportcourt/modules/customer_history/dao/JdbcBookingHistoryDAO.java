@@ -103,6 +103,59 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
         return ts == null ? null : ts.toLocalDateTime();
     }
 
+    private static String computeOverallStatus(List<BookingDetailDTO.CourtLineItem> items, String invoiceStatus) {
+        if (items == null || items.isEmpty()) {
+            return invoiceStatus != null ? invoiceStatus : "TRỐNG";
+        }
+        boolean hasWaitDeposit = false;
+        boolean hasConfirmed = false;
+        boolean allCancelled = true;
+        boolean hasDeposited = false;  // thêm biến này
+
+        for (BookingDetailDTO.CourtLineItem item : items) {
+            String st = item.getStatus() != null ? item.getStatus().toUpperCase() : "";
+            if (!st.contains("HUỶ") && !st.contains("HỦY")) {
+                allCancelled = false;
+            }
+            if (st.contains("CHỜ CỌC") || st.contains("CHƯA")) {
+                hasWaitDeposit = true;
+            }
+            if (st.contains("ĐÃ CỌC") && !st.contains("CHỜ")) {  // chỉ "ĐÃ CỌC" thuần
+                hasDeposited = true;
+            }
+            if (st.contains("XÁC NHẬN")) {  // bỏ "ĐÃ CỌC" ra khỏi đây
+                hasConfirmed = true;
+            }
+        }
+
+        if (allCancelled) return "Đã hủy";
+        if (hasWaitDeposit) return "Đã đặt chờ cọc";
+        if (hasDeposited) return "Đã cọc";        // thêm dòng này
+        if (hasConfirmed) return "Đã xác nhận";
+        return "TRỐNG";
+    }
+
+    @Override
+    public void confirmCourtBooking(String detailId) {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = 'ĐÃ XÁC NHẬN'
+                WHERE MACT_THUE_SAN = ?
+                    AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC')
+                    AND IS_DELETED = 0
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, detailId);
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                throw new RuntimeException("Không thể xác nhận. Chi tiết không tồn tại hoặc không ở trạng thái hợp lệ.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
     @Override
     public void cancelCourtBooking(String detailId) {
         String sql = "{call PRC_HUY_CHI_TIET_THUE_SAN(?)}";
@@ -237,30 +290,5 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
         dto.setOverallStatus(computeOverallStatus(items, dto.getStatus()));
 
         return dto;
-    }
-
-    private static String computeOverallStatus(List<BookingDetailDTO.CourtLineItem> items, String invoiceStatus) {
-        if (items == null || items.isEmpty()) {
-            return invoiceStatus != null ? invoiceStatus : "TRỐNG";
-        }
-        boolean hasWaitDeposit = false;
-        boolean hasConfirmed   = false;
-        boolean allCancelled   = true;
-        for (BookingDetailDTO.CourtLineItem item : items) {
-            String st = item.getStatus() != null ? item.getStatus().toUpperCase() : "";
-            if (!st.contains("HUỶ") && !st.contains("HỦY")) {
-                allCancelled = false;
-            }
-            if (st.contains("CHỜ CỌC") || st.contains("CHƯA")) {
-                hasWaitDeposit = true;
-            }
-            if (st.contains("XÁC NHẬN") || st.contains("ĐÃ CỌC")) {
-                hasConfirmed = true;
-            }
-        }
-        if (allCancelled)   return "Đã hủy";
-        if (hasWaitDeposit) return "Đã đặt chờ cọc";
-        if (hasConfirmed)   return "Đã xác nhận";
-        return "TRỐNG";
     }
 }
