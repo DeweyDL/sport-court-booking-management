@@ -1,10 +1,16 @@
 package com.sportcourt.modules.customer_booking.view;
 
+import com.sportcourt.modules.payment.dto.PaymentQrInfo;
+import com.sportcourt.modules.payment.service.PaymentService;
+import com.sportcourt.modules.payment.service.PaymentServiceImpl;
+import com.sportcourt.modules.payment.util.QrCodeRenderer;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.util.List;
 
 import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewStyle.*;
 
@@ -15,8 +21,22 @@ final class CustomerBookingDialogs {
     }
 
     static boolean showDepositPaymentDialog(Component parent, BigDecimal deposit) {
+        PaymentService service = new PaymentServiceImpl();
+
+        // Tạo link PayOS theo số tiền cọc (booking chưa tạo nên chưa có hóa đơn)
+        PaymentQrInfo qr;
+        try {
+            int amount = deposit == null ? 0 : deposit.intValue();
+            qr = service.createPaymentLink(amount, "Coc dat san");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(parent,
+                    "Không tạo được mã thanh toán: " + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
         Window owner = SwingUtilities.getWindowAncestor(parent);
-        PaymentDialog dialog = new PaymentDialog(owner, deposit);
+        PaymentDialog dialog = new PaymentDialog(owner, deposit, qr, service);
         dialog.setVisible(true);
         return dialog.confirmed();
     }
@@ -31,20 +51,90 @@ final class CustomerBookingDialogs {
         return MONEY_FORMAT.format(value == null ? BigDecimal.ZERO : value) + "đ";
     }
 
-    private static final class PaymentDialog extends JDialog {
-        private boolean confirmed;
+    /** Mã BIN PayOS -> tên ngân hàng (một số ngân hàng phổ biến). */
+    private static String bankName(String bin) {
+        if (bin == null) {
+            return "";
+        }
+        return switch (bin) {
+            case "970436" -> "Vietcombank";
+            case "970415" -> "VietinBank";
+            case "970418" -> "BIDV";
+            case "970405" -> "Agribank";
+            case "970422" -> "MB Bank";
+            case "970407" -> "Techcombank";
+            case "970416" -> "ACB";
+            case "970432" -> "VPBank";
+            case "970423" -> "TPBank";
+            case "970403" -> "Sacombank";
+            default -> bin;
+        };
+    }
 
-        private PaymentDialog(Window owner, BigDecimal deposit) {
+    private static final class PaymentDialog extends JDialog {
+        private final PaymentQrInfo qr;
+        private final PaymentService service;
+        private boolean confirmed;
+        private SwingWorker<Void, String> poller;
+
+        private PaymentDialog(Window owner, BigDecimal deposit, PaymentQrInfo qr, PaymentService service) {
             super(owner, "Thanh toán đặt cọc", ModalityType.APPLICATION_MODAL);
+            this.qr = qr;
+            this.service = service;
             setDefaultCloseOperation(DISPOSE_ON_CLOSE);
             setContentPane(buildContent(deposit));
             pack();
             setMinimumSize(new Dimension(s(680), s(520)));
             setLocationRelativeTo(owner);
+            startPolling();
+            addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
+                    stopPolling();
+                }
+            });
         }
 
         private boolean confirmed() {
             return confirmed;
+        }
+
+        // ===== POLLING: tự động đóng khi PayOS báo đã thanh toán =====
+        private void startPolling() {
+            poller = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    while (!isCancelled()) {
+                        String st = service.checkStatus(qr.orderCode());
+                        publish(st);
+                        if ("ĐÃ THANH TOÁN".equals(st) || "ĐÃ HUỶ".equals(st) || "HẾT HẠN".equals(st)) {
+                            break;
+                        }
+                        Thread.sleep(4000);   // 4 giây/lần
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void process(List<String> chunks) {
+                    String st = chunks.get(chunks.size() - 1);
+                    if ("ĐÃ THANH TOÁN".equals(st)) {
+                        confirmed = true;
+                        dispose();
+                    } else if ("HẾT HẠN".equals(st)) {
+                        JOptionPane.showMessageDialog(PaymentDialog.this,
+                                "Mã thanh toán đã hết hạn.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        dispose();
+                    }
+                }
+            };
+            poller.execute();
+        }
+
+        private void stopPolling() {
+            if (poller != null) {
+                poller.cancel(true);
+            }
         }
 
         private JComponent buildContent(BigDecimal deposit) {
@@ -114,7 +204,7 @@ final class CustomerBookingDialogs {
             gbc.gridx = 0;
             gbc.weightx = 0.42;
             gbc.insets = new Insets(0, 0, 0, s(34));
-            panel.add(new QrPanel(), gbc);
+            panel.add(qrView(), gbc);
 
             gbc.gridx = 1;
             gbc.weightx = 0.58;
@@ -123,15 +213,25 @@ final class CustomerBookingDialogs {
             return panel;
         }
 
+        // QR THẬT từ PayOS (vẽ chuỗi VietQR bằng ZXing)
+        private JComponent qrView() {
+            int size = s(173);
+            JLabel qrLabel = new JLabel(QrCodeRenderer.toIcon(qr.qrCodeData(), size));
+            qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            qrLabel.setPreferredSize(new Dimension(size, size));
+            qrLabel.setMinimumSize(new Dimension(size, size));
+            return qrLabel;
+        }
+
         private JComponent bankInfo() {
             JPanel info = new JPanel(new GridLayout(3, 2, s(18), s(18)));
             info.setOpaque(false);
             info.add(label("Ngân hàng", regular(20f), TEXT_OLIVE));
-            info.add(rightLabel("Vietcombank", bold(20f), TEXT_DARK));
+            info.add(rightLabel(bankName(qr.bin()), bold(20f), TEXT_DARK));
             info.add(label("Số tài khoản", regular(20f), TEXT_OLIVE));
-            info.add(rightLabel("0123456789", bold(20f), TEXT_DARK));
+            info.add(rightLabel(qr.accountNumber(), bold(20f), TEXT_DARK));
             info.add(label("Chủ tài khoản", regular(20f), TEXT_OLIVE));
-            info.add(rightLabel("Nguyễn Văn A", bold(20f), TEXT_DARK));
+            info.add(rightLabel(qr.accountName(), bold(20f), TEXT_DARK));
             return info;
         }
 
@@ -146,7 +246,8 @@ final class CustomerBookingDialogs {
             notice.setLayout(new BorderLayout());
             notice.setBorder(new EmptyBorder(s(10), s(16), s(10), s(16)));
             notice.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(76)));
-            JLabel text = label("<html><div style='text-align:center'>Sân sẽ được giữ chỗ trong vòng<br>05:00 phút</div></html>",
+            JLabel text = label("<html><div style='text-align:center'>Quét mã QR để chuyển khoản.<br>"
+                            + "Hệ thống tự xác nhận khi nhận được tiền.</div></html>",
                     bold(20f), GREEN_DARK);
             text.setHorizontalAlignment(SwingConstants.CENTER);
             notice.add(text, BorderLayout.CENTER);
@@ -164,12 +265,25 @@ final class CustomerBookingDialogs {
                     new RoundedBorder(BORDER, s(999)),
                     new EmptyBorder(s(8), s(22), s(8), s(22))
             ));
-            cancel.addActionListener(e -> dispose());
+            cancel.addActionListener(e -> {
+                stopPolling();
+                service.cancel(qr.orderCode());   // hủy link bên PayOS
+                dispose();
+            });
 
             JButton paid = roundedAction("Tôi đã chuyển khoản", GREEN, GREEN_DARK);
             paid.addActionListener(e -> {
-                confirmed = true;
-                dispose();
+                // Kiểm tra ngay với PayOS, không tin tưởng thao tác người dùng
+                String st = service.checkStatus(qr.orderCode());
+                if ("ĐÃ THANH TOÁN".equals(st)) {
+                    confirmed = true;
+                    stopPolling();
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Chưa nhận được thanh toán. Vui lòng đợi vài giây sau khi chuyển khoản rồi thử lại.",
+                            "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                }
             });
 
             row.add(cancel);
@@ -249,59 +363,6 @@ final class CustomerBookingDialogs {
         button.setFont(bold(16f));
         button.setBorder(new EmptyBorder(s(12), s(34), s(12), s(34)));
         return button;
-    }
-
-    private static final class QrPanel extends JPanel {
-        private QrPanel() {
-            setOpaque(false);
-            setPreferredSize(new Dimension(s(173), s(164)));
-            setMinimumSize(new Dimension(s(173), s(164)));
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            super.paintComponent(graphics);
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int outer = Math.min(getWidth(), getHeight()) - s(8);
-            int x = (getWidth() - outer) / 2;
-            int y = (getHeight() - outer) / 2;
-            g2.setColor(new Color(37, 48, 48));
-            g2.fillRoundRect(x, y, outer, outer, s(8), s(8));
-            int pad = s(18);
-            g2.setColor(Color.WHITE);
-            g2.fillRect(x + pad, y + pad, outer - pad * 2, outer - pad * 2);
-
-            int qrX = x + pad + s(17);
-            int qrY = y + pad + s(30);
-            int cell = Math.max(2, s(4));
-            g2.setColor(new Color(37, 48, 48));
-            drawFinder(g2, qrX, qrY, cell);
-            drawFinder(g2, qrX + cell * 18, qrY, cell);
-            drawFinder(g2, qrX, qrY + cell * 18, cell);
-            for (int row = 0; row < 27; row++) {
-                for (int col = 0; col < 27; col++) {
-                    boolean finderArea = (row < 7 && col < 7)
-                            || (row < 7 && col > 17)
-                            || (row > 17 && col < 7);
-                    if (!finderArea && ((row * 13 + col * 7 + row * col) % 5 == 0)) {
-                        g2.fillRect(qrX + col * cell, qrY + row * cell, cell, cell);
-                    }
-                }
-            }
-            g2.setFont(regular(8f));
-            g2.drawString("safe wonk", qrX + s(22), y + pad + s(18));
-            g2.drawString("Safe work", qrX + s(20), y + outer - pad - s(4));
-            g2.dispose();
-        }
-
-        private void drawFinder(Graphics2D g2, int x, int y, int cell) {
-            g2.fillRect(x, y, cell * 7, cell * 7);
-            g2.setColor(Color.WHITE);
-            g2.fillRect(x + cell, y + cell, cell * 5, cell * 5);
-            g2.setColor(new Color(37, 48, 48));
-            g2.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
-        }
     }
 
     private static final class CheckBadge extends JComponent {
