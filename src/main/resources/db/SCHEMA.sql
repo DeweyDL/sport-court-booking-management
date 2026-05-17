@@ -498,3 +498,23 @@ CREATE TABLE DOANH_THU
     CONSTRAINT CK_DOANH_THU_IS_DELETED CHECK (IS_DELETED IN (0, 1)),
     CONSTRAINT CK_DOANH_THU_LOAI CHECK (LOAI IN ('NGAY', 'TUAN', 'THANG', 'NAM'))
 )
+CREATE SEQUENCE SEQ_PAYMENT_ORDER_CODE START WITH 100000 INCREMENT BY 1 NOCACHE;
+DROP TABLE PAYMENT
+CREATE TABLE PAYMENT
+(
+    MA_TT           VARCHAR2(20),                                -- mã thanh toán nội bộ (PK)
+    MAHD            VARCHAR2(20)                    NOT NULL,     -- thuộc hóa đơn nào (FK -> HOA_DON)
+    ORDER_CODE      NUMBER(19)                      NOT NULL,     -- mã PayOS: SỐ, DUY NHẤT
+    PAYMENT_LINK_ID VARCHAR2(100),                                -- id link PayOS (để hủy/tra cứu)
+    SO_TIEN         NUMBER(12, 2)                   NOT NULL,     -- số tiền (đúng kiểu tiền schema)
+    TRANGTHAI       VARCHAR2(20)  DEFAULT 'PENDING' NOT NULL,     -- PENDING/PAID/CANCELLED/EXPIRED
+    NGAY_THANH_TOAN DATE,                                         -- thời điểm trả tiền (null khi chưa)
+    CREATED_AT      DATE          DEFAULT SYSDATE   NOT NULL,
+    IS_DELETED      NUMBER(1)     DEFAULT 0         NOT NULL,
+    CONSTRAINT PK_PAYMENT            PRIMARY KEY (MA_TT),
+    CONSTRAINT FK_PAYMENT_HOA_DON    FOREIGN KEY (MAHD) REFERENCES HOA_DON (MAHD),
+    CONSTRAINT UQ_PAYMENT_ORDER_CODE UNIQUE (ORDER_CODE),
+    CONSTRAINT CK_PAYMENT_TRANGTHAI  CHECK (TRANGTHAI IN ('CHỜ THANH TOÁN', 'ĐÃ THANH TOÁN', 'ĐÃ HUỶ', 'HẾT HẠN')),
+    CONSTRAINT CK_PAYMENT_SO_TIEN    CHECK (SO_TIEN >= 0),
+    CONSTRAINT CK_PAYMENT_IS_DELETED CHECK (IS_DELETED IN (0, 1))
+);

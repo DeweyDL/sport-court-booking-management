@@ -104,6 +104,26 @@
             <artifactId>logback-classic</artifactId>
             <version>1.5.6</version>
         </dependency>
+
+        <!-- PayOS Java SDK: gọi API tạo link / tra cứu trạng thái / hủy link.
+             SDK tự sinh và kiểm tra chữ ký HMAC-SHA256 (phần dễ sai nhất nếu tự code). -->
+        <dependency>
+            <groupId>vn.payos</groupId>
+            <artifactId>payos-java</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+
+        <!-- ZXing: PayOS chỉ trả CHUỖI VietQR, ta phải tự vẽ ra ảnh QR -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.4</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
