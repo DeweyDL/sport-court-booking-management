@@ -2,17 +2,7 @@ package com.sportcourt.modules.customer_booking.controller;
 
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
-import com.sportcourt.modules.customer_booking.dto.BookingPreview;
-import com.sportcourt.modules.customer_booking.dto.BranchOption;
-import com.sportcourt.modules.customer_booking.dto.CourtSearchCriteria;
-import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
-import com.sportcourt.modules.customer_booking.dto.CourtSortBy;
-import com.sportcourt.modules.customer_booking.dto.CreateBookingRequest;
-import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
-import com.sportcourt.modules.customer_booking.dto.CourtSchedule;
-import com.sportcourt.modules.customer_booking.dto.PriceSlot;
-import com.sportcourt.modules.customer_booking.dto.SlotStatus;
-import com.sportcourt.modules.customer_booking.dto.SportTypeOption;
+import com.sportcourt.modules.customer_booking.dto.*;
 import com.sportcourt.modules.customer_booking.service.CustomerBookingService;
 import com.sportcourt.modules.customer_booking.service.CustomerBookingServiceImpl;
 
