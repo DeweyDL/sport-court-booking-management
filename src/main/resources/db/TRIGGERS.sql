@@ -109,10 +109,12 @@ END BEFORE EACH ROW;
 
     AFTER STATEMENT IS
     BEGIN
-        FOR I IN 1 .. G_COUNT
-            LOOP
-                PRC_CAP_NHAT_SO_TIEN_HOA_DON(G_MAHD_LIST(I));
-            END LOOP;
+        IF NOT PKG_COURT_CTX.G_INTERNAL_RECALC THEN
+            FOR I IN 1 .. G_COUNT
+                LOOP
+                    PRC_CAP_NHAT_SO_TIEN_HOA_DON(G_MAHD_LIST(I));
+                END LOOP;
+        END IF;
     END AFTER STATEMENT;
     END;
 /

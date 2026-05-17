@@ -5,6 +5,7 @@ import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.customer_history.controller.BookingHistoryController;
 import com.sportcourt.modules.customer_history.dto.BookingDetailDTO;
+import com.sportcourt.modules.customer_history.dto.ServiceDetailDTO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,32 +15,16 @@ import java.awt.event.MouseEvent;
 import java.net.URL;
 import java.util.List;
 
-/**
- * Panel chi tiết một hóa đơn đặt sân.
- * Được nhúng vào CardLayout của BookingHistoryPanel.
- */
 public class BookingDetailPanel extends JPanel {
 
-    // ── Màu ─────────────────────────────────────────────────────────────
-    private static final Color PAGE_BG = new Color(248, 249, 252); // khớp Account DIALOG_BG
+    private static final Color PAGE_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
-    private static final Color DARK_CARD_BG = new Color(50, 50, 50);
     private static final Color SUMMARY_CARD_BG = new Color(238, 238, 238);
-    private static final Color BANNER_OVERLAY = new Color(65, 82, 60);
-    private static final Color TEXT_DARK = new Color(30, 41, 59);   // khớp Account TEXT_DARK
-    private static final Color TEXT_MUTED = new Color(100, 116, 139); // khớp Account TEXT_MUTED
-    private static final Color TEXT_WHITE = Color.WHITE;
+    private static final Color TEXT_DARK = new Color(30, 41, 59);
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color LIME_DARK = new Color(34, 139, 34);
     private static final Color SEPARATOR_COLOR = new Color(220, 220, 220);
-    private static final Color INPUT_BORDER = new Color(203, 213, 225); // khớp Account RoundedLineBorder
-
-    private static final Color STATUS_DONE_BG = CrudViewStyle.SUCCESS_BG;
-    private static final Color STATUS_DONE_FG = CrudViewStyle.SUCCESS_TEXT;
-    private static final Color STATUS_PEND_BG = CrudViewStyle.EDIT_BG;
-    private static final Color STATUS_PEND_FG = CrudViewStyle.EDIT_TEXT;
-    private static final Color STATUS_CANCEL_BG = CrudViewStyle.DANGER_BG;
     private static final Color STATUS_CANCEL_FG = CrudViewStyle.DANGER_TEXT;
-
 
     private final BookingHistoryController controller;
     private final Runnable onBack;
@@ -75,18 +60,15 @@ public class BookingDetailPanel extends JPanel {
         add(scroll, BorderLayout.CENTER);
     }
 
-    /**
-     * Load ảnh theo tên loại thể thao (giống mapping trong BookingHistoryPanel)
-     */
     private static Image loadSportImage(String sportTypeName) {
         if (sportTypeName == null) return null;
         String lower = sportTypeName.toLowerCase().trim();
         String file;
         if (lower.contains("pickleball")) file = "/image/pickleball.png";
-        else if (lower.contains("b\u00f3ng b\u00e0n") || lower.contains("bong ban")) file = "/image/bongban.png";
-        else if (lower.contains("c\u1ea7u l\u00f4ng") || lower.contains("cau long")) file = "/image/caulong.png";
+        else if (lower.contains("bóng bàn") || lower.contains("bong ban")) file = "/image/bongban.png";
+        else if (lower.contains("cầu lông") || lower.contains("cau long")) file = "/image/caulong.png";
         else if (lower.contains("tennis")) file = "/image/tennis.jpg";
-        else if (lower.contains("b\u00f3ng \u0111\u00e1") || lower.contains("bong da")) file = "/image/court.png";
+        else if (lower.contains("bóng đá") || lower.contains("bong da")) file = "/image/court.png";
         else file = "/image/court.png";
         URL url = BookingDetailPanel.class.getResource(file);
         return url != null ? new ImageIcon(url).getImage() : null;
@@ -101,9 +83,6 @@ public class BookingDetailPanel extends JPanel {
         return line;
     }
 
-    /**
-     * Vẽ chấm tròn màu nhỏ dùng cho header section
-     */
     private static JPanel makeDot(Color color) {
         int sz = 10;
         JPanel dot = new JPanel() {
@@ -172,8 +151,8 @@ public class BookingDetailPanel extends JPanel {
         bar.setOpaque(false);
         bar.setBorder(new EmptyBorder(0, 0, UIScale.scale(12), 0));
 
-        JLabel backLbl = new JLabel("\u2190");
-        backLbl.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        JLabel backLbl = new JLabel("< QUAY LẠI");
+        backLbl.setFont(AppFonts.lexendBold(14f));
         backLbl.setForeground(LIME_DARK);
         backLbl.setCursor(new Cursor(Cursor.HAND_CURSOR));
         backLbl.setToolTipText("Quay lại danh sách");
@@ -244,7 +223,7 @@ public class BookingDetailPanel extends JPanel {
         mainArea.removeAll();
 
         GridBagConstraints g = new GridBagConstraints();
-        g.fill = GridBagConstraints.HORIZONTAL;
+        g.fill = GridBagConstraints.HORIZONTAL; // Đã sửa lại thành HORIZONTAL để không dãn vỡ layout
         g.anchor = GridBagConstraints.NORTH;
 
         g.gridx = 0;
@@ -252,29 +231,26 @@ public class BookingDetailPanel extends JPanel {
         g.gridwidth = 2;
         g.weightx = 1.0;
         g.weighty = 0;
-        g.insets = new Insets(0, 0, UIScale.scale(16), 0);
+        g.insets = new Insets(0, 0, UIScale.scale(40), 0);
         mainArea.add(buildBanner(detail), g);
 
         g.gridx = 0;
         g.gridy = 1;
         g.gridwidth = 1;
-        g.weightx = 0.60;
+        g.weightx = 0.65; // Đã tinh chỉnh lại tỷ lệ cho khung bên trái to hơn chút
         g.insets = new Insets(0, 0, 0, UIScale.scale(16));
         mainArea.add(buildBookingInfoCard(detail), g);
 
         JPanel rightCol = new JPanel();
         rightCol.setLayout(new BoxLayout(rightCol, BoxLayout.Y_AXIS));
         rightCol.setOpaque(false);
-        rightCol.add(buildPaymentCard());
-        rightCol.add(Box.createVerticalStrut(UIScale.scale(12)));
         rightCol.add(buildSummaryCard(detail));
 
         g.gridx = 1;
-        g.weightx = 0.40;
+        g.weightx = 0.35; // Tỷ lệ khung bên phải
         g.insets = new Insets(0, 0, 0, 0);
         mainArea.add(rightCol, g);
 
-        // ── Spacer cuối ──────────────────────────────────────────────────
         g.gridx = 0;
         g.gridy = 2;
         g.gridwidth = 2;
@@ -284,7 +260,6 @@ public class BookingDetailPanel extends JPanel {
         mainArea.revalidate();
         mainArea.repaint();
 
-        // Cập nhật status label ở topbar
         statusLabel.setText("Mã đơn: " + detail.getInvoiceId());
     }
 
@@ -301,7 +276,6 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel buildBanner(BookingDetailDTO detail) {
-        // Chọn ảnh theo loại thể thao — lấy từ item đầu tiên trong danh sách sân
         String sportName = null;
         if (detail != null && detail.getCourtItems() != null && !detail.getCourtItems().isEmpty()) {
             sportName = detail.getCourtItems().get(0).getSportTypeName();
@@ -316,7 +290,7 @@ public class BookingDetailPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                int arc = UIScale.scale(28);
+                int arc = UIScale.scale(80);
                 int h = getHeight();
                 g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), h, arc, arc));
                 if (displayImg != null) {
@@ -325,7 +299,6 @@ public class BookingDetailPanel extends JPanel {
                     g2.setColor(new Color(65, 82, 60));
                     g2.fillRect(0, 0, getWidth(), h);
                 }
-                // Overlay gradient tối phía dưới
                 int overlay = UIScale.scale(70);
                 g2.setColor(new Color(15, 25, 15, 220));
                 g2.fillRect(0, h - overlay, getWidth(), overlay);
@@ -333,9 +306,9 @@ public class BookingDetailPanel extends JPanel {
             }
         };
         banner.setOpaque(false);
-        int bh = UIScale.scale(200);
-        banner.setPreferredSize(new Dimension(0, bh));
-        banner.setMinimumSize(new Dimension(0, bh));
+        int bh = UIScale.scale(250);
+        banner.setPreferredSize(new Dimension(100, bh));
+        banner.setMinimumSize(new Dimension(100, bh));
 
         JLabel title = new JLabel("CHI TIẾT LỊCH SỬ ĐẶT CHỖ", SwingConstants.CENTER);
         title.setFont(AppFonts.lexendBold(24f));
@@ -345,16 +318,12 @@ public class BookingDetailPanel extends JPanel {
         return banner;
     }
 
-    // ====================================================================
-    //  Booking info card (left column)
-    // ====================================================================
     private JPanel buildBookingInfoCard(BookingDetailDTO detail) {
-        RoundedPanel card = new RoundedPanel(UIScale.scale(28), CARD_BG, true);
+        RoundedPanel card = new RoundedPanel(UIScale.scale(40), CARD_BG, true);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(UIScale.scale(16), UIScale.scale(18),
-                UIScale.scale(16), UIScale.scale(18)));
+        card.setBorder(new EmptyBorder(UIScale.scale(24), UIScale.scale(24),
+                UIScale.scale(24), UIScale.scale(24)));
 
-        // --- Header ---
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -369,55 +338,6 @@ public class BookingDetailPanel extends JPanel {
         sectionTitleRow.add(greenDot1);
         sectionTitleRow.add(sectionTitle);
         headerRow.add(sectionTitleRow, BorderLayout.WEST);
-
-        JButton btnAdd = new JButton("Thêm sân") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(LIME_DARK);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btnAdd.setFont(AppFonts.lexendBold(13f)); // khớp Account button font
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setBorder(new EmptyBorder(10, 18, 10, 18)); // khớp Account button padding
-        btnAdd.setContentAreaFilled(false);
-        btnAdd.setBorderPainted(false);
-        btnAdd.setFocusPainted(false);
-        btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAdd.addActionListener(e -> {
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
-                List<String> courts;
-                List<com.sportcourt.modules.customer_history.dto.PriceBoardOptionDTO> priceBoards;
-
-                @Override
-                protected Void doInBackground() {
-                    courts = controller.loadAvailableCourts();
-                    priceBoards = controller.loadAvailablePriceBoards();
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        com.sportcourt.modules.customer_history.dto.BookingAddCourtRequest req =
-                                BookingAddCourtDialog.show(BookingDetailPanel.this, detail.getInvoiceId(), courts, priceBoards);
-                        if (req != null) {
-                            controller.addCourtBooking(req);
-                            JOptionPane.showMessageDialog(BookingDetailPanel.this, "Đã thêm sân thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            loadDetail(detail.getInvoiceId()); // refresh
-                        }
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(BookingDetailPanel.this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-            };
-            worker.execute();
-        });
-        headerRow.add(btnAdd, BorderLayout.EAST);
 
         card.add(headerRow);
         card.add(Box.createVerticalStrut(UIScale.scale(12)));
@@ -473,7 +393,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private JPanel makeCourtItem(BookingDetailDTO.CourtLineItem item) {
-        RoundedPanel p = new RoundedPanel(UIScale.scale(10), new Color(245, 247, 245), false);
+        RoundedPanel p = new RoundedPanel(UIScale.scale(30), new Color(245, 247, 245), false);
         p.setLayout(new BorderLayout(UIScale.scale(12), 0));
         p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
                 UIScale.scale(8), UIScale.scale(12)));
@@ -481,8 +401,6 @@ public class BookingDetailPanel extends JPanel {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(40)));
         p.setMinimumSize(new Dimension(0, UIScale.scale(40)));
 
-        // ── Bên trái: [Mã sân]  [Status badge] cùng hàng ─────────────────
-        // Trạng thái từ DB (CT.TRANGTHAI)
         String rawStatus = item.getStatus();
         String st = (rawStatus != null && !rawStatus.isBlank()) ? rawStatus : "—";
 
@@ -499,14 +417,15 @@ public class BookingDetailPanel extends JPanel {
         JPanel leftRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(8), 0));
         leftRow.setOpaque(false);
 
-        JLabel idLbl = new JLabel(item.getCourtId() != null ? item.getCourtId() : "--");
+        // THÊM CHỮ "Mã sân: " Ở ĐÂY
+        JLabel idLbl = new JLabel("Mã sân: " + (item.getCourtId() != null ? item.getCourtId() : "--"));
         idLbl.setFont(AppFonts.lexendBold(13f));
         idLbl.setForeground(TEXT_DARK);
 
-        RoundedPanel statusPill = new RoundedPanel(UIScale.scale(10), stBg, false);
+        RoundedPanel statusPill = new RoundedPanel(UIScale.scale(50), stBg, false);
         statusPill.setLayout(new BorderLayout());
         statusPill.setBorder(new EmptyBorder(UIScale.scale(4), UIScale.scale(8),
-                UIScale.scale(4), UIScale.scale(8))); // khớp Account pill padding
+                UIScale.scale(4), UIScale.scale(8)));
         JLabel stLbl = new JLabel(st);
         stLbl.setFont(AppFonts.lexendBold(10f));
         stLbl.setForeground(stFg);
@@ -516,7 +435,6 @@ public class BookingDetailPanel extends JPanel {
         leftRow.add(statusPill);
         p.add(leftRow, BorderLayout.WEST);
 
-        // ── Bên phải: Khung giờ | Ngày | Giá ────────────────────────────
         JPanel rightSide = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(12), 0));
         rightSide.setOpaque(false);
 
@@ -536,129 +454,163 @@ public class BookingDetailPanel extends JPanel {
         return p;
     }
 
-    // ====================================================================
-    //  Shared helpers
-    // ====================================================================
-
-    private JPanel buildPaymentCard() {
-        RoundedPanel card = new RoundedPanel(UIScale.scale(24), DARK_CARD_BG, true);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(UIScale.scale(14), UIScale.scale(16),
-                UIScale.scale(14), UIScale.scale(16)));
-
-        JPanel payTitleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(6), 0));
-        payTitleRow.setOpaque(false);
-        payTitleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JPanel greenDot2 = makeDot(new Color(100, 220, 100));
-        JLabel t = new JLabel("THANH TOÁN");
-        t.setFont(AppFonts.lexendBold(12f));
-        t.setForeground(TEXT_WHITE);
-        payTitleRow.add(greenDot2);
-        payTitleRow.add(t);
-        card.add(payTitleRow);
-        card.add(Box.createVerticalStrut(UIScale.scale(10)));
-
-        card.add(makePayOption("card", "Thẻ tín dụng", true));
-        card.add(Box.createVerticalStrut(UIScale.scale(6)));
-        card.add(makePayOption("bank", "Chuyển khoản", false));
-        card.add(Box.createVerticalStrut(UIScale.scale(6)));
-        card.add(makePayOption("wallet", "Ví điện tử", false));
-        return card;
-    }
-
-    private JPanel makePayOption(String iconKey, String label, boolean selected) {
-        RoundedPanel p = new RoundedPanel(UIScale.scale(10), new Color(65, 67, 70), false);
-        p.setLayout(new BorderLayout(UIScale.scale(8), 0));
+    private JPanel makeServiceItem(ServiceDetailDTO item) {
+        RoundedPanel p = new RoundedPanel(UIScale.scale(30), new Color(248, 249, 250), false);
+        p.setLayout(new BorderLayout(UIScale.scale(12), 0));
         p.setBorder(new EmptyBorder(UIScale.scale(8), UIScale.scale(12),
                 UIScale.scale(8), UIScale.scale(12)));
         p.setAlignmentX(Component.LEFT_ALIGNMENT);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(36)));
 
-        // Map key → icon path
-        String iconPath = switch (iconKey) {
-            case "card" -> "/icon/user_2.png";   // thẻ → dùng user_2 tạm
-            case "bank" -> "/icon/branch.png";   // ngân hàng
-            case "wallet" -> "/icon/products.png"; // ví
-            default -> null;
-        };
+        JLabel nameLbl = new JLabel(item.getServiceName() + " (x" + item.getQuantity() + ")");
+        nameLbl.setFont(AppFonts.lexendRegular(13f));
+        nameLbl.setForeground(TEXT_DARK);
+        p.add(nameLbl, BorderLayout.WEST);
 
-        JLabel iconLbl = new JLabel();
-        iconLbl.setFont(AppFonts.lexendRegular(12f));
-        if (iconPath != null) {
-            java.net.URL url = BookingDetailPanel.class.getResource(iconPath);
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-                iconLbl.setIcon(new ImageIcon(img));
-            }
-        }
-        p.add(iconLbl, BorderLayout.WEST);
+        String formattedPrice = String.format("%,.0f\u0111", item.getPrice()).replace(",", ".");
+        JLabel priceLbl = new JLabel(formattedPrice);
+        priceLbl.setFont(AppFonts.lexendBold(13f));
+        priceLbl.setForeground(TEXT_DARK);
+        p.add(priceLbl, BorderLayout.EAST);
 
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(AppFonts.lexendRegular(12f));
-        lbl.setForeground(TEXT_WHITE);
-        p.add(lbl, BorderLayout.CENTER);
-
-        JLabel dot = new JLabel(selected ? "●" : "○");
-        dot.setForeground(selected ? LIME_DARK : Color.GRAY);
-        p.add(dot, BorderLayout.EAST);
         return p;
     }
 
-    // ====================================================================
-    //  Summary card (right column, bottom)
-    // ====================================================================
     private JPanel buildSummaryCard(BookingDetailDTO detail) {
-        RoundedPanel card = new RoundedPanel(UIScale.scale(24), SUMMARY_CARD_BG, true);
+        RoundedPanel card = new RoundedPanel(UIScale.scale(40), SUMMARY_CARD_BG, true);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(UIScale.scale(12), UIScale.scale(14),
-                UIScale.scale(12), UIScale.scale(14)));
+        card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(24),
+                UIScale.scale(20), UIScale.scale(24)));
 
         JLabel title = new JLabel("CHI TIẾT THANH TOÁN");
-        title.setFont(AppFonts.lexendBold(12f));
+        title.setFont(AppFonts.lexendBold(14f));
         title.setForeground(TEXT_DARK);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
-        card.add(Box.createVerticalStrut(UIScale.scale(10)));
+        card.add(Box.createVerticalStrut(UIScale.scale(8)));
 
-        // Tiền thuê sân
+        // --- BẮT ĐẦU LOGIC GỘP TRẠNG THÁI CHUẨN ---
+        String overallStatus = detail.getOverallStatus();
+        // --- KẾT THÚC LOGIC ---
+
+        card.add(createStatusBadge(overallStatus));
+        card.add(Box.createVerticalStrut(UIScale.scale(16)));
+
         String rentStr = detail.getTotalValue() != null ? String.format("%,.0f\u0111", detail.getTotalValue()).replace(",", ".") : "0\u0111";
         card.add(makeSummaryRow("Tiền thuê sân", rentStr, false));
 
-        // Tiền cọc (nếu có)
         if (detail.getDeposit() != null && detail.getDeposit().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
+            card.add(Box.createVerticalStrut(UIScale.scale(8)));
             String depositStr = String.format("%,.0f\u0111", detail.getDeposit()).replace(",", ".");
             card.add(makeSummaryRow("Tiền cọc", depositStr, false));
         }
 
-        // Giảm giá (nếu có)
         if (detail.getDiscount() != null && detail.getDiscount().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            card.add(Box.createVerticalStrut(UIScale.scale(6)));
+            card.add(Box.createVerticalStrut(UIScale.scale(8)));
             card.add(makeSummaryRow("Giảm giá", detail.getDiscount().toPlainString() + "%", false));
         }
 
-        card.add(Box.createVerticalStrut(UIScale.scale(10)));
+        card.add(Box.createVerticalStrut(UIScale.scale(12)));
         card.add(makeSeparator());
-        card.add(Box.createVerticalStrut(UIScale.scale(10)));
+        card.add(Box.createVerticalStrut(UIScale.scale(12)));
 
-        // Tổng cộng
         JPanel bot = new JPanel(new BorderLayout());
         bot.setOpaque(false);
         bot.setAlignmentX(Component.LEFT_ALIGNMENT);
         bot.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(32)));
+
         JLabel botLbl = new JLabel("TỔNG CỘNG");
-        botLbl.setFont(AppFonts.lexendBold(13f));
+        botLbl.setFont(AppFonts.lexendBold(14f));
         botLbl.setForeground(TEXT_DARK);
 
         String totalStr = detail.getTotalAmount() != null ? String.format("%,.0f\u0111", detail.getTotalAmount()).replace(",", ".") : "0\u0111";
         JLabel botVal = new JLabel(totalStr);
         botVal.setFont(AppFonts.lexendBold(18f));
-        botVal.setForeground(LIME_DARK);
+        botVal.setForeground(new Color(34, 139, 34));
+
         bot.add(botLbl, BorderLayout.WEST);
         bot.add(botVal, BorderLayout.EAST);
         card.add(bot);
 
+        card.add(Box.createVerticalStrut(UIScale.scale(24)));
+
+        // --- HIỂN THỊ NÚT BẤM ---
+        String upperStatus = overallStatus != null ? overallStatus.toUpperCase() : "";
+        if (upperStatus.contains("CHỜ CỌC") || upperStatus.contains("CHƯA")) {
+            JButton btnPay = createActionButton("THANH TOÁN CỌC", new Color(57, 255, 20), new Color(0, 100, 0));
+            btnPay.addActionListener(e -> handlePayDeposit(detail.getInvoiceId()));
+            card.add(btnPay);
+        } else if (upperStatus.contains("XÁC NHẬN") || upperStatus.contains("ĐÃ CỌC")) {
+            JButton btnCancel = createActionButton("HỦY ĐẶT SÂN", new Color(255, 77, 77), Color.WHITE);
+            btnCancel.addActionListener(e -> handleCancelBooking(detail)); // TRUYỀN NGUYÊN ĐỐI TƯỢNG DETAIL
+            card.add(btnCancel);
+        }
+
         return card;
+    }
+
+    private JPanel createStatusBadge(String status) {
+        String st = status != null ? status : "";
+        String upperSt = st.toUpperCase();
+
+        Color bg = new Color(220, 220, 220);
+        Color fg = Color.DARK_GRAY;
+        String displayStatus = st;
+
+        if (upperSt.contains("CHỜ CỌC") || upperSt.contains("CHƯA")) {
+            bg = new Color(255, 77, 77);
+            fg = Color.WHITE;
+            displayStatus = "Đã đặt chờ cọc";
+        } else if (upperSt.contains("XÁC NHẬN") && upperSt.contains("CHỜ")) {
+            bg = new Color(204, 255, 204);
+            fg = new Color(0, 100, 0);
+            displayStatus = "Chờ xác nhận";
+        } else if (upperSt.contains("XÁC NHẬN") || upperSt.contains("ĐÃ CỌC")) {
+            bg = new Color(102, 255, 102);
+            fg = new Color(0, 100, 0);
+            displayStatus = "Đã xác nhận";
+        } else if (upperSt.contains("HUỶ") || upperSt.contains("HỦY")) {
+            bg = new Color(230, 230, 230);
+            fg = Color.DARK_GRAY;
+            displayStatus = "Đã hủy";
+        }
+
+        RoundedPanel badge = new RoundedPanel(UIScale.scale(50), bg, false);
+        badge.setLayout(new BorderLayout());
+        badge.setAlignmentX(Component.LEFT_ALIGNMENT);
+        badge.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
+        badge.setPreferredSize(new Dimension(10, UIScale.scale(45)));
+
+        JLabel lbl = new JLabel(displayStatus, SwingConstants.CENTER);
+        lbl.setFont(AppFonts.lexendBold(14f));
+        lbl.setForeground(fg);
+        badge.add(lbl, BorderLayout.CENTER);
+
+        return badge;
+    }
+
+    private JButton createActionButton(String text, Color bg, Color fg) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
+        btn.setFont(AppFonts.lexendBold(14f));
+        btn.setForeground(fg);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
+        btn.setPreferredSize(new Dimension(10, UIScale.scale(45)));
+        return btn;
     }
 
     private JPanel makeSummaryRow(String label, String value, boolean bold) {
@@ -680,31 +632,55 @@ public class BookingDetailPanel extends JPanel {
         return row;
     }
 
-    // ====================================================================
-    //  RoundedLineBorder — khớp Account
-    // ====================================================================
-    private static final class RoundedLineBorder extends javax.swing.border.AbstractBorder {
-        private final Color color;
-        private final int arc;
+    private void handleCancelBooking(BookingDetailDTO detail) {
+        if (detail == null || detail.getCourtItems() == null || detail.getCourtItems().isEmpty()) return;
 
-        RoundedLineBorder(Color color, int arc) {
-            this.color = color;
-            this.arc = arc;
-        }
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        int confirm = JOptionPane.showConfirmDialog(parentWindow,
+                "Bạn có chắc chắn muốn hủy TOÀN BỘ sân trong hóa đơn này?\n(Quy định hoàn cọc sẽ được áp dụng nếu hủy trước 2 ngày)",
+                "Xác nhận hủy", JOptionPane.YES_NO_OPTION);
 
-        @Override
-        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(color);
-            g2.drawRoundRect(x + 1, y + 1, width - 3, height - 3, arc, arc);
-            g2.dispose();
+        if (confirm == JOptionPane.YES_OPTION) {
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    // Lặp qua tất cả các sân trong hóa đơn và gọi lệnh hủy
+                    for (BookingDetailDTO.CourtLineItem item : detail.getCourtItems()) {
+                        if (item.canBeCancelled()) {
+                            controller.cancelCourtBooking(item.getBookingDetailId());
+                        }
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(parentWindow,
+                                "Hủy đặt sân thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        onBack.run();
+                    } catch (Exception ex) {
+                        String errorMsg = ex.getMessage();
+                        if (errorMsg.contains("ORA-")) {
+                            errorMsg = errorMsg.split("ORA-\\d+:")[1].split("\n")[0].trim();
+                        }
+                        JOptionPane.showMessageDialog(parentWindow,
+                                errorMsg, "Không thể hủy sân", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 
-    // ====================================================================
-    //  RoundedPanel
-    // ====================================================================
+    private void handlePayDeposit(String invoiceId) {
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        JOptionPane.showMessageDialog(parentWindow,
+                "Chức năng thanh toán cọc đang được kết nối với cổng thanh toán cho mã đơn: " + invoiceId,
+                "Đang phát triển", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private static class RoundedPanel extends JPanel {
         private final int radius;
         private final Color background;

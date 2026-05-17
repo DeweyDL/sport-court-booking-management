@@ -45,6 +45,85 @@ END;
 
 
 -- ============================================================
+-- PRC_THEM_BANG_GIA_THEO_KHUNG_GIO
+-- Tao nhieu dong BANG_GIA 1 gio theo khoang gio bat dau.
+-- Vi du P_GIO_BAT_DAU = 1, P_GIO_BAT_DAU_CUOI = 5:
+-- insert 1-2, 2-3, 3-4, 4-5, 5-6 voi cung P_GIA.
+-- MABG duoc sinh theo dang BG-<so tiep theo>.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE PRC_THEM_BANG_GIA_THEO_KHUNG_GIO(
+    P_MAKV             IN BANG_GIA.MAKV%TYPE,
+    P_GIO_BAT_DAU      IN BANG_GIA.GIOBATDAU%TYPE,
+    P_GIO_BAT_DAU_CUOI IN BANG_GIA.GIOBATDAU%TYPE,
+    P_GIA              IN BANG_GIA.GIA%TYPE
+)
+AS
+    V_COUNT       NUMBER := 0;
+    V_NEXT_ID     NUMBER := 0;
+    V_CURRENT_GIO NUMBER := 0;
+BEGIN
+    IF P_MAKV IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20130, 'MAKV khong duoc null.');
+    END IF;
+
+    IF P_GIA IS NULL OR P_GIA <= 0 THEN
+        RAISE_APPLICATION_ERROR(-20131, 'Gia bang gia phai lon hon 0.');
+    END IF;
+
+    IF P_GIO_BAT_DAU IS NULL OR P_GIO_BAT_DAU_CUOI IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20132, 'Gio bat dau va gio bat dau cuoi khong duoc null.');
+    END IF;
+
+    IF P_GIO_BAT_DAU < 0 OR P_GIO_BAT_DAU > 23
+        OR P_GIO_BAT_DAU_CUOI < 0 OR P_GIO_BAT_DAU_CUOI > 23 THEN
+        RAISE_APPLICATION_ERROR(-20133, 'Gio phai nam trong khoang 0 den 23.');
+    END IF;
+
+    IF P_GIO_BAT_DAU_CUOI < P_GIO_BAT_DAU THEN
+        RAISE_APPLICATION_ERROR(-20134, 'Gio bat dau cuoi phai lon hon hoac bang gio bat dau.');
+    END IF;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM KHU_VUC
+    WHERE MAKV = P_MAKV
+      AND IS_DELETED = 0;
+
+    IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20135, 'Khu vuc khong ton tai hoac da bi xoa.');
+    END IF;
+
+    LOCK TABLE BANG_GIA IN EXCLUSIVE MODE;
+
+    SELECT COUNT(1)
+    INTO V_COUNT
+    FROM BANG_GIA
+    WHERE MAKV = P_MAKV
+      AND IS_DELETED = 0
+      AND GIOBATDAU BETWEEN P_GIO_BAT_DAU AND P_GIO_BAT_DAU_CUOI;
+
+    IF V_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20136, 'Da ton tai bang gia trong mot hoac nhieu khung gio da chon.');
+    END IF;
+
+    SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MABG, '[0-9]+$'))), 0) + 1
+    INTO V_NEXT_ID
+    FROM BANG_GIA
+    WHERE REGEXP_LIKE(MABG, '^BG-[0-9]+$');
+
+    V_CURRENT_GIO := P_GIO_BAT_DAU;
+    WHILE V_CURRENT_GIO <= P_GIO_BAT_DAU_CUOI LOOP
+        INSERT INTO BANG_GIA(MABG, MAKV, GIOBATDAU, GIOKETTHUC, GIA, CREATED_AT, IS_DELETED)
+        VALUES ('BG-' || V_NEXT_ID, P_MAKV, V_CURRENT_GIO, V_CURRENT_GIO + 1, P_GIA, SYSDATE, 0);
+
+        V_NEXT_ID := V_NEXT_ID + 1;
+        V_CURRENT_GIO := V_CURRENT_GIO + 1;
+    END LOOP;
+END;
+/
+
+
+-- ============================================================
 -- FN_LAY_GIA_DICH_VU (MỚI)
 -- Trích từ TRG_BIUD_CTHD_DV_PRICE để tái sử dụng.
 -- Validate: sản phẩm hoặc dụng cụ tồn tại, chưa xóa mềm.
@@ -952,6 +1031,8 @@ BEGIN
         END IF;
     END IF;
 
+    PKG_COURT_CTX.G_INTERNAL_RECALC := TRUE;
+
     PRC_THEM_CHI_TIET_THUE_SAN(
             P_MACT_THUE_SAN => P_MACT_THUE_SAN,
             P_MAHD          => P_MAHD,
@@ -979,10 +1060,13 @@ BEGIN
     WHERE MAHD = P_MAHD
       AND IS_DELETED = 0;
 
+    PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
+
     PRC_CAP_NHAT_SO_TIEN_HOA_DON(P_MAHD);
 
 EXCEPTION
     WHEN OTHERS THEN
+        PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE;
         ROLLBACK TO SP_DAT_SAN;
         RAISE;
 END;
@@ -1233,5 +1317,190 @@ BEGIN
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         RAISE_APPLICATION_ERROR(-20321, 'Khach hang khong ton tai hoac da bi xoa.');
+END;
+/
+
+- ============================================================
+-- PRC_THEM_NHAN_VIEN
+-- Tạo mới nhân viên: USERS → NHAN_VIEN → ACCOUNT → ACCOUNT_ROLE_GROUP.
+-- Tự động gán ROLE_GROUP dựa trên IS_QL:
+--   IS_QL = 1 → 'RG-2' (Quản lý chi nhánh)
+--   IS_QL = 0 → 'RG-3' (Nhân viên thu ngân)
+-- ============================================================
+CREATE OR REPLACE PROCEDURE PRC_THEM_NHAN_VIEN(
+    P_USER_ID               IN USERS.USER_ID%TYPE,
+    P_MANV                  IN NHAN_VIEN.MANV%TYPE,
+    P_ACCOUNT_ID            IN ACCOUNT.ACCOUNT_ID%TYPE,
+    P_ACCOUNT_ROLE_GROUP_ID IN ACCOUNT_ROLE_GROUP.ACCOUNT_ROLE_GROUP_ID%TYPE,
+    P_HOTEN                 IN USERS.HOTEN%TYPE,
+    P_SDT                   IN USERS.SDT%TYPE,
+    P_EMAIL                 IN USERS.EMAIL%TYPE DEFAULT NULL,
+    P_PASSWORD_HASH         IN ACCOUNT.PASSWORD_HASH%TYPE,
+    P_MACN                  IN CHI_NHANH.MACN%TYPE,
+    P_MALNV                 IN LOAI_NHAN_VIEN.MALNV%TYPE,
+    P_CCCD                  IN NHAN_VIEN.CCCD%TYPE DEFAULT NULL,
+    P_IS_QL                 IN NHAN_VIEN.IS_QL%TYPE DEFAULT 0
+)
+AS
+    V_GROUP_ID ROLE_GROUP.GROUP_ID%TYPE;
+    V_COUNT    NUMBER;
+BEGIN
+    -- Validate đầu vào bắt buộc
+    IF P_HOTEN IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20400, 'Vui long nhap ho ten.');
+END IF;
+
+    IF P_SDT IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20401, 'Vui long nhap so dien thoai.');
+END IF;
+
+    IF P_MACN IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20402, 'Vui long nhap ma chi nhanh.');
+END IF;
+
+    IF P_MALNV IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20403, 'Vui long nhap ma loai nhan vien.');
+END IF;
+
+    IF P_IS_QL NOT IN (0, 1) THEN
+        RAISE_APPLICATION_ERROR(-20404, 'IS_QL chi duoc nhan 0 hoac 1.');
+END IF;
+
+    -- Kiểm tra SDT chưa tồn tại
+SELECT COUNT(1) INTO V_COUNT
+FROM USERS WHERE SDT = P_SDT AND IS_DELETED = 0;
+
+IF V_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20405, 'So dien thoai da ton tai trong he thong.');
+END IF;
+
+    -- Kiểm tra CCCD chưa tồn tại (nếu có)
+    IF P_CCCD IS NOT NULL THEN
+SELECT COUNT(1) INTO V_COUNT
+FROM NHAN_VIEN WHERE CCCD = P_CCCD AND IS_DELETED = 0;
+
+IF V_COUNT > 0 THEN
+            RAISE_APPLICATION_ERROR(-20406, 'CCCD da ton tai trong he thong.');
+END IF;
+END IF;
+
+    -- Kiểm tra chi nhánh tồn tại
+SELECT COUNT(1) INTO V_COUNT
+FROM CHI_NHANH WHERE MACN = P_MACN AND IS_DELETED = 0;
+
+IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20407, 'Chi nhanh khong ton tai hoac da bi xoa.');
+END IF;
+
+    -- Kiểm tra loại nhân viên tồn tại
+SELECT COUNT(1) INTO V_COUNT
+FROM LOAI_NHAN_VIEN WHERE MALNV = P_MALNV AND IS_DELETED = 0;
+
+IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20408, 'Loai nhan vien khong ton tai hoac da bi xoa.');
+END IF;
+
+    -- Xác định ROLE_GROUP dựa trên IS_QL
+    IF P_IS_QL = 1 THEN
+        V_GROUP_ID := 'RG-2'; -- Quản lý chi nhánh
+ELSE
+        V_GROUP_ID := 'RG-3'; -- Nhân viên thu ngân
+END IF;
+
+    -- Kiểm tra ROLE_GROUP tồn tại
+SELECT COUNT(1) INTO V_COUNT
+FROM ROLE_GROUP WHERE GROUP_ID = V_GROUP_ID AND IS_DELETED = 0;
+
+IF V_COUNT = 0 THEN
+        RAISE_APPLICATION_ERROR(-20409, 'Role group ' || V_GROUP_ID || ' khong ton tai.');
+END IF;
+
+    -- 1. Tạo USERS
+INSERT INTO USERS (USER_ID, HOTEN, SDT, EMAIL, NGAYSINH, DIACHI, CREATED_AT, IS_DELETED)
+VALUES (P_USER_ID, P_HOTEN, P_SDT, P_EMAIL, NULL, NULL, SYSDATE, 0);
+
+-- 2. Tạo NHAN_VIEN
+INSERT INTO NHAN_VIEN (MANV, USER_ID, MALNV, MACN, NVL, CCCD, IS_QL, TRANG_THAI, CREATED_AT, IS_DELETED)
+VALUES (P_MANV, P_USER_ID, P_MALNV, P_MACN, SYSDATE, P_CCCD, P_IS_QL, 'HOẠT ĐỘNG', SYSDATE, 0);
+
+-- 3. Tạo ACCOUNT (USERNAME = SDT)
+INSERT INTO ACCOUNT (ACCOUNT_ID, USER_ID, USERNAME, PASSWORD_HASH, STATUS, CREATED_AT, IS_DELETED)
+VALUES (P_ACCOUNT_ID, P_USER_ID, P_SDT, P_PASSWORD_HASH, 'ACTIVE', SYSDATE, 0);
+
+-- 4. Gán ROLE_GROUP
+INSERT INTO ACCOUNT_ROLE_GROUP (ACCOUNT_ROLE_GROUP_ID, ACCOUNT_ID, GROUP_ID, CREATED_AT, IS_DELETED)
+VALUES (P_ACCOUNT_ROLE_GROUP_ID, P_ACCOUNT_ID, V_GROUP_ID, SYSDATE, 0);
+END;
+/
+
+
+-- ============================================================
+-- PRC_XOA_NHAN_VIEN
+-- Xóa mềm nhân viên: NHAN_VIEN → ACCOUNT → ACCOUNT_ROLE_GROUP → USERS.
+-- Kiểm tra không còn hóa đơn CHƯA THANH TOÁN do nhân viên phụ trách.
+-- Chủ sân / QLCN cần thanh toán hoặc chuyển hóa đơn trước khi xóa.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE PRC_XOA_NHAN_VIEN(
+    P_MANV IN NHAN_VIEN.MANV%TYPE
+)
+AS
+    V_USER_ID       NHAN_VIEN.USER_ID%TYPE;
+    V_ACCOUNT_ID    ACCOUNT.ACCOUNT_ID%TYPE;
+    V_COUNT_PENDING NUMBER := 0;
+BEGIN
+    -- Kiểm tra nhân viên tồn tại
+SELECT USER_ID
+INTO V_USER_ID
+FROM NHAN_VIEN
+WHERE MANV = P_MANV
+  AND IS_DELETED = 0;
+
+-- Kiểm tra không còn hóa đơn chưa thanh toán
+SELECT COUNT(1)
+INTO V_COUNT_PENDING
+FROM HOA_DON
+WHERE MANV = P_MANV
+  AND TRANGTHAI = 'CHƯA THANH TOÁN'
+  AND IS_DELETED = 0;
+
+IF V_COUNT_PENDING > 0 THEN
+        RAISE_APPLICATION_ERROR(-20422,
+            'Khong the xoa nhan vien vi con ' || V_COUNT_PENDING ||
+            ' hoa don CHUA THANH TOAN. Vui long thanh toan hoac chuyen nhan vien phu trach truoc.');
+END IF;
+
+    -- Lấy ACCOUNT_ID
+SELECT ACCOUNT_ID
+INTO V_ACCOUNT_ID
+FROM ACCOUNT
+WHERE USER_ID = V_USER_ID
+  AND IS_DELETED = 0;
+
+-- Xóa mềm theo thứ tự
+UPDATE ACCOUNT_ROLE_GROUP
+SET IS_DELETED = 1
+WHERE ACCOUNT_ID = V_ACCOUNT_ID
+  AND IS_DELETED = 0;
+
+UPDATE ACCOUNT
+SET STATUS     = 'INACTIVE',
+    IS_DELETED = 1
+WHERE ACCOUNT_ID = V_ACCOUNT_ID
+  AND IS_DELETED = 0;
+
+UPDATE NHAN_VIEN
+SET TRANG_THAI = 'ĐÃ XOÁ',
+    IS_DELETED = 1
+WHERE MANV = P_MANV
+  AND IS_DELETED = 0;
+
+UPDATE USERS
+SET IS_DELETED = 1
+WHERE USER_ID = V_USER_ID
+  AND IS_DELETED = 0;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20421, 'Nhan vien hoac tai khoan khong ton tai hoac da bi xoa.');
 END;
 /

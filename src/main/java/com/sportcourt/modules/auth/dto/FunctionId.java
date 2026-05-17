@@ -24,4 +24,5 @@ public final class FunctionId {
     public static final String CUSTOMER_BOOKING_SELF_SERVICE = "FUNCTION-19";
     public static final String SPORT_TYPE_MANAGEMENT         = "FUNCTION-20";
     public static final String CUSTOMER_BOOKING_HISTORY      = "FUNCTION-21";
+    public static final String STAFF_TYPE_MANAGEMENT         = "FUNCTION-22";
 }
