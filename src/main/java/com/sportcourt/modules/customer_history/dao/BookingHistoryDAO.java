@@ -9,6 +9,8 @@ public interface BookingHistoryDAO {
 
     void cancelCourtBooking(String detailId);
 
+    void confirmCourtBooking(String detailId);
+
     List<BookingHistoryItemDTO> findByCustomerId(String customerId, String keyword);
 
     BookingDetailDTO findDetailByInvoiceId(String invoiceId);
