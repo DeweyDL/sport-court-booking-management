@@ -6,7 +6,10 @@ import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.CourtRentalItem;
 import com.sportcourt.modules.bill.dto.ServiceItem;
 
+import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
+
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -77,11 +80,12 @@ public class JdbcManageBillDao implements ManageBillDao {
     public Optional<BillDetail> findDetailById(String maHD) throws SQLException {
         String masterSql = """
                 SELECT hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG, u_kh.SDT AS SDT_KHACH_HANG,
-                       hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN,
+                       hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN, nv.MACN AS MACN,
                        hd.TIEN_COC, hd.GIAMGIA, hd.TONGGIATRI, TRIM(hd.TRANGTHAI) AS TRANGTHAI,
-                       hd.TONGTIEN, hd.CREATED_AT
+                       hd.TONGTIEN, hd.CREATED_AT, NVL(hk.CHIET_KHAU, 0) AS CHIET_KHAU
                 FROM HOA_DON hd
                 LEFT JOIN KHACH_HANG kh ON kh.MAKH = hd.MAKH
+                LEFT JOIN HANG_KHACH_HANG hk ON kh.MA_HANG = hk.MA_HANG AND NVL(hk.IS_DELETED, 0) = 0
                 LEFT JOIN USERS u_kh ON u_kh.USER_ID = kh.USER_ID
                 LEFT JOIN NHAN_VIEN nv ON nv.MANV = hd.MANV
                 LEFT JOIN USERS u_nv ON u_nv.USER_ID = nv.USER_ID
@@ -109,8 +113,8 @@ public class JdbcManageBillDao implements ManageBillDao {
                 """;
 
         try (Connection conn = ConnectionUtils.getMyConnection()) {
-            String mahd, makh, tenKhachHang, sdtKhachHang, manv, tenNhanVien, trangThai;
-            BigDecimal tienCoc, giamGia, tongGiaTri, tongTien;
+            String mahd, makh, tenKhachHang, sdtKhachHang, manv, tenNhanVien, macn, trangThai;
+            BigDecimal tienCoc, giamGia, tongGiaTri, tongTien, chietKhau;
             LocalDateTime createdAt;
 
             try (PreparedStatement stmt = conn.prepareStatement(masterSql)) {
@@ -125,11 +129,13 @@ public class JdbcManageBillDao implements ManageBillDao {
                     sdtKhachHang = rs.getString("SDT_KHACH_HANG");
                     manv = rs.getString("MANV");
                     tenNhanVien = rs.getString("TEN_NHAN_VIEN");
+                    macn = rs.getString("MACN");
                     tienCoc = rs.getBigDecimal("TIEN_COC");
                     giamGia = rs.getBigDecimal("GIAMGIA");
                     tongGiaTri = rs.getBigDecimal("TONGGIATRI");
                     trangThai = rs.getString("TRANGTHAI");
                     tongTien = rs.getBigDecimal("TONGTIEN");
+                    chietKhau = rs.getBigDecimal("CHIET_KHAU");
                     createdAt = toLocalDateTime(rs.getTimestamp("CREATED_AT"));
                 }
             }
@@ -138,8 +144,8 @@ public class JdbcManageBillDao implements ManageBillDao {
             List<ServiceItem> services = fetchServiceItems(conn, serviceSql, maHD);
             return Optional.of(new BillDetail(
                     mahd, makh, tenKhachHang, sdtKhachHang,
-                    manv, tenNhanVien,
-                    tienCoc, giamGia, tongGiaTri, trangThai, tongTien,
+                    manv, tenNhanVien, macn,
+                    tienCoc, giamGia, tongGiaTri, trangThai, tongTien, chietKhau,
                     createdAt, courts, services
             ));
         }
@@ -278,5 +284,121 @@ public class JdbcManageBillDao implements ManageBillDao {
 
     private static String trimmed(String s) {
         return s == null ? null : s.trim();
+    }
+
+    @Override
+    public void addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) throws SQLException {
+        if (slots == null || slots.isEmpty()) return;
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            // Lấy thông tin hóa đơn hiện tại
+            String getInvoiceSql = "SELECT MAKH, MANV, GIAMGIA FROM HOA_DON WHERE MAHD = ? AND IS_DELETED = 0";
+            String makh = null;
+            String manv = null;
+            BigDecimal discount = BigDecimal.ZERO;
+            try (PreparedStatement stmt = conn.prepareStatement(getInvoiceSql)) {
+                stmt.setString(1, maHD);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        makh = rs.getString("MAKH");
+                        manv = rs.getString("MANV");
+                        discount = rs.getBigDecimal("GIAMGIA");
+                        if (discount == null) discount = BigDecimal.ZERO;
+                    } else {
+                        throw new SQLException("Hóa đơn không tồn tại hoặc đã bị xóa: " + maHD);
+                    }
+                }
+            }
+
+            int nextDetailNumber = findNextNumericId(conn, "CHI_TIET_HOA_DON_THUE_SAN", "MACT_THUE_SAN", "CTHDTS-");
+            for (SelectedBookingSlot slot : slots) {
+                String detailId = "CTHDTS-" + nextDetailNumber++;
+                String sql = "{call PRC_DAT_SAN(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+                try (CallableStatement cs = conn.prepareCall(sql)) {
+                    cs.setString(1, maHD);
+                    cs.setString(2, detailId);
+                    cs.setString(3, makh);
+                    cs.setString(4, manv);
+                    cs.setString(5, slot.courtId());
+                    cs.setString(6, slot.priceBoardId());
+                    cs.setDate(7, java.sql.Date.valueOf(slot.bookingDate()));
+                    cs.setInt(8, advanceBooking ? 1 : 0);
+                    cs.setBigDecimal(9, discount);
+                    cs.execute();
+                }
+                if (advanceBooking) {
+                    String updateStatusSql = """
+                            UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                            SET TRANGTHAI = 'ĐÃ CỌC'
+                            WHERE MACT_THUE_SAN = ?
+                                AND IS_DELETED = 0
+                                AND TRANGTHAI = 'ĐÃ XÁC NHẬN'
+                            """;
+                    try (PreparedStatement stmt = conn.prepareStatement(updateStatusSql)) {
+                        stmt.setString(1, detailId);
+                        stmt.executeUpdate();
+                    }
+                }
+            }
+        }
+    }
+
+    private int findNextNumericId(Connection connection, String tableName, String columnName, String prefix) throws SQLException {
+        String sql = """
+                SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(%s, '\\d+$'))), 0) + 1 AS NEXT_ID
+                FROM %s
+                WHERE REGEXP_LIKE(%s, '^%s\\d+$')
+                """.formatted(columnName, tableName, columnName, prefix);
+
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt("NEXT_ID") : 1;
+        }
+    }
+
+    @Override
+    public void updateServiceItemQty(String maCTHDDV, int newQty) throws SQLException {
+        String sql;
+        if (newQty < 1) {
+            sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET IS_DELETED = 1 WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
+        } else {
+            sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET SL = ? WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
+        }
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (newQty < 1) {
+                stmt.setString(1, maCTHDDV);
+            } else {
+                stmt.setInt(1, newQty);
+                stmt.setString(2, maCTHDDV);
+            }
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public void deleteCourtRental(String maCTHDTS) throws SQLException {
+        String sql = "{call PRC_HUY_CHI_TIET_THUE_SAN(?)}";
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             CallableStatement cs = conn.prepareCall(sql)) {
+            cs.setString(1, maCTHDTS);
+            cs.execute();
+        }
+    }
+
+    @Override
+    public void updateDiscount(String maHD, int discountPercent) throws SQLException {
+        String updateSql = "UPDATE HOA_DON SET GIAMGIA = ? WHERE MAHD = ?";
+        String prcSql = "{call PRC_CAP_NHAT_SO_TIEN_HOA_DON(?)}";
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                stmt.setInt(1, discountPercent);
+                stmt.setString(2, maHD);
+                stmt.executeUpdate();
+            }
+            try (CallableStatement cs = conn.prepareCall(prcSql)) {
+                cs.setString(1, maHD);
+                cs.execute();
+            }
+        }
     }
 }

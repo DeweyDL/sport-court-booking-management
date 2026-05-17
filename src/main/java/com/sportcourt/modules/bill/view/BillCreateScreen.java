@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-public class BillEditScreen extends JPanel {
+public class BillCreateScreen extends JPanel {
 
     private static final Color PAGE_BG      = Color.WHITE;
     private static final Color CARD_BG      = new Color(247, 248, 250);
@@ -53,7 +53,7 @@ public class BillEditScreen extends JPanel {
     private static final NumberFormat      MONEY_FMT = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
 
     private final String maHD;
-    private Branch branch;
+    private final Branch branch;
     private final Runnable onBack;
     private final Runnable onAddEquipment;
     private final Runnable onAddProduct;
@@ -66,32 +66,34 @@ public class BillEditScreen extends JPanel {
     private JScrollPane scrollPane;   // giữ tham chiếu để khôi phục vị trí cuộn sau reload
     private JPanel contentPanel;      // vùng cột (trái/phải) — chỉ refresh phần này khi đổi số lượng
     private boolean advanceBookingMode;
+    private boolean completed = false;
+    private boolean navigatingToSubScreen = false;
 
-    public BillEditScreen(String maHD, Branch branch, Runnable onBack) {
+    public BillCreateScreen(String maHD, Branch branch, Runnable onBack) {
         this(maHD, branch, onBack, null, null, null, null, false);
     }
 
-    public BillEditScreen(String maHD, Branch branch, Runnable onBack, Runnable onAddEquipment) {
+    public BillCreateScreen(String maHD, Branch branch, Runnable onBack, Runnable onAddEquipment) {
         this(maHD, branch, onBack, onAddEquipment, null, null, null, false);
     }
 
-    public BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    public BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                           Runnable onAddEquipment, Runnable onAddProduct, Runnable onAddCourt) {
         this(maHD, branch, onBack, onAddEquipment, onAddProduct, onAddCourt, null, false);
     }
 
-    public BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    public BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                           Runnable onAddEquipment, Runnable onAddProduct, Consumer<Boolean> onAddCourtWithMode) {
         this(maHD, branch, onBack, onAddEquipment, onAddProduct, null, null, false, onAddCourtWithMode);
     }
 
-    protected BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    protected BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                              Runnable onAddEquipment, Runnable onAddProduct, Runnable onAddCourt,
                              java.util.List<ServiceItem> extraServices, boolean readOnly) {
         this(maHD, branch, onBack, onAddEquipment, onAddProduct, onAddCourt, extraServices, readOnly, null);
     }
 
-    private BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    private BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                            Runnable onAddEquipment, Runnable onAddProduct, Runnable onAddCourt,
                            java.util.List<ServiceItem> extraServices, boolean readOnly,
                            Consumer<Boolean> onAddCourtWithMode) {
@@ -99,14 +101,14 @@ public class BillEditScreen extends JPanel {
                 extraServices, readOnly, onAddCourtWithMode, false);
     }
 
-    public BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    public BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                           Runnable onAddEquipment, Runnable onAddProduct,
                           Consumer<Boolean> onAddCourtWithMode, boolean allowBookingModeControls) {
         this(maHD, branch, onBack, onAddEquipment, onAddProduct, null,
                 null, false, onAddCourtWithMode, allowBookingModeControls);
     }
 
-    private BillEditScreen(String maHD, Branch branch, Runnable onBack,
+    private BillCreateScreen(String maHD, Branch branch, Runnable onBack,
                            Runnable onAddEquipment, Runnable onAddProduct, Runnable onAddCourt,
                            java.util.List<ServiceItem> extraServices, boolean readOnly,
                            Consumer<Boolean> onAddCourtWithMode, boolean allowBookingModeControls) {
@@ -147,13 +149,6 @@ public class BillEditScreen extends JPanel {
             return;
         }
         BillDetail detail = res.data();
-        if (this.branch == null && detail.maCn() != null) {
-            try {
-                this.branch = new com.sportcourt.modules.branch.controller.BranchController().getBranchDetail(detail.maCn());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         if (detail.tienCoc() != null && detail.tienCoc().compareTo(BigDecimal.ZERO) > 0) {
             advanceBookingMode = true;
         }
@@ -185,7 +180,12 @@ public class BillEditScreen extends JPanel {
         backBtn.setContentAreaFilled(false);
         backBtn.setFocusPainted(false);
         backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        backBtn.addActionListener(e -> { if (onBack != null) onBack.run(); });
+        backBtn.addActionListener(e -> {
+            if (!completed) {
+                controller.softDelete(maHD);
+            }
+            if (onBack != null) onBack.run();
+        });
 
         bar.add(backBtn, BorderLayout.EAST);
         return bar;
@@ -706,6 +706,52 @@ public class BillEditScreen extends JPanel {
         return card;
     }
 
+    private JPanel buildPaymentCard(BillDetail detail) {
+        JPanel card = card();
+        card.add(rightHeader("CHI TIẾT THANH TOÁN"));
+
+        BigDecimal courtTotal = detail.danhSachThuesan().stream()
+                .map(c -> c.donGiaThue() == null ? BigDecimal.ZERO : c.donGiaThue())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<ServiceItem> services = allServices(detail);
+        BigDecimal equipTotal = services.stream()
+                .filter(s -> s.maDC() != null)
+                .map(s -> s.donGia() == null ? BigDecimal.ZERO : s.donGia().multiply(BigDecimal.valueOf(s.soLuong())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal prodTotal = services.stream()
+                .filter(s -> s.maSP() != null)
+                .map(s -> s.donGia() == null ? BigDecimal.ZERO : s.donGia().multiply(BigDecimal.valueOf(s.soLuong())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal subtotal = detail.tongGiaTri() != null ? detail.tongGiaTri() : BigDecimal.ZERO;
+        BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
+        BigDecimal remaining = detail.tongTien() != null ? detail.tongTien() : BigDecimal.ZERO;
+
+        card.add(payRow("Tiền thuê sân",     courtTotal));
+        card.add(payRow("Tiền thuê dụng cụ", equipTotal));
+        card.add(payRow("Tiền sản phẩm",     prodTotal));
+        card.add(payRowBold("Tổng cộng",     subtotal));
+
+        // Giảm giá % nhập tay
+        BigDecimal chietKhau = detail.chietKhauHang() != null ? detail.chietKhauHang() : BigDecimal.ZERO;
+        BigDecimal tierDiscount = courtTotal.multiply(chietKhau).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        BigDecimal pct = detail.giamGia() == null ? BigDecimal.ZERO : detail.giamGia();
+        BigDecimal pctDiscount = subtotal.subtract(tierDiscount).multiply(pct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        card.add(discountInputRow(detail.giamGia()));
+        if (pctDiscount.compareTo(BigDecimal.ZERO) > 0 || pct.compareTo(BigDecimal.ZERO) > 0) {
+            card.add(payRowDiscount("Tiền giảm (" + pct.toPlainString() + "%)", pctDiscount));
+        }
+        // Giảm giá hạng khách hàng
+        card.add(payRowDiscount("Giảm giá hạng KH (" + chietKhau.stripTrailingZeros().toPlainString() + "%)", tierDiscount));
+
+        card.add(payRow("Tiền cọc",          deposit));
+        card.add(grandTotalRow(remaining));
+        if (!readOnly) {
+            card.add(payButton(detail));
+        }
+        card.add(Box.createVerticalStrut(8));
+        return card;
+    }
+
     private JPanel discountInputRow(BigDecimal currentPct) {
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
@@ -727,7 +773,7 @@ public class BillEditScreen extends JPanel {
         btnUpdate.addActionListener(e -> {
             try {
                 int pct = Integer.parseInt(txtPct.getText().trim());
-                if(pct < 0 || pct > 100) throw new NumberFormatException();
+                if (pct < 0 || pct > 100) throw new NumberFormatException();
                 BillResult<Void> r = controller.updateDiscount(maHD, pct);
                 if (r.success()) {
                     refreshContent();
@@ -748,53 +794,6 @@ public class BillEditScreen extends JPanel {
         row.add(lbl, BorderLayout.WEST);
         row.add(right, BorderLayout.EAST);
         return row;
-    }
-
-    private JPanel buildPaymentCard(BillDetail detail) {
-        JPanel card = card();
-        card.add(rightHeader("CHI TIẾT THANH TOÁN"));
-
-        BigDecimal courtTotal = detail.danhSachThuesan().stream()
-                .map(c -> c.donGiaThue() == null ? BigDecimal.ZERO : c.donGiaThue())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        List<ServiceItem> services = allServices(detail);
-        BigDecimal equipTotal = services.stream()
-                .filter(s -> s.maDC() != null)
-                .map(s -> s.donGia() == null ? BigDecimal.ZERO : s.donGia().multiply(BigDecimal.valueOf(s.soLuong())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal prodTotal = services.stream()
-                .filter(s -> s.maSP() != null)
-                .map(s -> s.donGia() == null ? BigDecimal.ZERO : s.donGia().multiply(BigDecimal.valueOf(s.soLuong())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal subtotal = detail.tongGiaTri() != null ? detail.tongGiaTri() : BigDecimal.ZERO;
-        // Khấu trừ và giảm giá sẽ được lấy từ CSDL (thể hiện ở tongTien và tongGiaTri)
-        // discount removed
-        // divide removed
-        // totalAfterDiscount removed
-        BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
-        BigDecimal remaining = detail.tongTien() != null ? detail.tongTien() : BigDecimal.ZERO;
-
-        card.add(payRow("Tiền thuê sân",     courtTotal));
-        card.add(payRow("Tiền thuê dụng cụ", equipTotal));
-        card.add(payRow("Tiền sản phẩm",     prodTotal));
-        card.add(payRowBold("Tổng cộng",     subtotal));
-        BigDecimal chietKhau = detail.chietKhauHang() != null ? detail.chietKhauHang() : BigDecimal.ZERO;
-        BigDecimal tierDiscount = courtTotal.multiply(chietKhau).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal pct = detail.giamGia() == null ? BigDecimal.ZERO : detail.giamGia();
-        BigDecimal pctDiscount = subtotal.subtract(tierDiscount).multiply(pct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-
-        card.add(discountInputRow(detail.giamGia()));
-        if (pctDiscount.compareTo(BigDecimal.ZERO) > 0 || pct.compareTo(BigDecimal.ZERO) > 0) {
-            card.add(payRowDiscount("Tiền giảm (" + pct.toPlainString() + "%)", pctDiscount));
-        }
-        card.add(payRowDiscount("Giảm giá hạng KH (" + chietKhau.stripTrailingZeros().toPlainString() + "%)", tierDiscount));
-        card.add(payRow("Tiền cọc",          deposit));
-        card.add(grandTotalRow(remaining));
-        if (!readOnly) {
-            card.add(payButton(detail));
-        }
-        card.add(Box.createVerticalStrut(8));
-        return card;
     }
 
     // ── Builders ─────────────────────────────────────────────────────────────
@@ -839,7 +838,10 @@ public class BillEditScreen extends JPanel {
         header.add(left, BorderLayout.WEST);
         if (!readOnly) {
             JButton btn = pillBtn(btnLabel);
-            btn.addActionListener(e -> action.run());
+            btn.addActionListener(e -> {
+                navigatingToSubScreen = true;
+                action.run();
+            });
             header.add(btn, BorderLayout.EAST);
         }
         return header;
@@ -867,7 +869,10 @@ public class BillEditScreen extends JPanel {
         header.add(left, BorderLayout.WEST);
         if (!readOnly) {
             JButton btn = pillBtn("Thêm sân");
-            btn.addActionListener(e -> addAction.run());
+            btn.addActionListener(e -> {
+                navigatingToSubScreen = true;
+                addAction.run();
+            });
             header.add(btn, BorderLayout.EAST);
         }
         return header;
@@ -952,7 +957,6 @@ public class BillEditScreen extends JPanel {
 
     private JPanel addressRow(String label, String value) {
         JPanel row = new JPanel(new BorderLayout(10, 0));
-
         row.setOpaque(false);
         row.setBorder(new EmptyBorder(5, 18, 5, 18));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
@@ -967,11 +971,11 @@ public class BillEditScreen extends JPanel {
         val.setForeground(TITLE_DARK);
         val.setHorizontalAlignment(SwingConstants.RIGHT);
         val.setVerticalAlignment(SwingConstants.TOP);
+
         String displayValue = (value == null || value.isBlank()) ? "--" : value;
         val.setText("<html><div style='text-align: right; width: 170px;'>" + displayValue + "</div></html>");
 
         row.add(lbl, BorderLayout.WEST);
-
         row.add(val, BorderLayout.EAST);
         return row;
     }
@@ -1084,8 +1088,11 @@ public class BillEditScreen extends JPanel {
     private JComponent payButton(BillDetail detail) {
         String status = detail.trangThai() == null ? "" : detail.trangThai().trim();
         boolean unpaid = "CHƯA THANH TOÁN".equalsIgnoreCase(status);
+        boolean depositMode = advanceBookingMode
+                || (detail.tienCoc() != null && detail.tienCoc().compareTo(BigDecimal.ZERO) > 0);
+        String buttonText = !unpaid ? "ĐÃ HOÀN TẤT" : depositMode ? "THANH TOÁN CỌC" : "HOÀN TẤT";
 
-        JButton btn = new JButton(unpaid ? "THANH TOÁN" : "ĐÃ THANH TOÁN") {
+        JButton btn = new JButton(buttonText) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -1103,28 +1110,21 @@ public class BillEditScreen extends JPanel {
         btn.setEnabled(unpaid);
         btn.setCursor(new Cursor(unpaid ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
         btn.addActionListener(e -> {
-            BigDecimal remaining = detail.tongTien();
-            if (remaining != null && remaining.compareTo(BigDecimal.ZERO) > 0) {
-                boolean paid = showPaymentDialog(detail);
-                if (!paid) return;
+            if (depositMode) {
+                BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
+                if (deposit.compareTo(BigDecimal.ZERO) <= 0) {
+                    AppDialog.showError(this, "Hóa đơn chưa có tiền cọc. Vui lòng thêm sân đặt trước trước khi thanh toán cọc.");
+                    return;
+                }
+                if (!showDepositPaymentDialog(deposit)) {
+                    return;
+                }
+                AppDialog.showInfo(this, "Đã thanh toán cọc.");
             } else {
-                int confirm = JOptionPane.showConfirmDialog(
-                        this,
-                        "Hóa đơn không còn dư nợ. Xác nhận thanh toán?",
-                        "Xác nhận",
-                        JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE
-                );
-                if (confirm != JOptionPane.OK_OPTION) return;
+                AppDialog.showInfo(this, "Đã cập nhật hóa đơn.");
             }
-
-            BillResult<Void> r = controller.markAsPaid(maHD);
-            if (r.success()) {
-                AppDialog.showInfo(this, "Hóa đơn đã được thanh toán thành công!");
-                if (onBack != null) onBack.run();
-            } else {
-                AppDialog.showError(this, r.message() == null ? "Thanh toán hóa đơn thất bại." : r.message());
-            }
+            completed = true;
+            if (onBack != null) onBack.run();
         });
 
         JPanel wrap = new JPanel(new BorderLayout());
@@ -1207,141 +1207,6 @@ public class BillEditScreen extends JPanel {
         return paid[0];
     }
 
-    private boolean showPaymentDialog(BillDetail bill) {
-        PaymentService paymentService = new PaymentServiceImpl();
-        PaymentQrInfo qr;
-        try {
-            qr = paymentService.createPaymentLink(bill.tongTien().intValue(), "TT " + bill.maHD());
-        } catch (RuntimeException e) {
-            AppDialog.showError(this, "Không tạo được mã thanh toán: " + e.getMessage());
-            return false;
-        }
-
-        boolean[] paid = {false};
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thanh toán hóa đơn", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setContentPane(buildPaymentContent(dialog, paymentService, qr, bill));
-        dialog.pack();
-        dialog.setMinimumSize(new Dimension(620, 480));
-        dialog.setLocationRelativeTo(this);
-
-        // Polling SwingWorker
-        SwingWorker<Void, String> poller = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                while (!isCancelled()) {
-                    String st = paymentService.checkStatus(qr.orderCode());
-                    publish(st);
-                    if ("ĐÃ THANH TOÁN".equals(st) || "ĐÃ HUỶ".equals(st) || "HẾT HẠN".equals(st)) {
-                        break;
-                    }
-                    Thread.sleep(4000);
-                }
-                return null;
-            }
-
-            @Override
-            protected void process(List<String> chunks) {
-                String st = chunks.get(chunks.size() - 1);
-                if ("ĐÃ THANH TOÁN".equals(st)) {
-                    paid[0] = true;
-                    dialog.dispose();
-                } else if ("HẾT HẠN".equals(st)) {
-                    AppDialog.showInfo(dialog, "Mã thanh toán đã hết hạn.");
-                    dialog.dispose();
-                }
-            }
-        };
-        poller.execute();
-
-        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosed(java.awt.event.WindowEvent e) {
-                poller.cancel(true);
-            }
-        });
-
-        dialog.setVisible(true);
-        return paid[0];
-    }
-
-    private JComponent buildPaymentContent(JDialog dialog, PaymentService paymentService, PaymentQrInfo qr, BillDetail bill) {
-        JPanel root = new JPanel(new BorderLayout(18, 18));
-        root.setBackground(new Color(248, 250, 252));
-        root.setBorder(new EmptyBorder(22, 22, 22, 22));
-
-        JPanel header = new JPanel(new GridLayout(0, 1, 0, 6));
-        header.setOpaque(false);
-        JLabel title = new JLabel("Thanh toán hóa đơn " + bill.maHD());
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        
-        JPanel detailsPanel = new JPanel(new GridLayout(0, 1, 0, 4));
-        detailsPanel.setOpaque(false);
-        detailsPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
-        
-        JLabel lblTong = new JLabel("Tổng tiền: " + money(bill.tongGiaTri()) + "đ");
-        lblTong.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        
-        JLabel lblCoc = new JLabel("Tiền cọc: " + money(bill.tienCoc()) + "đ");
-        lblCoc.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        
-        detailsPanel.add(lblTong);
-        detailsPanel.add(lblCoc);
-        
-        BigDecimal chietKhau = bill.chietKhauHang() != null ? bill.chietKhauHang() : BigDecimal.ZERO;
-        BigDecimal courtTotal = bill.danhSachThuesan().stream()
-                .map(c -> c.donGiaThue() == null ? BigDecimal.ZERO : c.donGiaThue())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal tierDiscount = courtTotal.multiply(chietKhau).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal pct = bill.giamGia() == null ? BigDecimal.ZERO : bill.giamGia();
-        BigDecimal pctDiscount = bill.tongGiaTri().subtract(tierDiscount).multiply(pct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-
-        if (pctDiscount.compareTo(BigDecimal.ZERO) > 0 || pct.compareTo(BigDecimal.ZERO) > 0) {
-            String pctText = tierDiscount.compareTo(BigDecimal.ZERO) > 0 ? "-" + money(pctDiscount) : money(pctDiscount);
-            JLabel lblPctGiam = new JLabel("Giảm giá (" + pct.toPlainString() + "%): " + pctText + "đ");
-            lblPctGiam.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            lblPctGiam.setForeground(new Color(220, 53, 69));
-            detailsPanel.add(lblPctGiam);
-        }
-
-        String tierText = tierDiscount.compareTo(BigDecimal.ZERO) > 0 ? "-" + money(tierDiscount) : "0";
-        JLabel lblTierGiam = new JLabel("Giảm giá hạng KH (" + chietKhau.stripTrailingZeros().toPlainString() + "%): " + tierText + "đ");
-        lblTierGiam.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        lblTierGiam.setForeground(new Color(220, 53, 69));
-        detailsPanel.add(lblTierGiam);
-        
-        JLabel lblConLai = new JLabel("Còn lại cần thanh toán: " + money(bill.tongTien()) + "đ");
-        lblConLai.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblConLai.setForeground(new Color(16, 110, 0));
-        detailsPanel.add(lblConLai);
-
-        header.add(title);
-        header.add(detailsPanel);
-        root.add(header, BorderLayout.NORTH);
-
-        JPanel body = new JPanel(new BorderLayout(18, 0));
-        body.setOpaque(false);
-        JLabel qrLabel = new JLabel(QrCodeRenderer.toIcon(qr.qrCodeData(), 210));
-        qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        body.add(qrLabel, BorderLayout.WEST);
-
-        JTextArea info = new JTextArea(
-                "Ngân hàng: " + bankName(qr.bin()) + "\n"
-                        + "Số tài khoản: " + qr.accountNumber() + "\n"
-                        + "Chủ tài khoản: " + qr.accountName() + "\n"
-                        + "Nội dung: " + qr.description()
-        );
-        info.setEditable(false);
-        info.setOpaque(false);
-        info.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        info.setLineWrap(true);
-        info.setWrapStyleWord(true);
-        body.add(info, BorderLayout.CENTER);
-        root.add(body, BorderLayout.CENTER);
-
-        return root;
-    }
-
     private JComponent buildDepositPaymentContent(JDialog dialog,
                                                   PaymentService paymentService,
                                                   PaymentQrInfo qr,
@@ -1402,6 +1267,14 @@ public class BillEditScreen extends JPanel {
             case "970403" -> "Sacombank";
             default -> bin;
         };
+    }
+
+    @Override
+    public void removeNotify() {
+        if (!completed && !navigatingToSubScreen) {
+            controller.softDelete(maHD);
+        }
+        super.removeNotify();
     }
 
     private static String money(BigDecimal value) {

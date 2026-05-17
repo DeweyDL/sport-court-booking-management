@@ -8,6 +8,7 @@ import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -117,6 +118,22 @@ public class ManageBillServiceImpl implements ManageBillService {
     }
 
     @Override
+    public BillResult<Void> addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) {
+        if (isBlank(maHD)) {
+            return BillResult.fail("Thiếu mã hóa đơn.");
+        }
+        if (slots == null || slots.isEmpty()) {
+            return BillResult.fail("Vui lòng chọn khung giờ.");
+        }
+        try {
+            dao.addCourtBookingDetails(maHD.trim(), slots, advanceBooking);
+            return BillResult.ok("Đã thêm sân vào hóa đơn.", null);
+        } catch (SQLException e) {
+            return BillResult.fail("Không thể thêm sân vào hóa đơn: " + e.getMessage());
+        }
+    }
+
+    @Override
     public BillResult<Void> addServiceItems(String maHD, List<ServiceItem> items) {
         if (isBlank(maHD)) {
             return BillResult.fail("Thiếu mã hóa đơn.");
@@ -129,6 +146,44 @@ public class ManageBillServiceImpl implements ManageBillService {
             return BillResult.ok("Đã thêm vào hóa đơn.", null);
         } catch (SQLException e) {
             return BillResult.fail("Không thể thêm dịch vụ: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public BillResult<Void> updateServiceItemQty(String maCTHDDV, int newQty) {
+        if (isBlank(maCTHDDV)) {
+            return BillResult.fail("Thiếu mã chi tiết dịch vụ.");
+        }
+        try {
+            dao.updateServiceItemQty(maCTHDDV.trim(), newQty);
+            return BillResult.ok("Đã cập nhật số lượng.", null);
+        } catch (SQLException e) {
+            return BillResult.fail("Không thể cập nhật số lượng: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public BillResult<Void> deleteCourtRental(String maCTHDTS) {
+        if (isBlank(maCTHDTS)) {
+            return BillResult.fail("Thiếu mã chi tiết thuê sân.");
+        }
+        try {
+            dao.deleteCourtRental(maCTHDTS.trim());
+            return BillResult.ok("Đã xóa khung giờ.", null);
+        } catch (SQLException e) {
+            return BillResult.fail("Không thể xóa khung giờ: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public BillResult<Void> updateDiscount(String maHD, int discountPercent) {
+        if (isBlank(maHD)) return BillResult.fail("Mã hóa đơn rỗng.");
+        if (discountPercent < 0 || discountPercent > 100) return BillResult.fail("Tỉ lệ giảm giá không hợp lệ.");
+        try {
+            dao.updateDiscount(maHD.trim(), discountPercent);
+            return BillResult.ok("Đã cập nhật giảm giá.", null);
+        } catch (SQLException e) {
+            return BillResult.fail("Lỗi cập nhật giảm giá: " + e.getMessage());
         }
     }
 

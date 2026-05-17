@@ -19,7 +19,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CustomerSelectDialog {
+public final class BranchSelectDialog {
 
     public record SelectResult(CustomerSummary customer, Branch branch) {}
 
@@ -33,11 +33,11 @@ public final class CustomerSelectDialog {
     private static final Color BORDER_COLOR = new Color(203, 213, 225);
     private static final Color ROW_SELECTED = new Color(220, 252, 231);
 
-    private CustomerSelectDialog() {}
+    private BranchSelectDialog() {}
 
     public static SelectResult show(Component parent, ManageCustomerController controller, BranchController branchController) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, "Chọn khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(owner, "Chọn chi nhánh & khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setResizable(true);
 
@@ -99,32 +99,33 @@ public final class CustomerSelectDialog {
         branchLbl.setForeground(TEXT_DARK);
         branchLbl.setPreferredSize(new Dimension(90, 0));
 
+        JComboBox<Branch> branchCombo = new JComboBox<>();
+        branchCombo.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel lbl = new JLabel(value == null ? "--" : value.tenChiNhanh());
+            lbl.setBorder(new EmptyBorder(4, 8, 4, 8));
+            lbl.setOpaque(isSelected);
+            if (isSelected) lbl.setBackground(ROW_SELECTED);
+            return lbl;
+        });
+
         if (isOwner) {
-            JComboBox<Branch> branchCombo = new JComboBox<>();
             for (Branch b : branches) branchCombo.addItem(b);
-            branchCombo.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
-                JLabel lbl = new JLabel(value == null ? "--" : value.tenChiNhanh());
-                lbl.setBorder(new EmptyBorder(4, 8, 4, 8));
-                lbl.setOpaque(isSelected);
-                if (isSelected) lbl.setBackground(ROW_SELECTED);
-                return lbl;
-            });
             if (!branches.isEmpty()) selectedBranch[0] = branches.get(0);
             branchCombo.addActionListener(e -> selectedBranch[0] = (Branch) branchCombo.getSelectedItem());
-            branchRow.add(branchLbl, BorderLayout.WEST);
-            branchRow.add(branchCombo, BorderLayout.CENTER);
         } else {
-            String sessionBranchId = session.getBranchId();
-            selectedBranch[0] = branches.stream()
-                    .filter(b -> b.maCn().equals(sessionBranchId))
+            String sessionBranchId = session.getBranchId() != null ? session.getBranchId().trim() : "";
+            Branch own = branches.stream()
+                    .filter(b -> b.maCn() != null && b.maCn().trim().equalsIgnoreCase(sessionBranchId))
                     .findFirst().orElse(null);
-            String branchName = selectedBranch[0] != null ? selectedBranch[0].tenChiNhanh() : sessionBranchId;
-            JLabel fixedLbl = new JLabel(branchName + "  🔒");
-            fixedLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            fixedLbl.setForeground(TEXT_MUTED);
-            branchRow.add(branchLbl, BorderLayout.WEST);
-            branchRow.add(fixedLbl, BorderLayout.CENTER);
+            selectedBranch[0] = own;
+            if (own != null) {
+                branchCombo.addItem(own);
+                branchCombo.setSelectedItem(own);
+            }
+            branchCombo.setEnabled(false);   // nhân viên: khóa, không cho chọn
         }
+        branchRow.add(branchLbl, BorderLayout.WEST);
+        branchRow.add(branchCombo, BorderLayout.CENTER);
 
         // ── NÚT THÊM KHÁCH HÀNG (trên thanh tìm kiếm) ───────────────────────
         JButton addCustomerBtn = pillBtn("+ Thêm khách hàng mới", new Color(228, 250, 226), GREEN);
@@ -185,7 +186,7 @@ public final class CustomerSelectDialog {
         DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int col) {
+                     boolean isSelected, boolean hasFocus, int row, int col) {
                 super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
                 setBorder(new EmptyBorder(0, 10, 0, 10));
                 if (!isSelected) {
@@ -196,7 +197,6 @@ public final class CustomerSelectDialog {
         };
         for (int i = 0; i < cols.length; i++) tcm.getColumn(i).setCellRenderer(cellRenderer);
 
-        // Rounded table wrapper
         JScrollPane tableScroll = new JScrollPane(table);
         tableScroll.setBorder(BorderFactory.createEmptyBorder());
         tableScroll.getViewport().setBackground(CARD_BG);
@@ -254,30 +254,28 @@ public final class CustomerSelectDialog {
         actions.add(confirmBtn);
         root.add(actions, BorderLayout.SOUTH);
 
-        // ── SEARCH LISTENER ──────────────────────────────────────────────────
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { search(); }
-            @Override public void removeUpdate(DocumentEvent e) { search(); }
-            @Override public void changedUpdate(DocumentEvent e) { search(); }
+        // ── SEARCH ───────────────────────────────────────────────────────────
+        Runnable reloadList = () -> {
+            String kw = searchField.getText().trim();
+            model.setRowCount(0);
+            rowData.clear();
+            selected[0] = null;
+            confirmBtn.setEnabled(false);
+            infoPanel.setVisible(false);
+            card.revalidate();
 
-            private void search() {
-                String kw = searchField.getText().trim();
-                model.setRowCount(0);
-                rowData.clear();
-                selected[0] = null;
-                confirmBtn.setEnabled(false);
-                infoPanel.setVisible(false);
-                card.revalidate();
-
-                if (kw.isEmpty()) return;
-                CustomerResult<List<CustomerSummary>> r = controller.searchByName(kw);
-                if (r.success() && r.data() != null) {
-                    for (CustomerSummary c : r.data()) {
-                        model.addRow(new Object[]{c.maKhachHang(), c.hoTen(), c.sdt()});
-                        rowData.add(c);
-                    }
+            CustomerResult<List<CustomerSummary>> r = controller.searchByName(kw);
+            if (r.success() && r.data() != null) {
+                for (CustomerSummary c : r.data()) {
+                    model.addRow(new Object[]{c.maKhachHang(), c.hoTen(), c.sdt()});
+                    rowData.add(c);
                 }
             }
+        };
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { reloadList.run(); }
+            @Override public void removeUpdate(DocumentEvent e) { reloadList.run(); }
+            @Override public void changedUpdate(DocumentEvent e) { reloadList.run(); }
         });
 
         // ── TABLE SELECTION ──────────────────────────────────────────────────
@@ -299,7 +297,7 @@ public final class CustomerSelectDialog {
             card.repaint();
         });
 
-        // ── THÊM KHÁCH HÀNG ─────────────────────────────────────────────────
+        // ── THÊM KHÁCH HÀNG ──────────────────────────────────────────────────
         addCustomerBtn.addActionListener(e -> {
             CustomerResult<String> genId = controller.generateNextMaKhachHang();
             if (!genId.success() || genId.data() == null || genId.data().isBlank()) {
@@ -337,6 +335,8 @@ public final class CustomerSelectDialog {
             dialog.dispose();
         });
 
+        reloadList.run();
+
         // ── SIZE & SHOW ──────────────────────────────────────────────────────
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         int w = Math.max(600, (int) (screen.width * 0.42));
@@ -347,8 +347,6 @@ public final class CustomerSelectDialog {
         dialog.setVisible(true);
         return result[0];
     }
-
-    // ── INFO PANEL ───────────────────────────────────────────────────────────
 
     private static JPanel buildInfoPanel(JLabel lblName, JLabel lblPhone) {
         JPanel panel = new JPanel() {
@@ -400,8 +398,6 @@ public final class CustomerSelectDialog {
         row.add(valueLabel, BorderLayout.EAST);
         return row;
     }
-
-    // ── UTILITIES ────────────────────────────────────────────────────────────
 
     private static JButton pillBtn(String text, Color bg, Color fg) {
         JButton btn = new JButton(text) {

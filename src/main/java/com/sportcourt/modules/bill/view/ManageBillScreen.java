@@ -13,6 +13,10 @@ import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
 import com.sportcourt.modules.customer.controller.ManageCustomerController;
+import com.sportcourt.modules.payment.dto.PaymentQrInfo;
+import com.sportcourt.modules.payment.service.PaymentService;
+import com.sportcourt.modules.payment.service.PaymentServiceImpl;
+import com.sportcourt.modules.payment.util.QrCodeRenderer;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -35,13 +39,14 @@ public class ManageBillScreen extends JPanel implements Scrollable {
     private static final int ROW_HEIGHT = 68;
     private static final int COLUMN_GAP = 14;
 
-    private static final double W_CUSTOMER = 0.16;
-    private static final double W_STAFF = 0.13;
+    private static final double W_BILL_ID = 0.10;
+    private static final double W_CUSTOMER = 0.15;
+    private static final double W_STAFF = 0.12;
     private static final double W_DEPOSIT = 0.09;
-    private static final double W_TOTAL_VALUE = 0.13;
-    private static final double W_DATE = 0.10;
-    private static final double W_STATUS = 0.13;
-    private static final double W_ACTIONS = 0.16;
+    private static final double W_TOTAL_VALUE = 0.11;
+    private static final double W_DATE = 0.09;
+    private static final double W_STATUS = 0.11;
+    private static final double W_ACTIONS = 0.13;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String STATUS_UNPAID = "CHƯA THANH TOÁN";
@@ -78,10 +83,12 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         listPage.add(createPage(), BorderLayout.CENTER);
 
         // Màn edit: bung rộng tối đa, chỉ chừa lề nhỏ để thấy bo góc.
-        editWrapper.setOpaque(false);
+        editWrapper.setOpaque(true);
+        editWrapper.setBackground(CrudViewStyle.PAGE_BACKGROUND);
         editWrapper.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        cardPanel.setOpaque(false);
+        cardPanel.setOpaque(true);
+        cardPanel.setBackground(CrudViewStyle.PAGE_BACKGROUND);
         cardPanel.add(listPage, "list");
         cardPanel.add(editWrapper, "edit");
         add(cardPanel, BorderLayout.CENTER);
@@ -185,7 +192,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         addBtn.setBorder(new EmptyBorder(6, 22, 6, 22));
         CrudViewStyle.applyToolbarButtonHeight(addBtn);
         addBtn.addActionListener(e -> {
-            CustomerSelectDialog.SelectResult sel = CustomerSelectDialog.show(
+            BranchSelectDialog.SelectResult sel = BranchSelectDialog.show(
                     this, new ManageCustomerController(), new BranchController());
             if (sel == null) return;
             UserSession session = SessionManager.requireSession();
@@ -194,7 +201,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
                 AppDialog.showError(this, res.message() != null ? res.message() : "Không thể tạo hóa đơn.");
                 return;
             }
-            showEdit(res.data(), sel.branch());
+            showCreate(res.data(), sel.branch());
         });
 
         JButton refreshBtn = CrudViewStyle.createRefreshButton(e -> refreshBills());
@@ -238,10 +245,11 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         Color hBg = new Color(248, 249, 250);
+        gbc.weightx = W_BILL_ID;     header.add(cell(headerLabel("MÃ HÓA ĐƠN"),    SwingConstants.LEFT,   hBg, 8, 8), gbc);
         gbc.weightx = W_CUSTOMER;    header.add(cell(headerLabel("KHÁCH HÀNG"),    SwingConstants.LEFT,   hBg, 8, 8), gbc);
         gbc.weightx = W_STAFF;       header.add(cell(headerLabel("NHÂN VIÊN"),     SwingConstants.LEFT,   hBg, 8, 8), gbc);
         gbc.weightx = W_DEPOSIT;     header.add(cell(headerLabel("TIỀN CỌC"),      SwingConstants.RIGHT,  hBg, 0, 8), gbc);
-        gbc.weightx = W_TOTAL_VALUE; header.add(cell(headerLabel("TỔNG GIÁ TRỊ"), SwingConstants.RIGHT,  hBg, 0, 8), gbc);
+        gbc.weightx = W_TOTAL_VALUE; header.add(cell(headerLabel("TỔNG TIỀN"), SwingConstants.RIGHT,  hBg, 0, 8), gbc);
         gbc.weightx = W_DATE;        header.add(cell(headerLabel("NGÀY TẠO"),      SwingConstants.CENTER, hBg, 0, 8), gbc);
         gbc.weightx = W_STATUS;      header.add(cell(headerLabel("TRẠNG THÁI"),    SwingConstants.CENTER, hBg, 0, 8), gbc);
         gbc.weightx = W_ACTIONS;     gbc.insets = new Insets(0, 0, 0, 0);
@@ -270,6 +278,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
 
         String dateText = bill.getCreatedAt() != null ? bill.getCreatedAt().format(DATE_FMT) : "--";
 
+        gbc.weightx = W_BILL_ID;     row.add(cell(cellLabel(bill.getMaHD(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = W_CUSTOMER;    row.add(cell(cellLabel(bill.getTenKhachHang(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = W_STAFF;       row.add(cell(cellLabel(bill.getTenNhanVien(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = W_DEPOSIT;     row.add(cell(cellLabel(formatCurrency(bill.getTienCoc()), new Color(17, 24, 39)), SwingConstants.RIGHT, rowBg, 0, 8), gbc);
@@ -303,17 +312,17 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         String status = statusKey(bill.getTrangThai());
 
         if ("PAID".equals(status)) {
-            // ĐÃ THANH TOÁN: In hóa đơn (green) | Xem chi tiết (gray)
+            // ĐÃ THANH TOÁN: In hóa đơn (green) | Xem chi tiết (xanh - chỉ xem)
             JButton printBtn = miniButton("In hóa đơn", new Color(228, 250, 226), new Color(16, 110, 0));
             printBtn.addActionListener(e -> printBill(bill));
             group.add(printBtn);
             group.add(Box.createHorizontalStrut(6));
-            JButton detailBtn = miniButton("Xem chi tiết", new Color(243, 244, 246), new Color(55, 65, 81));
-            detailBtn.addActionListener(e -> openDetail(bill));
+            JButton detailBtn = miniButton("Xem chi tiết", CrudViewStyle.EDIT_BG, CrudViewStyle.EDIT_TEXT);
+            detailBtn.addActionListener(e -> openDetailReadOnly(bill));
             group.add(detailBtn);
 
         } else if ("UNPAID".equals(status)) {
-            // CHƯA THANH TOÁN: Xóa (red) | Thanh toán (green)
+            // CHƯA THANH TOÁN: Xóa (red) | Chỉnh sửa (xanh)
             JButton deleteBtn = miniButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
             deleteBtn.addActionListener(e -> {
                 selectedBill = bill;
@@ -321,15 +330,12 @@ public class ManageBillScreen extends JPanel implements Scrollable {
             });
             group.add(deleteBtn);
             group.add(Box.createHorizontalStrut(6));
-            JButton payBtn = miniButton("Thanh toán", new Color(228, 250, 226), new Color(16, 110, 0));
-            payBtn.addActionListener(e -> {
-                selectedBill = bill;
-                paySelectedBill();
-            });
-            group.add(payBtn);
+            JButton editBtn = miniButton("Chỉnh sửa", CrudViewStyle.EDIT_BG, CrudViewStyle.EDIT_TEXT);
+            editBtn.addActionListener(e -> openEdit(bill));
+            group.add(editBtn);
 
         } else {
-            // ĐÃ HUỶ hoặc unknown: Xóa (red) | Chỉnh sửa (gray)
+            // ĐÃ HUỶ hoặc unknown: Xóa (red) | Xem chi tiết (xanh - chỉ xem)
             JButton deleteBtn = miniButton("Xóa", new Color(254, 226, 226), new Color(185, 28, 28));
             deleteBtn.addActionListener(e -> {
                 selectedBill = bill;
@@ -337,9 +343,9 @@ public class ManageBillScreen extends JPanel implements Scrollable {
             });
             group.add(deleteBtn);
             group.add(Box.createHorizontalStrut(6));
-            JButton editBtn = miniButton("Chỉnh sửa", new Color(243, 244, 246), new Color(55, 65, 81));
-            editBtn.addActionListener(e -> openDetail(bill));
-            group.add(editBtn);
+            JButton detailBtn = miniButton("Xem chi tiết", CrudViewStyle.EDIT_BG, CrudViewStyle.EDIT_TEXT);
+            detailBtn.addActionListener(e -> openDetailReadOnly(bill));
+            group.add(detailBtn);
         }
 
         JPanel wrapper = new JPanel(new GridBagLayout());
@@ -481,28 +487,12 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         loadBills(searchField.getText().trim());
     }
 
-    private void openDetail(BillVm bill) {
+    private void openEdit(BillVm bill) {
         showEdit(bill.getMaHD(), null);
     }
 
-    private void paySelectedBill() {
-        if (selectedBill == null) return;
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Xác nhận thanh toán hóa đơn " + selectedBill.getMaHD() + "?",
-                "Xác nhận thanh toán",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
-        if (confirm != JOptionPane.OK_OPTION) return;
-
-        BillResult<Void> result = controller.markAsPaid(selectedBill.getMaHD());
-        if (!result.success()) {
-            AppDialog.showError(this, normalizeError("Không thể thanh toán hóa đơn.", result.message()));
-            return;
-        }
-        AppDialog.showInfo(this, "Hóa đơn đã được thanh toán thành công.");
-        refreshBills();
+    private void openDetailReadOnly(BillVm bill) {
+        showDetail(bill.getMaHD(), null);
     }
 
     private void deleteSelectedBill() {
@@ -531,49 +521,117 @@ public class ManageBillScreen extends JPanel implements Scrollable {
 
     private void showList() {
         cardLayout.show(cardPanel, "list");
+        scrollToTop();
         refreshBills();
     }
 
     private void showEdit(String maHD, Branch branch) {
+        showEdit(maHD, branch, false);
+    }
+
+    private void showEdit(String maHD, Branch branch, boolean creatingBill) {
+        if (creatingBill) {
+            showCreate(maHD, branch);
+            return;
+        }
         editWrapper.removeAll();
         editWrapper.add(new BillEditScreen(maHD, branch, this::showList,
-                () -> showAddEquipment(maHD, branch),
-                () -> showAddProduct(maHD, branch)), BorderLayout.CENTER);
+                () -> showAddEquipment(maHD, branch, false),
+                () -> showAddProduct(maHD, branch, false),
+                advanceBooking -> showAddCourt(maHD, branch, advanceBooking, false)), BorderLayout.CENTER);
         editWrapper.revalidate();
         editWrapper.repaint();
         cardLayout.show(cardPanel, "edit");
+        scrollToTop();
+    }
+
+    private void showCreate(String maHD, Branch branch) {
+        editWrapper.removeAll();
+        editWrapper.add(new BillCreateScreen(maHD, branch, this::showList,
+                () -> showAddEquipment(maHD, branch, true),
+                () -> showAddProduct(maHD, branch, true),
+                advanceBooking -> showAddCourt(maHD, branch, advanceBooking, true),
+                true), BorderLayout.CENTER);
+        editWrapper.revalidate();
+        editWrapper.repaint();
+        cardLayout.show(cardPanel, "edit");
+        scrollToTop();
+    }
+
+    private void showAddCourt(String maHD, Branch branch) {
+        showAddCourt(maHD, branch, false);
+    }
+
+    private void showAddCourt(String maHD, Branch branch, boolean advanceBooking) {
+        showAddCourt(maHD, branch, advanceBooking, false);
+    }
+
+    private void showAddCourt(String maHD, Branch branch, boolean advanceBooking, boolean creatingBill) {
+        editWrapper.removeAll();
+        editWrapper.add(new AddCourtScreen(maHD, () -> showEdit(maHD, branch, creatingBill), advanceBooking), BorderLayout.CENTER);
+        editWrapper.revalidate();
+        editWrapper.repaint();
+        cardLayout.show(cardPanel, "edit");
+        scrollToTop();
+    }
+
+    private void showDetail(String maHD, Branch branch) {
+        editWrapper.removeAll();
+        editWrapper.add(new BillDetailScreen(maHD, branch, this::showList), BorderLayout.CENTER);
+        editWrapper.revalidate();
+        editWrapper.repaint();
+        cardLayout.show(cardPanel, "edit");
+        scrollToTop();
     }
 
     private void persistAndReturn(String maHD, Branch branch, List<ServiceItem> sel) {
+        persistAndReturn(maHD, branch, sel, false);
+    }
+
+    private void persistAndReturn(String maHD, Branch branch, List<ServiceItem> sel, boolean creatingBill) {
         if (sel != null && !sel.isEmpty()) {
             BillResult<Void> r = controller.addServiceItems(maHD, sel);
             if (!r.success()) {
                 AppDialog.showError(this, r.message() != null ? r.message() : "Không thể thêm vào hóa đơn.");
             }
         }
-        showEdit(maHD, branch);
+        showEdit(maHD, branch, creatingBill);
     }
 
     private void showAddEquipment(String maHD, Branch branch) {
+        showAddEquipment(maHD, branch, false);
+    }
+
+    private void showAddEquipment(String maHD, Branch branch, boolean creatingBill) {
         editWrapper.removeAll();
         editWrapper.add(new AddEquipmentScreen(
-                () -> showEdit(maHD, branch),                          // Quay lại (không lưu)
-                sel -> persistAndReturn(maHD, branch, sel)             // Hoàn tất → lưu DB
+                () -> showEdit(maHD, branch, creatingBill),                          // Quay lại (không lưu)
+                sel -> persistAndReturn(maHD, branch, sel, creatingBill)             // Hoàn tất → lưu DB
         ), BorderLayout.CENTER);
         editWrapper.revalidate();
         editWrapper.repaint();
         cardLayout.show(cardPanel, "edit");
+        scrollToTop();
     }
 
     private void showAddProduct(String maHD, Branch branch) {
+        showAddProduct(maHD, branch, false);
+    }
+
+    private void showAddProduct(String maHD, Branch branch, boolean creatingBill) {
         editWrapper.removeAll();
         editWrapper.add(new AddProductScreen(
-                () -> showEdit(maHD, branch),                          // Quay lại (không lưu)
-                sel -> persistAndReturn(maHD, branch, sel)             // Hoàn tất → lưu DB
+                () -> showEdit(maHD, branch, creatingBill),                          // Quay lại (không lưu)
+                sel -> persistAndReturn(maHD, branch, sel, creatingBill)             // Hoàn tất → lưu DB
         ), BorderLayout.CENTER);
         editWrapper.revalidate();
         editWrapper.repaint();
         cardLayout.show(cardPanel, "edit");
+        scrollToTop();
+    }
+
+    private void scrollToTop() {
+        SwingUtilities.invokeLater(() -> scrollRectToVisible(new Rectangle(0, 0, 1, 1)));
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────
