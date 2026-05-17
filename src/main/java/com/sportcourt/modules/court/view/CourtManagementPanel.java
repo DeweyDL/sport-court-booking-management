@@ -400,7 +400,7 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
             sortCourts();
             renderTable();
             restoreSelection(selectedId);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             AppDialog.showError(this, normalizeError("Không thể tải danh sách sân con.", e.getMessage()));
         }
     }
@@ -548,13 +548,14 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         }
 
         try {
-            List<String> areaIds = controller.getAreaIdsByBranch(branchId);
+            String effectiveBranchId = branchId != null ? branchId : selectedCourt.getBranchId();
+            List<String> areaIds = controller.getAreaIdsByBranch(effectiveBranchId);
             Court court = CourtEditPanel.show(this, selectedCourt, areaIds);
             if (court == null) {
                 return;
             }
 
-            controller.update(court, branchId);
+            controller.update(court, effectiveBranchId);
             AppDialog.showInfo(this, "Đã cập nhật thông tin sân con.");
             refreshCourts();
         } catch (SQLException e) {
@@ -579,7 +580,8 @@ public class CourtManagementPanel extends JPanel implements Scrollable {
         }
 
         try {
-            controller.delete(selectedCourt.getCourtId(), branchId);
+            String effectiveBranchId = branchId != null ? branchId : selectedCourt.getBranchId();
+            controller.delete(selectedCourt.getCourtId(), effectiveBranchId);
             AppDialog.showInfo(this, "Xóa sân con thành công.");
             refreshCourts();
         } catch (SQLException e) {

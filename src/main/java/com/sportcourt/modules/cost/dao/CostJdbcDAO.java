@@ -54,14 +54,13 @@ public class CostJdbcDAO implements CostDAO {
 
     @Override
     public void insert(Cost cost) {
-        String sql = "INSERT INTO BANG_GIA (MABG, MAKV, GIOBATDAU, GIOKETTHUC, GIA, IS_DELETED) VALUES (?, ?, ?, ?, ?, 0)";
+        String sql = "{call PRC_THEM_BANG_GIA_THEO_KHUNG_GIO(?, ?, ?, ?)}";
         try (Connection conn = OracleConnection.getOracleConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, cost.getMaBg());
-            ps.setString(2, cost.getMaKv());
-            ps.setInt(3, cost.getGioBatDau());
-            ps.setInt(4, cost.getGioKetThuc());
-            ps.setBigDecimal(5, cost.getGia());
+             CallableStatement ps = conn.prepareCall(sql)) {
+            ps.setString(1, cost.getMaKv());
+            ps.setInt(2, cost.getGioBatDau());
+            ps.setInt(3, cost.getGioKetThuc());
+            ps.setBigDecimal(4, cost.getGia());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi thêm bảng giá: " + e.getMessage(), e);
@@ -115,7 +114,7 @@ public class CostJdbcDAO implements CostDAO {
 
     @Override
     public String generateNextMaBg() {
-        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MABG, '\\d+$'))), 0) + 1 AS NEXT_ID FROM BANG_GIA WHERE REGEXP_LIKE(MABG, '^BG-\\d+$')";
+        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(MABG, '[0-9]+$'))), 0) + 1 AS NEXT_ID FROM BANG_GIA WHERE REGEXP_LIKE(MABG, '^BG-[0-9]+$')";
         try (Connection conn = OracleConnection.getOracleConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {

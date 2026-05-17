@@ -15,7 +15,6 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +101,7 @@ public class BookingHistoryPanel extends JPanel {
             }
         }
         final Image img = finalImage;
-        int arc = UIScale.scale(14);
+        int arc = UIScale.scale(60);
 
         return new JLabel() {
             @Override
@@ -293,16 +292,9 @@ public class BookingHistoryPanel extends JPanel {
         }
 
         public void loadData() {
-            String customerId = null;
-            try {
-                Field field = SessionManager.class.getDeclaredField("session");
-                field.setAccessible(true);
-                UserSession session = (UserSession) field.get(null);
-                if (session != null && session.getCustomerId() != null) {
-                    customerId = session.getCustomerId();
-                }
-            } catch (Exception e) {
-            }
+            String customerId = SessionManager.getCurrentSession()
+                    .map(UserSession::getCustomerId)
+                    .orElse(null);
             final String cid = customerId;
             SwingWorker<List<BookingHistoryItemDTO>, Void> worker = new SwingWorker<>() {
                 @Override
@@ -324,15 +316,12 @@ public class BookingHistoryPanel extends JPanel {
         }
 
         private void applyFilterAndRender() {
-            String kw = txtSearch.getText().trim().toLowerCase();
+            String kw = txtSearch.getText();
             List<BookingHistoryItemDTO> filtered = new ArrayList<>();
             for (BookingHistoryItemDTO i : allItems) {
-                boolean match = kw.isEmpty()
-                        || (i.getInvoiceId() != null && i.getInvoiceId().toLowerCase().contains(kw))
-                        || (i.getSportTypeName() != null && i.getSportTypeName().toLowerCase().contains(kw))
-                        || (i.getBranchName() != null && i.getBranchName().toLowerCase().contains(kw))
-                        || (i.getStatus() != null && i.getStatus().toLowerCase().contains(kw));
-                if (match) filtered.add(i);
+                if (i.matchSearchKeyword(kw)) {
+                    filtered.add(i);
+                }
             }
             renderList(filtered);
         }
@@ -359,14 +348,6 @@ public class BookingHistoryPanel extends JPanel {
             header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
             header.setOpaque(false);
 
-            JLabel logo = new JLabel("RENTSTA");
-            logo.setFont(AppFonts.lexendBold(30f));
-            logo.setForeground(new Color(30, 31, 36));
-            logo.setAlignmentX(Component.LEFT_ALIGNMENT);
-            header.add(logo);
-            header.add(Box.createVerticalStrut(UIScale.scale(10)));
-            header.add(makeSeparator());
-            header.add(Box.createVerticalStrut(UIScale.scale(30)));
 
             JLabel title = new JLabel("Lịch sử đặt chỗ");
             title.setFont(AppFonts.lexendBold(30f));
@@ -427,7 +408,7 @@ public class BookingHistoryPanel extends JPanel {
             String dateText = item.getFormattedBookingDate();
             String price = item.getFormattedTotalAmount();
 
-            RoundedPanel card = new RoundedPanel(UIScale.scale(28), CARD_BG, true);
+            RoundedPanel card = new RoundedPanel(UIScale.scale(80), CARD_BG, true);
             card.setLayout(new BorderLayout(UIScale.scale(22), 0));
             card.setBorder(new EmptyBorder(UIScale.scale(20), UIScale.scale(20), UIScale.scale(20), UIScale.scale(28)));
             card.setAlignmentX(Component.LEFT_ALIGNMENT);
