@@ -26,8 +26,12 @@ public class BookingHistoryController {
     public BookingDetailDTO loadDetail(String invoiceId) {
         return service.getBookingDetail(invoiceId);
     }
-    
+
     public void cancelCourtBooking(String detailId) {
         service.cancelCourtBooking(detailId);
+    }
+
+    public void confirmCourtBooking(String detailId) {
+        service.confirmCourtBooking(detailId);
     }
 }

@@ -9,6 +9,8 @@ public interface BookingHistoryService {
 
     void cancelCourtBooking(String detailId);
 
+    void confirmCourtBooking(String detailId);
+
     List<BookingHistoryItemDTO> getBookingHistory(String customerId, String keyword);
 
     BookingDetailDTO getBookingDetail(String invoiceId);

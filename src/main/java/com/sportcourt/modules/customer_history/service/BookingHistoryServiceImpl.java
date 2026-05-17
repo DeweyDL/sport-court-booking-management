@@ -20,6 +20,14 @@ public class BookingHistoryServiceImpl implements BookingHistoryService {
     }
 
     @Override
+    public void confirmCourtBooking(String detailId) {
+        if (detailId == null || detailId.isBlank()) {
+            throw new IllegalArgumentException("Mã chi tiết thuê sân không hợp lệ.");
+        }
+        dao.confirmCourtBooking(detailId);
+    }
+
+    @Override
     public List<BookingHistoryItemDTO> getBookingHistory(String customerId, String keyword) {
         return dao.findByCustomerId(customerId, keyword);
     }

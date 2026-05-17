@@ -3,6 +3,8 @@ package com.sportcourt.modules.customer_history.view;
 import com.sportcourt.common.style.AppFonts;
 import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.common.style.UIScale;
+import com.sportcourt.modules.auth.dto.UserSession;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.customer_history.controller.BookingHistoryController;
 import com.sportcourt.modules.customer_history.dto.BookingDetailDTO;
 import com.sportcourt.modules.customer_history.dto.ServiceDetailDTO;
@@ -28,6 +30,7 @@ public class BookingDetailPanel extends JPanel {
 
     private final BookingHistoryController controller;
     private final Runnable onBack;
+    private final UserSession currentSession;
 
     private final JPanel mainArea = new JPanel(new GridBagLayout());
     private final JLabel statusLabel = new JLabel("Đang tải...");
@@ -36,6 +39,7 @@ public class BookingDetailPanel extends JPanel {
     public BookingDetailPanel(BookingHistoryController controller, Runnable onBack) {
         this.controller = controller;
         this.onBack = onBack;
+        this.currentSession = SessionManager.getCurrentSession().orElse(null);
 
         AppFonts.register();
         setLayout(new BorderLayout());
@@ -536,13 +540,37 @@ public class BookingDetailPanel extends JPanel {
 
         // --- HIỂN THỊ NÚT BẤM ---
         String upperStatus = overallStatus != null ? overallStatus.toUpperCase() : "";
+        boolean isStaff = currentSession != null &&
+                (currentSession.getEmployeeId() != null || currentSession.isOwner());
+
         if (upperStatus.contains("CHỜ CỌC") || upperStatus.contains("CHƯA")) {
             JButton btnPay = createActionButton("THANH TOÁN CỌC", new Color(57, 255, 20), new Color(0, 100, 0));
             btnPay.addActionListener(e -> handlePayDeposit(detail.getInvoiceId()));
             card.add(btnPay);
-        } else if (upperStatus.contains("XÁC NHẬN") || upperStatus.contains("ĐÃ CỌC")) {
+
+            // Nhân viên/admin thấy thêm nút xác nhận
+            if (isStaff) {
+                card.add(Box.createVerticalStrut(UIScale.scale(8)));
+                JButton btnConfirm = createActionButton("XÁC NHẬN ĐẶT SÂN", new Color(0, 150, 255), Color.WHITE);
+                btnConfirm.addActionListener(e -> handleConfirmBooking(detail));
+                card.add(btnConfirm);
+            }
+
+        } else if (upperStatus.contains("ĐÃ CỌC")) {
+            // Nhân viên/admin thấy nút xác nhận
+            if (isStaff) {
+                JButton btnConfirm = createActionButton("XÁC NHẬN ĐẶT SÂN", new Color(0, 150, 255), Color.WHITE);
+                btnConfirm.addActionListener(e -> handleConfirmBooking(detail));
+                card.add(btnConfirm);
+                card.add(Box.createVerticalStrut(UIScale.scale(8)));
+            }
             JButton btnCancel = createActionButton("HỦY ĐẶT SÂN", new Color(255, 77, 77), Color.WHITE);
-            btnCancel.addActionListener(e -> handleCancelBooking(detail)); // TRUYỀN NGUYÊN ĐỐI TƯỢNG DETAIL
+            btnCancel.addActionListener(e -> handleCancelBooking(detail));
+            card.add(btnCancel);
+
+        } else if (upperStatus.contains("XÁC NHẬN")) {
+            JButton btnCancel = createActionButton("HỦY ĐẶT SÂN", new Color(255, 77, 77), Color.WHITE);
+            btnCancel.addActionListener(e -> handleCancelBooking(detail));
             card.add(btnCancel);
         }
 
@@ -561,11 +589,11 @@ public class BookingDetailPanel extends JPanel {
             bg = new Color(255, 77, 77);
             fg = Color.WHITE;
             displayStatus = "Đã đặt chờ cọc";
-        } else if (upperSt.contains("XÁC NHẬN") && upperSt.contains("CHỜ")) {
-            bg = new Color(204, 255, 204);
-            fg = new Color(0, 100, 0);
-            displayStatus = "Chờ xác nhận";
-        } else if (upperSt.contains("XÁC NHẬN") || upperSt.contains("ĐÃ CỌC")) {
+        } else if (upperSt.equals("ĐÃ CỌC")) {
+            bg = new Color(255, 200, 0);
+            fg = new Color(100, 60, 0);
+            displayStatus = "Đã cọc";
+        } else if (upperSt.contains("XÁC NHẬN")) {
             bg = new Color(102, 255, 102);
             fg = new Color(0, 100, 0);
             displayStatus = "Đã xác nhận";
@@ -679,6 +707,44 @@ public class BookingDetailPanel extends JPanel {
         JOptionPane.showMessageDialog(parentWindow,
                 "Chức năng thanh toán cọc đang được kết nối với cổng thanh toán cho mã đơn: " + invoiceId,
                 "Đang phát triển", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void handleConfirmBooking(BookingDetailDTO detail) {
+        if (detail == null || detail.getCourtItems() == null || detail.getCourtItems().isEmpty()) return;
+
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        int confirm = JOptionPane.showConfirmDialog(parentWindow,
+                "Xác nhận đặt sân cho hóa đơn " + detail.getInvoiceId() + "?",
+                "Xác nhận đặt sân", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    for (BookingDetailDTO.CourtLineItem item : detail.getCourtItems()) {
+                        if (item.canBeCancelled()) { // còn active thì xác nhận
+                            controller.confirmCourtBooking(item.getBookingDetailId());
+                        }
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        JOptionPane.showMessageDialog(parentWindow,
+                                "Xác nhận đặt sân thành công!", "Thông báo",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        loadDetail(detail.getInvoiceId()); // reload lại trang
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(parentWindow,
+                                ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
+        }
     }
 
     private static class RoundedPanel extends JPanel {
