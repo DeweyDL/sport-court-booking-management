@@ -11,11 +11,13 @@ public record BillDetail(
         String sdtKhachHang,
         String maNV,
         String tenNhanVien,
+        String maCn,
         BigDecimal tienCoc,
         BigDecimal giamGia,
         BigDecimal tongGiaTri,
         String trangThai,
         BigDecimal tongTien,
+        BigDecimal chietKhauHang,
         LocalDateTime createdAt,
         List<CourtRentalItem> danhSachThuesan,
         List<ServiceItem> danhSachDichVu

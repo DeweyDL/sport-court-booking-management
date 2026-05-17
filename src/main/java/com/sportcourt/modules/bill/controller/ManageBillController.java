@@ -6,6 +6,7 @@ import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
 import com.sportcourt.modules.bill.service.ManageBillService;
 import com.sportcourt.modules.bill.service.ManageBillServiceImpl;
+import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.util.List;
 
@@ -44,7 +45,23 @@ public class ManageBillController {
         return service.createEmptyBill(maKH, maNV);
     }
 
+    public BillResult<Void> addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) {
+        return service.addCourtBookingDetails(maHD, slots, advanceBooking);
+    }
+
     public BillResult<Void> addServiceItems(String maHD, List<ServiceItem> items) {
         return service.addServiceItems(maHD, items);
+    }
+
+    public BillResult<Void> updateServiceItemQty(String maCTHDDV, int newQty) {
+        return service.updateServiceItemQty(maCTHDDV, newQty);
+    }
+
+    public BillResult<Void> updateDiscount(String maHD, int discountPercent) {
+        return service.updateDiscount(maHD, discountPercent);
+    }
+
+    public BillResult<Void> deleteCourtRental(String maCTHDTS) {
+        return service.deleteCourtRental(maCTHDTS);
     }
 }
