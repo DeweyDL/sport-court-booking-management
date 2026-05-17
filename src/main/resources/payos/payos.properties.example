@@ -1,5 +1,5 @@
-# Lấy 3 giá trị này trong my.payos.vn > Kênh thanh toán
-# Sao chép file này thành payos.properties rồi điền khóa thật (payos.properties đã được .gitignore)
+
 payos.client-id=your_client_id
 payos.api-key=your_api_key
 payos.checksum-key=your_checksum_key
+//
