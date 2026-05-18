@@ -7,7 +7,7 @@ import javax.swing.border.AbstractBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-final class CustomerCreateDialog {
+public final class CustomerCreateDialog {
 
     private static final Color DIALOG_BG = new Color(248, 249, 252);
     private static final Color CARD_BG = Color.WHITE;
@@ -21,7 +21,7 @@ final class CustomerCreateDialog {
     private CustomerCreateDialog() {
     }
 
-    static CreateCustomerRequest show(Component parent, String generatedMaKhachHang) {
+    public static CreateCustomerRequest show(Component parent, String generatedMaKhachHang) {
         Window owner = parent == null ? null : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, "Thêm khách hàng", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);

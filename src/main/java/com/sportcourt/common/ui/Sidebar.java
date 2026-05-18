@@ -28,6 +28,7 @@ import com.sportcourt.modules.staff_type.view.ManageStaffTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
 import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
+import com.sportcourt.modules.bill.view.ManageBillScreen;
 import com.sportcourt.modules.customer_history.view.BookingHistoryPanel;
 import com.sportcourt.modules.dashboard.view.DashBoardScreen;
 
@@ -360,7 +361,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.PRICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", CostManagement::new);
         if (canView(FunctionId.BOOKING_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", BookingRequest::new);
         if (canView(FunctionId.SERVICE_MANAGEMENT)) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
-        if (canView(FunctionId.INVOICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
+        if (canView(FunctionId.INVOICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", ManageBillScreen::new);
         if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerScreen::new);
         }

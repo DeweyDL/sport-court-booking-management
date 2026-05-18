@@ -1039,7 +1039,7 @@ BEGIN
             P_MASAN         => P_MASAN,
             P_MABG          => P_MABG,
             P_NGAYTHUE      => P_NGAYTHUE,
-            P_TRANGTHAI     => 'ĐÃ XÁC NHẬN'
+            P_TRANGTHAI     => 'ĐANG SỬ DỤNG'
         );
 
     SELECT NVL(SUM(DON_GIA_THUE), 0)
