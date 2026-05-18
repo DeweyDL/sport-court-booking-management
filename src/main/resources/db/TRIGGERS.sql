@@ -294,7 +294,7 @@ DECLARE
     V_INVALID_SAN PLS_INTEGER := 0;
 BEGIN
     -- Không cho thay đổi từ trạng thái đã kết thúc
-    IF :OLD.TRANGTHAI IN ('ĐÃ THANH TOÁN', 'ĐÃ HUỶ')
+    IF :OLD.TRANGTHAI IN ('ĐÃ XÁC NHẬN', 'ĐÃ HUỶ')
         AND :NEW.TRANGTHAI <> :OLD.TRANGTHAI THEN
         RAISE_APPLICATION_ERROR(-20061, 'Khong duoc thay doi trang thai cua hoa don da thanh toan hoac da huy.');
     END IF;
