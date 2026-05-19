@@ -43,7 +43,24 @@ public class JdbcManageBillDao implements ManageBillDao {
                       OR hd.MAKH LIKE '%' || ? || '%'
                   )
                 """
-                + (filterBranch ? "  AND nv.MACN = ?\n" : "")
+                + (filterBranch ? """
+                  AND (
+                      nv.MACN = ?
+                      OR EXISTS (
+                          SELECT 1
+                          FROM CHI_TIET_HOA_DON_THUE_SAN ct_branch
+                          JOIN SAN_CON sc_branch
+                            ON sc_branch.MASAN = ct_branch.MASAN
+                           AND NVL(sc_branch.IS_DELETED, 0) = 0
+                          JOIN KHU_VUC kv_branch
+                            ON kv_branch.MAKV = sc_branch.MAKV
+                           AND NVL(kv_branch.IS_DELETED, 0) = 0
+                          WHERE ct_branch.MAHD = hd.MAHD
+                            AND NVL(ct_branch.IS_DELETED, 0) = 0
+                            AND kv_branch.MACN = ?
+                      )
+                  )
+                """ : "")
                 + "ORDER BY hd.CREATED_AT DESC";
         List<BillSummary> result = new ArrayList<>();
         try (Connection conn = ConnectionUtils.getMyConnection();
@@ -54,6 +71,7 @@ public class JdbcManageBillDao implements ManageBillDao {
             stmt.setString(3, kw);
             if (filterBranch) {
                 stmt.setString(4, branchId);
+                stmt.setString(5, branchId);
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -80,7 +98,19 @@ public class JdbcManageBillDao implements ManageBillDao {
     public Optional<BillDetail> findDetailById(String maHD) throws SQLException {
         String masterSql = """
                 SELECT hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG, u_kh.SDT AS SDT_KHACH_HANG,
-                       hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN, nv.MACN AS MACN,
+                       hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN,
+                       COALESCE((
+                           SELECT MIN(kv_detail.MACN)
+                           FROM CHI_TIET_HOA_DON_THUE_SAN ct_detail
+                           JOIN SAN_CON sc_detail
+                             ON sc_detail.MASAN = ct_detail.MASAN
+                            AND NVL(sc_detail.IS_DELETED, 0) = 0
+                           JOIN KHU_VUC kv_detail
+                             ON kv_detail.MAKV = sc_detail.MAKV
+                            AND NVL(kv_detail.IS_DELETED, 0) = 0
+                           WHERE ct_detail.MAHD = hd.MAHD
+                             AND NVL(ct_detail.IS_DELETED, 0) = 0
+                       ), nv.MACN) AS MACN,
                        hd.TIEN_COC, hd.GIAMGIA, hd.TONGGIATRI, TRIM(hd.TRANGTHAI) AS TRANGTHAI,
                        hd.TONGTIEN, hd.CREATED_AT, NVL(hk.CHIET_KHAU, 0) AS CHIET_KHAU
                 FROM HOA_DON hd

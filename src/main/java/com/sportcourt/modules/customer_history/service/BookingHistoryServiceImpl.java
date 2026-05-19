@@ -28,6 +28,14 @@ public class BookingHistoryServiceImpl implements BookingHistoryService {
     }
 
     @Override
+    public void markDeposited(String invoiceId) {
+        if (invoiceId == null || invoiceId.isBlank()) {
+            throw new IllegalArgumentException("Mã hóa đơn không hợp lệ.");
+        }
+        dao.markDeposited(invoiceId);
+    }
+
+    @Override
     public List<BookingHistoryItemDTO> getBookingHistory(String customerId, String keyword) {
         return dao.findByCustomerId(customerId, keyword);
     }

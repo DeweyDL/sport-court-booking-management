@@ -186,6 +186,16 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         }
     }
 
+    @Override
+    public void markPendingInvoiceAsDeposited(String invoiceId) {
+        requireNotBlank(invoiceId, "Thiếu mã hóa đơn.");
+        try {
+            orderDAO.markAllDetailsDeposited(invoiceId.trim());
+        } catch (SQLException e) {
+            throw databaseError("Không thể cập nhật trạng thái hóa đơn sau thanh toán.", e);
+        }
+    }
+
     private RuntimeException databaseError(String fallbackMessage, SQLException e) {
         if (isTriggerError(e)) {
             return new IllegalArgumentException(extractDatabaseMessage(e), e);

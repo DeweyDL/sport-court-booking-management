@@ -11,6 +11,7 @@ import java.util.List;
 public class JdbcBookingRequestDao implements BookingRequestDao {
     private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
     private static final String STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
+    private static final String STATUS_IN_USE = "ĐANG SỬ DỤNG";
 
     @Override
     public List<BookingBranchOption> findBranchOptions() throws SQLException {
@@ -396,7 +397,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                     u.HOTEN AS CUSTOMER_NAME,
                     u.SDT AS CUSTOMER_PHONE,
                     cn.TEN_CHI_NHANH,
-                    MIN(ltt.TEN) AS SPORT_TYPE_NAME,
+                    LISTAGG(DISTINCT ltt.TEN, ', ') WITHIN GROUP (ORDER BY ltt.TEN) AS SPORT_TYPE_NAME,
                     MIN(ct.MASAN) AS FIRST_COURT_ID,
                     COUNT(DISTINCT ct.MASAN) AS COURT_COUNT,
                     TRUNC(MIN(ct.NGAYTHUE)) AS BOOKING_DATE,
@@ -494,7 +495,80 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
     }
 
     @Override
-    public boolean confirmPendingDepositBooking(String invoiceId) throws SQLException {
+    public boolean confirmPendingDepositBooking(String invoiceId, String confirmingEmployeeId) throws SQLException {
+        String updateDetailSql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MAHD = ?
+                  AND IS_DELETED = 0
+                  AND TRIM(TRANGTHAI) = ?
+                """;
+        String updateInvoiceEmployeeSql = """
+                UPDATE HOA_DON hd
+                SET MANV = ?
+                WHERE hd.MAHD = ?
+                  AND NVL(hd.IS_DELETED, 0) = 0
+                  AND TRIM(hd.TRANGTHAI) = 'CHƯA THANH TOÁN'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM NHAN_VIEN nv
+                      WHERE nv.MANV = ?
+                        AND NVL(nv.IS_DELETED, 0) = 0
+                        AND UPPER(nv.TRANG_THAI) = 'ACTIVE'
+                  )
+                  AND EXISTS (
+                      SELECT 1
+                      FROM CHI_TIET_HOA_DON_THUE_SAN ct
+                      WHERE ct.MAHD = hd.MAHD
+                        AND NVL(ct.IS_DELETED, 0) = 0
+                        AND TRIM(ct.TRANGTHAI) = ?
+                  )
+                """;
+
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                int updatedInvoice;
+                try (PreparedStatement ps = conn.prepareStatement(updateInvoiceEmployeeSql)) {
+                    ps.setString(1, confirmingEmployeeId);
+                    ps.setString(2, invoiceId);
+                    ps.setString(3, confirmingEmployeeId);
+                    ps.setString(4, STATUS_DEPOSITED);
+                    updatedInvoice = ps.executeUpdate();
+                }
+
+                if (updatedInvoice == 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                int updatedDetails;
+                try (PreparedStatement ps = conn.prepareStatement(updateDetailSql)) {
+                    ps.setString(1, STATUS_CONFIRMED);
+                    ps.setString(2, invoiceId);
+                    ps.setString(3, STATUS_DEPOSITED);
+                    updatedDetails = ps.executeUpdate();
+                }
+
+                if (updatedDetails == 0) {
+                    conn.rollback();
+                    return false;
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    @Override
+    public boolean checkInBooking(String invoiceId) throws SQLException {
         String sql = """
                 UPDATE CHI_TIET_HOA_DON_THUE_SAN
                 SET TRANGTHAI = ?
@@ -505,9 +579,9 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
 
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, STATUS_CONFIRMED);
+            ps.setString(1, STATUS_IN_USE);
             ps.setString(2, invoiceId);
-            ps.setString(3, STATUS_DEPOSITED);
+            ps.setString(3, STATUS_CONFIRMED);
             return ps.executeUpdate() > 0;
         }
     }

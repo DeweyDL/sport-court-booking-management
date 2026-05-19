@@ -7,6 +7,7 @@ import com.sportcourt.modules.customer_booking.service.CustomerBookingService;
 import com.sportcourt.modules.customer_booking.service.CustomerBookingServiceImpl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -78,9 +79,17 @@ public class CustomerBookingController {
                 customerId,
                 employeeId,
                 selectedSlots,
-                null,
+                computeDeposit(selectedSlots),
                 BigDecimal.ZERO
         ));
+    }
+
+    public void cancelPendingBooking(String invoiceId) {
+        customerBookingService.cancelPendingBooking(invoiceId);
+    }
+
+    public void markBookingAsDeposited(String invoiceId) {
+        customerBookingService.markPendingInvoiceAsDeposited(invoiceId);
     }
 
     private String resolveCustomerId(UserSession session) {
@@ -107,5 +116,13 @@ public class CustomerBookingController {
                 .orElseThrow(() -> new IllegalStateException(
                         "Chi nhánh này chưa có nhân viên đang hoạt động để xử lý đặt sân."
                 ));
+    }
+
+    private BigDecimal computeDeposit(List<SelectedBookingSlot> selectedSlots) {
+        BigDecimal total = selectedSlots == null ? BigDecimal.ZERO : selectedSlots.stream()
+                .map(SelectedBookingSlot::unitPrice)
+                .filter(price -> price != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.multiply(new BigDecimal("0.70")).setScale(2, RoundingMode.HALF_UP);
     }
 }
