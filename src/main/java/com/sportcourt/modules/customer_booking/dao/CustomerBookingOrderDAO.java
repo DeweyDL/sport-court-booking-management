@@ -14,4 +14,6 @@ public interface CustomerBookingOrderDAO {
     public BookingPreview createPendingInvoice(CreateBookingRequest request) throws SQLException;
     public void insertCourtBookingDetails(String invoiceId, List<SelectedBookingSlot> selectedBookingSlot) throws SQLException;
     public void cancelPendingBooking(String invoiceId) throws SQLException;
+
+    public void markAllDetailsDeposited(String invoiceId) throws SQLException;
 }

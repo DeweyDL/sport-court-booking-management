@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Optional;
 
 public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
+    private static final String BOOKING_DETAIL_STATUS_WAITING_DEPOSIT = "ĐÃ ĐẶT CHỜ CỌC";
     private static final String BOOKING_DETAIL_STATUS_DEPOSITED = "ĐÃ CỌC";
-    private static final String BOOKING_DETAIL_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
-    private static final String BOOKING_DETAIL_STATUS_CANCELLED = "\u0110\u00C3 HU\u1EF6";
-    private static final String INVOICE_STATUS_UNPAID = "CH\u01AFA THANH TO\u00C1N";
-    private static final String INVOICE_STATUS_CANCELLED = "\u0110\u00C3 HU\u1EF6";
+    private static final String BOOKING_DETAIL_STATUS_CANCELLED = "ĐÃ HUỶ";
+    private static final String INVOICE_STATUS_UNPAID = "CHƯA THANH TOÁN";
+    private static final String INVOICE_STATUS_CANCELLED = "ĐÃ HUỶ";
 
     @Override
     public String findCustomerByUserId(String userId) throws SQLException {
@@ -182,7 +182,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                     discount
             );
             if (advanceBooking) {
-                markBookingDetailDeposited(connection, detailId);
+                markBookingDetailWaitingDeposit(connection, detailId);
             }
         }
     }
@@ -222,7 +222,24 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, BOOKING_DETAIL_STATUS_DEPOSITED);
             ps.setString(2, detailId);
-            ps.setString(3, BOOKING_DETAIL_STATUS_CONFIRMED);
+            ps.setString(3, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            ps.executeUpdate();
+        }
+    }
+
+    private void markBookingDetailWaitingDeposit(Connection connection, String detailId) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MACT_THUE_SAN = ?
+                    AND IS_DELETED = 0
+                    AND TRANGTHAI <> ?
+                """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            ps.setString(2, detailId);
+            ps.setString(3, BOOKING_DETAIL_STATUS_CANCELLED);
             ps.executeUpdate();
         }
     }
@@ -289,14 +306,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                     HD.MAKH,
                     HD.MANV,
                     HD.GIAMGIA,
-                    HD.TIEN_COC,
-                    (
-                        SELECT COUNT(1)
-                        FROM CHI_TIET_HOA_DON_THUE_SAN CT
-                        WHERE CT.MAHD = HD.MAHD
-                            AND CT.IS_DELETED = 0
-                            AND CT.TRANGTHAI <> ?
-                    ) AS ACTIVE_DETAIL_COUNT
+                    HD.TIEN_COC
                 FROM HOA_DON HD
                 WHERE HD.MAHD = ?
                     AND HD.TRANGTHAI = ?
@@ -304,18 +314,15 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                 """;
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, BOOKING_DETAIL_STATUS_CANCELLED);
-            ps.setString(2, invoiceId);
-            ps.setString(3, INVOICE_STATUS_UNPAID);
+            ps.setString(1, invoiceId);
+            ps.setString(2, INVOICE_STATUS_UNPAID);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
                 }
 
                 BigDecimal deposit = normalizeMoney(rs.getBigDecimal("TIEN_COC"));
-                int activeDetailCount = rs.getInt("ACTIVE_DETAIL_COUNT");
-                boolean advanceBooking = activeDetailCount == 0
-                        || deposit.compareTo(BigDecimal.ZERO) > 0;
+                boolean advanceBooking = deposit.compareTo(BigDecimal.ZERO) > 0;
 
                 return Optional.of(new InvoiceContext(
                         rs.getString("MAKH"),
@@ -389,6 +396,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                     AND CN.IS_DELETED = 0
                 WHERE CT.MAHD = ?
                     AND CT.IS_DELETED = 0
+                    AND CT.TRANGTHAI <> ?
                 ORDER BY CT.NGAYTHUE, BG.GIOBATDAU, CT.MASAN
                 """;
 
@@ -425,6 +433,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
 
         try (PreparedStatement ps = connection.prepareStatement(lineSql)) {
             ps.setString(1, invoiceId);
+            ps.setString(2, BOOKING_DETAIL_STATUS_CANCELLED);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     int startHour = rs.getInt("GIOBATDAU");
@@ -487,8 +496,26 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
         }
     }
 
+    @Override
+    public void markAllDetailsDeposited(String invoiceId) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MAHD = ?
+                    AND IS_DELETED = 0
+                    AND TRANGTHAI = ?
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, BOOKING_DETAIL_STATUS_DEPOSITED);
+            ps.setString(2, invoiceId);
+            ps.setString(3, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            ps.executeUpdate();
+        }
+    }
+
     private boolean isAdvanceBooking(CreateBookingRequest request) {
-        return request.deposit() == null || request.deposit().compareTo(BigDecimal.ZERO) > 0;
+        return request.deposit() != null && request.deposit().compareTo(BigDecimal.ZERO) > 0;
     }
 
     private BigDecimal normalizeMoney(BigDecimal value) {
