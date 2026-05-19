@@ -14,7 +14,19 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
     private static final String SQL_FIND_BY_CUSTOMER = """
             SELECT
                 HD.MAHD,
-                MAX(CT.TRANGTHAI)                AS TRANGTHAI,
+                CASE
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ ĐẶT CHỜ CỌC' THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐÃ ĐẶT CHỜ CỌC'
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ CỌC' THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐÃ CỌC'
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ XÁC NHẬN' THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐÃ XÁC NHẬN'
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐANG SỬ DỤNG'
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ HOÀN THÀNH' THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐÃ HOÀN THÀNH'
+                    ELSE 'ĐÃ HUỶ'
+                END                              AS TRANGTHAI,
                 HD.TONGTIEN,
                 HD.CREATED_AT,
                 MAX(LTT.TEN)                     AS SPORT_TYPE_NAME,
@@ -136,12 +148,30 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
     }
 
     @Override
+    public void markDeposited(String invoiceId) {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = 'ĐÃ CỌC'
+                WHERE MAHD = ?
+                    AND IS_DELETED = 0
+                    AND TRANGTHAI = 'ĐÃ ĐẶT CHỜ CỌC'
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, invoiceId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Không thể cập nhật trạng thái cọc: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void confirmCourtBooking(String detailId) {
         String sql = """
                 UPDATE CHI_TIET_HOA_DON_THUE_SAN
                 SET TRANGTHAI = 'ĐÃ XÁC NHẬN'
                 WHERE MACT_THUE_SAN = ?
-                    AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC')
+                    AND TRANGTHAI = 'ĐÃ CỌC'
                     AND IS_DELETED = 0
                 """;
         try (Connection conn = ConnectionUtils.getMyConnection();
@@ -149,7 +179,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
             ps.setString(1, detailId);
             int rows = ps.executeUpdate();
             if (rows == 0) {
-                throw new RuntimeException("Không thể xác nhận. Chi tiết không tồn tại hoặc không ở trạng thái hợp lệ.");
+                throw new RuntimeException("Không thể xác nhận. Chi tiết không ở trạng thái 'ĐÃ CỌC' hoặc không tồn tại.");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage(), e);
