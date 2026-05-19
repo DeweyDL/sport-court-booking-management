@@ -9,6 +9,7 @@ import com.sportcourt.modules.bill.dto.ServiceItem;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,6 +23,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class JdbcManageBillDao implements ManageBillDao {
+    private static final String COURT_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
+    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String COURT_STATUS_IN_USE = "ĐANG SỬ DỤNG";
+    private static final String COURT_STATUS_CANCELLED = "ĐÃ HUỶ";
 
     @Override
     public List<BillSummary> findAll(String keyword, String branchId) throws SQLException {
@@ -199,14 +204,78 @@ public class JdbcManageBillDao implements ManageBillDao {
 
     @Override
     public boolean softDelete(String maHD) throws SQLException {
-        String sql = """
-                UPDATE HOA_DON SET IS_DELETED = 1
+        String softDeleteServiceSql = """
+                UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
+                SET IS_DELETED = 1
                 WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0
                 """;
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        String softDeleteCourtSql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET IS_DELETED = 1
+                WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0
+                """;
+        String softDeleteBillSql = """
+                UPDATE HOA_DON
+                SET IS_DELETED = 1
+                WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0
+                """;
+
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            boolean suppressingRecalc = false;
+            try {
+                if (!lockActiveInvoice(conn, maHD)) {
+                    conn.rollback();
+                    return false;
+                }
+
+                executeSoftDeleteByInvoice(conn, softDeleteServiceSql, maHD);
+
+                setCourtRecalcSuppressed(conn, true);
+                suppressingRecalc = true;
+                executeSoftDeleteByInvoice(conn, softDeleteCourtSql, maHD);
+                int deletedBills = executeSoftDeleteByInvoice(conn, softDeleteBillSql, maHD);
+                setCourtRecalcSuppressed(conn, false);
+                suppressingRecalc = false;
+
+                conn.commit();
+                return deletedBills > 0;
+            } catch (SQLException | RuntimeException e) {
+                if (suppressingRecalc) {
+                    try {
+                        setCourtRecalcSuppressed(conn, false);
+                    } catch (SQLException ignored) {
+                        // Keep the original database error visible to the caller.
+                    }
+                }
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    private boolean lockActiveInvoice(Connection conn, String maHD) throws SQLException {
+        String sql = """
+                SELECT 1
+                FROM HOA_DON
+                WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0
+                FOR UPDATE
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, maHD);
-            return stmt.executeUpdate() > 0;
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private int executeSoftDeleteByInvoice(Connection conn, String sql, String maHD) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maHD);
+            return stmt.executeUpdate();
         }
     }
 
@@ -321,55 +390,129 @@ public class JdbcManageBillDao implements ManageBillDao {
     public void addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) throws SQLException {
         if (slots == null || slots.isEmpty()) return;
         try (Connection conn = ConnectionUtils.getMyConnection()) {
-            // Lấy thông tin hóa đơn hiện tại
-            String getInvoiceSql = "SELECT MAKH, MANV, GIAMGIA FROM HOA_DON WHERE MAHD = ? AND IS_DELETED = 0";
-            String makh = null;
-            String manv = null;
-            BigDecimal discount = BigDecimal.ZERO;
-            try (PreparedStatement stmt = conn.prepareStatement(getInvoiceSql)) {
-                stmt.setString(1, maHD);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        makh = rs.getString("MAKH");
-                        manv = rs.getString("MANV");
-                        discount = rs.getBigDecimal("GIAMGIA");
-                        if (discount == null) discount = BigDecimal.ZERO;
-                    } else {
-                        throw new SQLException("Hóa đơn không tồn tại hoặc đã bị xóa: " + maHD);
-                    }
-                }
-            }
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                setCourtRecalcSuppressed(conn, true);
+                ensureInvoiceExists(conn, maHD);
 
-            int nextDetailNumber = findNextNumericId(conn, "CHI_TIET_HOA_DON_THUE_SAN", "MACT_THUE_SAN", "CTHDTS-");
-            for (SelectedBookingSlot slot : slots) {
-                String detailId = "CTHDTS-" + nextDetailNumber++;
-                String sql = "{call PRC_DAT_SAN(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
-                try (CallableStatement cs = conn.prepareCall(sql)) {
-                    cs.setString(1, maHD);
-                    cs.setString(2, detailId);
-                    cs.setString(3, makh);
-                    cs.setString(4, manv);
-                    cs.setString(5, slot.courtId());
-                    cs.setString(6, slot.priceBoardId());
-                    cs.setDate(7, java.sql.Date.valueOf(slot.bookingDate()));
-                    cs.setInt(8, advanceBooking ? 1 : 0);
-                    cs.setBigDecimal(9, discount);
-                    cs.execute();
+                int nextDetailNumber = findNextNumericId(conn, "CHI_TIET_HOA_DON_THUE_SAN", "MACT_THUE_SAN", "CTHDTS-");
+                for (SelectedBookingSlot slot : slots) {
+                    String detailId = "CTHDTS-" + nextDetailNumber++;
+                    insertConfirmedCourtRental(conn, maHD, detailId, slot);
+                    if (advanceBooking) {
+                        updateCourtRentalStatus(conn, detailId, COURT_STATUS_DEPOSITED, COURT_STATUS_CONFIRMED);
+                    } else {
+                        updateCourtRentalStatus(conn, detailId, COURT_STATUS_IN_USE, COURT_STATUS_CONFIRMED);
+                    }
                 }
-                if (advanceBooking) {
-                    String updateStatusSql = """
-                            UPDATE CHI_TIET_HOA_DON_THUE_SAN
-                            SET TRANGTHAI = 'ĐÃ CỌC'
-                            WHERE MACT_THUE_SAN = ?
-                                AND IS_DELETED = 0
-                                AND TRANGTHAI = 'ĐÃ XÁC NHẬN'
-                            """;
-                    try (PreparedStatement stmt = conn.prepareStatement(updateStatusSql)) {
-                        stmt.setString(1, detailId);
-                        stmt.executeUpdate();
+                updateInvoiceDeposit(conn, maHD, advanceBooking);
+                setCourtRecalcSuppressed(conn, false);
+                recalculateInvoice(conn, maHD);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                try {
+                    setCourtRecalcSuppressed(conn, false);
+                } catch (SQLException ignored) {
+                    // Keep the original database error visible to the caller.
+                }
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    private void ensureInvoiceExists(Connection conn, String maHD) throws SQLException {
+        String sql = "SELECT 1 FROM HOA_DON WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maHD);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Hóa đơn không tồn tại hoặc đã bị xóa: " + maHD);
+                }
+            }
+        }
+    }
+
+    private void insertConfirmedCourtRental(Connection conn, String maHD, String detailId, SelectedBookingSlot slot) throws SQLException {
+        String sql = "{call PRC_THEM_CHI_TIET_THUE_SAN(?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cs = conn.prepareCall(sql)) {
+            cs.setString(1, detailId);
+            cs.setString(2, maHD);
+            cs.setString(3, slot.courtId());
+            cs.setString(4, slot.priceBoardId());
+            cs.setDate(5, java.sql.Date.valueOf(slot.bookingDate()));
+            cs.setString(6, COURT_STATUS_CONFIRMED);
+            cs.execute();
+        }
+    }
+
+    private void updateCourtRentalStatus(Connection conn, String detailId, String newStatus, String requiredCurrentStatus) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MACT_THUE_SAN = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                  AND TRIM(TRANGTHAI) = ?
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newStatus);
+            stmt.setString(2, detailId);
+            stmt.setString(3, requiredCurrentStatus);
+            if (stmt.executeUpdate() == 0) {
+                throw new SQLException("Không thể chuyển trạng thái chi tiết thuê sân " + detailId + " sang " + newStatus + ".");
+            }
+        }
+    }
+
+    private void updateInvoiceDeposit(Connection conn, String maHD, boolean advanceBooking) throws SQLException {
+        BigDecimal totalCourtRental = BigDecimal.ZERO;
+        String totalSql = """
+                SELECT NVL(SUM(DON_GIA_THUE), 0) AS TOTAL_COURT_RENTAL
+                FROM CHI_TIET_HOA_DON_THUE_SAN
+                WHERE MAHD = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                  AND TRIM(TRANGTHAI) <> ?
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(totalSql)) {
+            stmt.setString(1, maHD);
+            stmt.setString(2, COURT_STATUS_CANCELLED);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    totalCourtRental = rs.getBigDecimal("TOTAL_COURT_RENTAL");
+                    if (totalCourtRental == null) {
+                        totalCourtRental = BigDecimal.ZERO;
                     }
                 }
             }
+        }
+
+        BigDecimal deposit = advanceBooking
+                ? totalCourtRental.multiply(new BigDecimal("0.7")).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        String updateSql = "UPDATE HOA_DON SET TIEN_COC = ? WHERE MAHD = ? AND NVL(IS_DELETED, 0) = 0";
+        try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+            stmt.setBigDecimal(1, deposit);
+            stmt.setString(2, maHD);
+            stmt.executeUpdate();
+        }
+    }
+
+    private void recalculateInvoice(Connection conn, String maHD) throws SQLException {
+        try (CallableStatement cs = conn.prepareCall("{call PRC_CAP_NHAT_SO_TIEN_HOA_DON(?)}")) {
+            cs.setString(1, maHD);
+            cs.execute();
+        }
+    }
+
+    private void setCourtRecalcSuppressed(Connection conn, boolean suppressed) throws SQLException {
+        String sql = suppressed
+                ? "BEGIN PKG_COURT_CTX.G_INTERNAL_RECALC := TRUE; END;"
+                : "BEGIN PKG_COURT_CTX.G_INTERNAL_RECALC := FALSE; END;";
+        try (CallableStatement cs = conn.prepareCall(sql)) {
+            cs.execute();
         }
     }
 

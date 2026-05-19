@@ -1149,7 +1149,183 @@ public class BillEditScreen extends JPanel {
 
     // ── Utilities ────────────────────────────────────────────────────────────
 
+    private boolean showPaymentDialog(BillDetail bill) {
+        BigDecimal amount = bill.tongTien() == null ? BigDecimal.ZERO : bill.tongTien();
+        int method = choosePaymentMethod("Thanh toán hóa đơn " + bill.maHD(), amount);
+        if (method == 0) {
+            return showCashPaymentDialog("Thanh toán hóa đơn " + bill.maHD(), amount, bill);
+        }
+        if (method == 1) {
+            return showTransferPaymentDialog(bill);
+        }
+        return false;
+    }
+
     private boolean showDepositPaymentDialog(BigDecimal deposit) {
+        int method = choosePaymentMethod("Thanh toán cọc đặt trước", deposit);
+        if (method == 0) {
+            return showCashPaymentDialog("Thanh toán cọc đặt trước", deposit, null);
+        }
+        if (method == 1) {
+            return showDepositTransferPaymentDialog(deposit);
+        }
+        return false;
+    }
+
+    private int choosePaymentMethod(String title, BigDecimal amount) {
+        JPanel panel = new JPanel(new GridLayout(0, 1, 0, 8));
+        panel.setOpaque(false);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        JLabel amountLabel = new JLabel("Số tiền cần thu: " + money(amount) + "đ");
+        amountLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        amountLabel.setForeground(ACCENT_GREEN);
+
+        panel.add(titleLabel);
+        panel.add(amountLabel);
+
+        Object[] options = {"Tiền mặt", "Chuyển khoản", "Hủy"};
+        return JOptionPane.showOptionDialog(
+                this,
+                panel,
+                "Chọn phương thức thanh toán",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+    }
+
+    private boolean showCashPaymentDialog(String title, BigDecimal amount, BillDetail bill) {
+        BigDecimal due = amount == null ? BigDecimal.ZERO : amount;
+        boolean[] completedPayment = {false};
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+
+        JPanel root = new JPanel(new BorderLayout(18, 18));
+        root.setBackground(PAGE_BG);
+        root.setBorder(new EmptyBorder(22, 22, 22, 22));
+
+        JPanel details = new JPanel(new GridLayout(0, 1, 0, 6));
+        details.setOpaque(false);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        details.add(titleLabel);
+
+        if (bill != null) {
+            JLabel invoice = new JLabel("Mã hóa đơn: " + bill.maHD());
+            invoice.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            details.add(invoice);
+
+            JLabel subtotal = new JLabel("Tổng tiền: " + money(bill.tongGiaTri()) + "đ");
+            subtotal.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            details.add(subtotal);
+
+            JLabel deposit = new JLabel("Tiền cọc: " + money(bill.tienCoc()) + "đ");
+            deposit.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            details.add(deposit);
+        }
+
+        JLabel dueLabel = new JLabel("Số tiền cần thu: " + money(due) + "đ");
+        dueLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        dueLabel.setForeground(ACCENT_GREEN);
+        details.add(dueLabel);
+        root.add(details, BorderLayout.NORTH);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
+        GridBagConstraints g = new GridBagConstraints();
+        g.gridx = 0;
+        g.gridy = 0;
+        g.anchor = GridBagConstraints.WEST;
+        g.insets = new Insets(0, 0, 10, 12);
+        JLabel receivedLabel = new JLabel("Tiền khách đưa");
+        receivedLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        form.add(receivedLabel, g);
+
+        JTextField receivedField = new JTextField(money(due), 16);
+        receivedField.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        g.gridx = 1;
+        g.fill = GridBagConstraints.HORIZONTAL;
+        g.weightx = 1;
+        form.add(receivedField, g);
+
+        JLabel changeLabel = new JLabel("Tiền thừa: 0đ");
+        changeLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        changeLabel.setForeground(TITLE_DARK);
+        g.gridx = 0;
+        g.gridy = 1;
+        g.gridwidth = 2;
+        g.fill = GridBagConstraints.NONE;
+        g.weightx = 0;
+        form.add(changeLabel, g);
+        root.add(form, BorderLayout.CENTER);
+
+        JButton doneBtn = new JButton("Hoàn tất");
+        doneBtn.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        doneBtn.setForeground(Color.WHITE);
+        doneBtn.setBackground(ACTION_GREEN);
+        doneBtn.setOpaque(true);
+        doneBtn.setFocusPainted(false);
+        doneBtn.setBorder(new EmptyBorder(10, 24, 10, 24));
+        doneBtn.addActionListener(e -> {
+            BigDecimal received = parseMoneyInput(receivedField.getText());
+            if (received.compareTo(due) < 0) {
+                AppDialog.showError(dialog, "Tiền khách đưa chưa đủ để hoàn tất thanh toán.");
+                return;
+            }
+            completedPayment[0] = true;
+            dialog.dispose();
+        });
+
+        Runnable updateCashState = () -> updateCashPaymentState(receivedField, changeLabel, doneBtn, due);
+        receivedField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { updateCashState.run(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { updateCashState.run(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { updateCashState.run(); }
+        });
+        updateCashState.run();
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actions.setOpaque(false);
+        JButton cancelBtn = new JButton("Hủy");
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        actions.add(cancelBtn);
+        actions.add(doneBtn);
+        root.add(actions, BorderLayout.SOUTH);
+
+        dialog.setContentPane(root);
+        dialog.pack();
+        dialog.setMinimumSize(new Dimension(520, 360));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+        return completedPayment[0];
+    }
+
+    private void updateCashPaymentState(JTextField receivedField, JLabel changeLabel, JButton doneBtn, BigDecimal due) {
+        BigDecimal received = parseMoneyInput(receivedField.getText());
+        BigDecimal change = received.subtract(due);
+        boolean enough = change.compareTo(BigDecimal.ZERO) >= 0;
+        doneBtn.setEnabled(enough);
+        changeLabel.setForeground(enough ? TITLE_DARK : new Color(220, 53, 69));
+        changeLabel.setText(enough
+                ? "Tiền thừa: " + money(change.max(BigDecimal.ZERO)) + "đ"
+                : "Còn thiếu: " + money(change.abs()) + "đ");
+    }
+
+    private BigDecimal parseMoneyInput(String text) {
+        String digits = text == null ? "" : text.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(digits);
+    }
+
+    private boolean showDepositTransferPaymentDialog(BigDecimal deposit) {
         PaymentService paymentService = new PaymentServiceImpl();
         PaymentQrInfo qr;
         try {
@@ -1207,7 +1383,7 @@ public class BillEditScreen extends JPanel {
         return paid[0];
     }
 
-    private boolean showPaymentDialog(BillDetail bill) {
+    private boolean showTransferPaymentDialog(BillDetail bill) {
         PaymentService paymentService = new PaymentServiceImpl();
         PaymentQrInfo qr;
         try {
