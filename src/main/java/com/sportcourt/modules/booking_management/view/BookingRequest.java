@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.booking_management.controller.BookingRequestController;
 import com.sportcourt.modules.booking_management.dto.*;
 
@@ -42,13 +43,16 @@ public class BookingRequest extends JPanel {
     private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final int BOOKING_BLOCK_PAD_X = 4;
+    private static final int BOOKING_BLOCK_PAD_Y = 8;
+    private static final int BOOKING_BLOCK_ARC = 18;
 
     private final BookingRequestController controller = new BookingRequestController();
 
     private JComboBox<BookingBranchOption> branchCombo;
     private JComboBox<SportTypeAreaOption> sportTypeAreaCombo;
     private DatePicker bookingDatePicker;
-    private JLabel pendingCountLabel;
+    private JButton pendingButton;
 
     private BookingOpenHours openHours = BookingOpenHours.fullDay();
     private JTable table;
@@ -85,25 +89,17 @@ public class BookingRequest extends JPanel {
         JPanel requestWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         requestWrapper.setOpaque(false);
 
-        JButton pendingButton = new JButton("Yêu cầu đặt sân");
+        pendingButton = new JButton("Yêu cầu đặt sân (0)");
         pendingButton.setFont(new Font("Lexend", Font.BOLD, 14));
         pendingButton.setForeground(COLOR_TEXT_DARK);
         pendingButton.setBackground(Color.WHITE);
         pendingButton.setFocusPainted(false);
-        pendingButton.setBorder(new EmptyBorder(10, 18, 10, 18));
+        pendingButton.setBorder(new EmptyBorder(10, 22, 10, 22));
         pendingButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         pendingButton.putClientProperty(FlatClientProperties.STYLE, "arc: 999");
         pendingButton.addActionListener(e -> showPendingRequestsDialog());
 
-        pendingCountLabel = new JLabel("0", SwingConstants.CENTER);
-        pendingCountLabel.setFont(new Font("Lexend", Font.BOLD, 13));
-        pendingCountLabel.setForeground(COLOR_PRIMARY_GREEN);
-        pendingCountLabel.setOpaque(true);
-        pendingCountLabel.setBackground(new Color(57, 255, 20));
-        pendingCountLabel.setBorder(new EmptyBorder(6, 10, 6, 10));
-
         requestWrapper.add(pendingButton);
-        requestWrapper.add(pendingCountLabel);
 
         header.add(title, BorderLayout.WEST);
         header.add(requestWrapper, BorderLayout.EAST);
@@ -188,12 +184,18 @@ public class BookingRequest extends JPanel {
             public boolean isCellEditable(int r, int c) {
                 return false;
             }
+
+            @Override
+            public void paint(Graphics g) {
+                super.paint(g);
+                paintBlockLabels((Graphics2D) g);
+            }
         };
 
         table.setCellSelectionEnabled(true);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowHeight(90);
-        table.setShowGrid(true);
+        table.setRowHeight(92);
+        table.setShowGrid(false);
         table.setGridColor(new Color(235, 235, 235));
         table.setIntercellSpacing(new Dimension(0, 0));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -242,25 +244,42 @@ public class BookingRequest extends JPanel {
 
     // TẢI DỮ LIỆU BAN ĐẦU TỪ BACKEND (BẤT ĐỒNG BỘ)
     private void loadInitialOptions() {
+        // Lấy thông tin chi nhánh của nhân viên từ session (null nếu là Owner hoặc không xác định)
+        String sessionBranchId = SessionManager.getCurrentSession()
+                .map(s -> s.isOwner() ? null : s.getBranchId())
+                .orElse(null);
+
         new Thread(() -> {
             try {
-                // Gọi API backend lấy DS chi nhánh. Lưới quản lý luôn hiển thị đủ 24 giờ.
                 List<BookingBranchOption> branches = controller.getBranchOptions();
 
-                // Cập nhật lại giao diện trên EDT sau khi đã nhận được dữ liệu thành công
                 SwingUtilities.invokeLater(() -> {
                     this.openHours = BookingOpenHours.fullDay();
                     rebuildTableColumns();
 
                     isUpdatingCombos = true;
                     branchCombo.removeAllItems();
-                    for (BookingBranchOption b : branches) {
-                        branchCombo.addItem(b);
+
+                    if (sessionBranchId != null) {
+                        // Cashier / Branch Manager: chỉ thêm chi nhánh của họ
+                        for (BookingBranchOption b : branches) {
+                            if (sessionBranchId.equals(b.branchId())) {
+                                branchCombo.addItem(b);
+                                break;
+                            }
+                        }
+                        branchCombo.setEnabled(false); // readonly — không cho chọn chi nhánh khác
+                    } else {
+                        // Owner: thêm tất cả chi nhánh
+                        for (BookingBranchOption b : branches) {
+                            branchCombo.addItem(b);
+                        }
                     }
+
                     isUpdatingCombos = false;
 
-                    if (!branches.isEmpty()) {
-                        branchCombo.setSelectedIndex(0); // Trigger hàm onBranchChanged()
+                    if (branchCombo.getItemCount() > 0) {
+                        branchCombo.setSelectedIndex(0); // Trigger onBranchChanged()
                     } else {
                         refreshPendingRequestCount();
                     }
@@ -424,11 +443,11 @@ public class BookingRequest extends JPanel {
             return;
         }
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(110);
-        table.getColumnModel().getColumn(0).setMinWidth(100);
+        table.getColumnModel().getColumn(0).setPreferredWidth(104);
+        table.getColumnModel().getColumn(0).setMinWidth(96);
         for (int i = 1; i < table.getColumnModel().getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setPreferredWidth(74);
-            table.getColumnModel().getColumn(i).setMinWidth(68);
+            table.getColumnModel().getColumn(i).setPreferredWidth(72);
+            table.getColumnModel().getColumn(i).setMinWidth(64);
         }
     }
 
@@ -446,11 +465,74 @@ public class BookingRequest extends JPanel {
         new Thread(() -> {
             int count = controller.countPendingDepositRequests(branchId);
             SwingUtilities.invokeLater(() -> {
-                if (pendingCountLabel != null) {
-                    pendingCountLabel.setText(String.valueOf(count));
+                if (pendingButton != null) {
+                    pendingButton.setText("Yêu cầu đặt sân (" + count + ")");
                 }
             });
         }).start();
+    }
+
+    // Vẽ text thông tin khách hàng đè lên toàn bộ block (kể cả khi span nhiều ô giờ)
+    private void paintBlockLabels(Graphics2D g2) {
+        if (model == null || model.getRowCount() == 0 || table == null) return;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int colCount = table.getColumnCount();
+        int rowCount = model.getRowCount();
+
+        for (int row = 0; row < rowCount; row++) {
+            for (int col = 1; col < colCount; col++) {
+                Object val = model.getValueAt(row, col);
+                if (!(val instanceof BookingCell bc)) continue;
+
+                int hour = openHours.startHourInclusive() + (col - 1);
+                if (hour != bc.startHour()) continue;
+
+                java.awt.Rectangle startRect = table.getCellRect(row, col, false);
+                int blockCols = bc.endHour() - bc.startHour();
+                int totalWidth = blockCols * startRect.width;
+
+                int blockX = startRect.x + BOOKING_BLOCK_PAD_X;
+                int blockY = startRect.y + BOOKING_BLOCK_PAD_Y;
+                int blockW = Math.max(0, totalWidth - BOOKING_BLOCK_PAD_X * 2);
+                int blockH = Math.max(0, startRect.height - BOOKING_BLOCK_PAD_Y * 2);
+
+                java.awt.Shape oldClip = g2.getClip();
+                g2.setClip(blockX, blockY, blockW, blockH);
+
+                g2.setColor(Color.WHITE);
+                Font titleFont = new Font("Lexend", Font.BOLD, 10);
+                Font metaFont = new Font("Lexend", Font.PLAIN, 9);
+                String[] lines = {
+                        safe(bc.customerName()),
+                        safe(bc.customerPhone()),
+                        safe(bc.areaId()) + " - " + safe(bc.courtId()) + " - " + safe(bc.sportTypeName()),
+                        bc.slotCount() + " slot"
+                };
+                Font[] fonts = {titleFont, titleFont, metaFont, metaFont};
+                int lineGap = 2;
+                int totalTextHeight = 0;
+                for (Font font : fonts) {
+                    totalTextHeight += g2.getFontMetrics(font).getHeight();
+                }
+                totalTextHeight += lineGap * (lines.length - 1);
+
+                int y = blockY + Math.max(0, (blockH - totalTextHeight) / 2);
+                for (int i = 0; i < lines.length; i++) {
+                    g2.setFont(fonts[i]);
+                    FontMetrics fm = g2.getFontMetrics();
+                    String line = fitText(lines[i], fm, blockW - 8);
+                    int x = blockX + Math.max(4, (blockW - fm.stringWidth(line)) / 2);
+                    y += fm.getAscent();
+                    g2.drawString(line, x, y);
+                    y += fm.getDescent() + lineGap;
+                }
+
+                g2.setClip(oldClip);
+            }
+        }
     }
 
     private String selectedBranchIdOrNull() {
@@ -508,6 +590,23 @@ public class BookingRequest extends JPanel {
 
     private static String safe(String v) {
         return v == null ? "" : v;
+    }
+
+    private static String fitText(String value, FontMetrics fm, int maxWidth) {
+        String text = safe(value);
+        if (maxWidth <= 0 || fm.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "...";
+        int ellipsisWidth = fm.stringWidth(ellipsis);
+        if (ellipsisWidth >= maxWidth) {
+            return "";
+        }
+        int end = text.length();
+        while (end > 0 && fm.stringWidth(text.substring(0, end)) + ellipsisWidth > maxWidth) {
+            end--;
+        }
+        return end <= 0 ? ellipsis : text.substring(0, end) + ellipsis;
     }
 
     private static class RoundedPanel extends JPanel {
@@ -731,10 +830,12 @@ public class BookingRequest extends JPanel {
 
             JLabel bookingLine = new JLabel(formatDate(request.bookingDate())
                     + " | " + formatHourRange(request.startHour(), request.endHour())
+                    + " | " + safe(request.sportTypeName())
                     + " | " + safe(request.courtSummary())
                     + " | " + request.slotCount() + " slot");
             bookingLine.setFont(new Font("Lexend", Font.PLAIN, 13));
             bookingLine.setForeground(COLOR_TEXT_LABEL);
+            bookingLine.setToolTipText(safe(request.sportTypeName()));
             info.add(bookingLine);
             info.add(Box.createVerticalStrut(6));
 
@@ -920,41 +1021,39 @@ public class BookingRequest extends JPanel {
                     boolean isStartHour = (hour == bc.startHour());
                     boolean isEndHour = (hour == bc.endHour() - 1);
 
-                    int arc = 30;
-                    int yOffset = 15;
+                    int arc = BOOKING_BLOCK_ARC;
+                    int yOffset = BOOKING_BLOCK_PAD_Y;
                     int rectH = h - (yOffset * 2);
 
                     if (isStartHour && isEndHour) {
-                        g2.fill(new RoundRectangle2D.Double(5, yOffset, w - 10, rectH, arc, arc));
+                        g2.fill(new RoundRectangle2D.Double(BOOKING_BLOCK_PAD_X, yOffset,
+                                w - BOOKING_BLOCK_PAD_X * 2, rectH, arc, arc));
                     } else if (isStartHour) {
-                        g2.fillRoundRect(5, yOffset, w + 20, rectH, arc, arc);
+                        g2.fillRoundRect(BOOKING_BLOCK_PAD_X, yOffset,
+                                w - BOOKING_BLOCK_PAD_X + arc, rectH, arc, arc);
+                        g2.fillRect(w - arc / 2, yOffset, arc / 2, rectH);
                     } else if (isEndHour) {
-                        g2.fillRoundRect(-20, yOffset, w + 15, rectH, arc, arc);
+                        g2.fillRoundRect(-arc, yOffset,
+                                w + arc - BOOKING_BLOCK_PAD_X, rectH, arc, arc);
+                        g2.fillRect(0, yOffset, arc / 2, rectH);
                     } else {
                         g2.fillRect(0, yOffset, w, rectH);
                     }
 
-                    if (isStartHour) {
-                        g2.setColor(Color.WHITE);
-                        g2.setFont(new Font("Lexend", Font.BOLD, 9));
+                    // Text được vẽ bởi paintBlockLabels() sau khi tất cả ô được render xong
 
-                        String line1 = bc.customerName();
-                        String line2 = bc.customerPhone();
-                        String line3 = bc.areaId() + " - " + bc.courtId() + " - " + bc.sportTypeName()
-                                + " (" + bc.slotCount() + " slot)";
-
-                        int textX = 15;
-                        g2.drawString(line1, textX, h / 2 - 14);
-                        g2.drawString(line2, textX, h / 2 );
-
-                        g2.setFont(new Font("Lexend", Font.PLAIN, 9));
-                        g2.drawString(line3, textX, h / 2 + 14);
-                    }
+                    // 3. Viền liền mạch: chỉ vẽ cạnh trên/dưới cho ô giữa block,
+                    //    vẽ thêm cạnh trái ở ô đầu block và cạnh phải ở ô cuối block
+                    g2.setColor(new Color(230, 230, 230));
+                    g2.drawLine(0, 0, w - 1, 0);
+                    g2.drawLine(0, h - 1, w - 1, h - 1);
+                    if (isStartHour) g2.drawLine(0, 0, 0, h - 1);
+                    if (isEndHour) g2.drawLine(w - 1, 0, w - 1, h - 1);
+                } else {
+                    // 3. Ô trống: vẽ viền đầy đủ bốn cạnh
+                    g2.setColor(new Color(230, 230, 230));
+                    g2.drawRect(0, 0, w - 1, h - 1);
                 }
-
-                // 3. THÊM TẠI ĐÂY: Kẻ đường viền bao quanh ô trống/ô đặt để lưới bảng rõ ràng
-                g2.setColor(new Color(230, 230, 230)); // Màu xám mảnh tinh tế, không bị thô
-                g2.drawRect(0, 0, w - 1, h - 1);
 
             } else {
                 // Vẽ cột 0 (Cột hiển thị tên SÂN CON)

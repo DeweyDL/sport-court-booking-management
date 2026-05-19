@@ -1,5 +1,7 @@
 package com.sportcourt.modules.booking_management.service;
 
+import com.sportcourt.modules.auth.dto.UserSession;
+import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.booking_management.dao.BookingRequestDao;
 import com.sportcourt.modules.booking_management.dao.JdbcBookingRequestDao;
 import com.sportcourt.modules.booking_management.dto.*;
@@ -160,8 +162,16 @@ public class BookingRequestServiceImpl implements BookingRequestService {
     @Override
     public boolean confirmPendingDepositBooking(String invoiceId) {
         try {
-            return dao.confirmPendingDepositBooking(invoiceId);
+            UserSession session = SessionManager.requireSession();
+            String employeeId = session.getEmployeeId();
+            if (employeeId == null || employeeId.isBlank()) {
+                return false;
+            }
+            return dao.confirmPendingDepositBooking(invoiceId, employeeId.trim());
         } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        } catch (IllegalStateException e) {
             e.printStackTrace();
             return false;
         }
@@ -172,6 +182,16 @@ public class BookingRequestServiceImpl implements BookingRequestService {
         try {
             return dao.cancelBookingInvoice(invoiceId);
         } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public boolean checkInBooking(String invoiceId) {
+        try {
+            return dao.checkInBooking(invoiceId);
+        } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }

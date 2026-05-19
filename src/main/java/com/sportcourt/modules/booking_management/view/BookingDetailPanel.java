@@ -35,6 +35,7 @@ public class BookingDetailPanel extends JFrame {
     private JLabel subTotalLabel;
     private JButton btnCancel; // Nút hủy đặt sân toàn cục để điều khiển trạng thái ẩn/hiện
     private JButton btnConfirm;
+    private JButton btnCheckIn;
     private final boolean allowConfirmAction;
     private final Runnable onConfirmed;
 
@@ -145,7 +146,7 @@ public class BookingDetailPanel extends JFrame {
         customerPhoneLabel.setText(phone != null ? phone : "");
         bookingIdLabel.setText(invoiceId != null ? invoiceId : "");
         branchNameLabel.setText(branchName != null ? branchName : "");
-        branchAddressLabel.setText(address != null ? address : "Chưa cập nhật địa chỉ");
+        setWrappedValueText(branchAddressLabel, address != null ? address : "Chưa cập nhật địa chỉ");
 
         String formattedTotal = String.format("%,.0fđ", totalAmount).replace(",", ".");
         totalAmountLabel.setText(formattedTotal);
@@ -180,6 +181,7 @@ public class BookingDetailPanel extends JFrame {
             btnCancel.setVisible(true);
         }
         btnConfirm.setVisible(allowConfirmAction && normalizedStatus.equalsIgnoreCase("ĐÃ CỌC"));
+        btnCheckIn.setVisible(normalizedStatus.equalsIgnoreCase("ĐÃ XÁC NHẬN"));
 
         pitchesPanel.removeAll();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -258,7 +260,7 @@ public class BookingDetailPanel extends JFrame {
                 "Chi nhánh mặc định",
                 "Địa chỉ hệ thống",
                 estimatedPrice,
-                "Đã xác nhận",
+                "ĐÃ CỌC",
                 fallbackPitches
         );
     }
@@ -338,7 +340,7 @@ public class BookingDetailPanel extends JFrame {
         panel.add(Box.createVerticalStrut(12));
 
         branchAddressLabel = new JLabel();
-        panel.add(createRow("Địa chỉ", branchAddressLabel, true));
+        panel.add(createWrappingRow("Địa chỉ", branchAddressLabel, true));
 
         panel.add(Box.createVerticalStrut(20));
 
@@ -419,7 +421,6 @@ public class BookingDetailPanel extends JFrame {
 
         panel.add(Box.createVerticalStrut(20));
 
-        // Nút HỦY ĐẶT SÂN tích hợp logic kiểm soát và kết nối xử lý cơ sở dữ liệu
         btnConfirm = new JButton("XÁC NHẬN");
         styleButton(btnConfirm, new Color(57, 255, 20), new Color(16, 110, 0));
         btnConfirm.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -428,11 +429,17 @@ public class BookingDetailPanel extends JFrame {
         panel.add(btnConfirm);
         panel.add(Box.createVerticalStrut(12));
 
+        btnCheckIn = new JButton("XÁC NHẬN KHÁCH ĐẾN SÂN");
+        styleButton(btnCheckIn, new Color(59, 130, 246), Color.WHITE);
+        btnCheckIn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnCheckIn.setVisible(false);
+        btnCheckIn.addActionListener(e -> executeCheckInAction());
+        panel.add(btnCheckIn);
+        panel.add(Box.createVerticalStrut(12));
+
         btnCancel = new JButton("HỦY ĐẶT SÂN");
         styleButton(btnCancel, new Color(239, 68, 68), Color.WHITE);
         btnCancel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // SỬA TẠI ĐÂY: Thêm chức năng Backend khi tương tác bấm nút hủy
         btnCancel.addActionListener(e -> executeCancelBookingAction());
 
         panel.add(btnCancel);
@@ -480,9 +487,43 @@ public class BookingDetailPanel extends JFrame {
         }).start();
     }
 
-    /**
-     * Thực hiện logic hộp thoại và gọi Controller cập nhật xuống DB
-     */
+    private void executeCheckInAction() {
+        if (invoiceId == null || invoiceId.isBlank()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy mã hóa đơn hợp lệ!", "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Xác nhận khách đã đến sân?\nTrạng thái sẽ chuyển sang \"ĐANG SỬ DỤNG\".",
+                "Xác nhận khách đến sân",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        btnCheckIn.setEnabled(false);
+        new Thread(() -> {
+            boolean success = controller.checkInBooking(invoiceId);
+            SwingUtilities.invokeLater(() -> {
+                btnCheckIn.setEnabled(true);
+                if (success) {
+                    paymentStatusLabel.setText("ĐANG SỬ DỤNG");
+                    paymentStatusLabel.setForeground(new Color(22, 101, 52));
+                    paymentStatusLabel.getParent().setBackground(new Color(220, 252, 231));
+                    btnCheckIn.setVisible(false);
+                    btnCancel.setVisible(false);
+                    if (onConfirmed != null) onConfirmed.run();
+                    JOptionPane.showMessageDialog(this, "Đã xác nhận khách đến sân!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể xác nhận. Trạng thái đặt sân có thể đã thay đổi.", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+        }).start();
+    }
+
     private void executeCancelBookingAction() {
         if (bookingDetailId == null || bookingDetailId.isBlank()) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy mã chi tiết đặt sân hợp lệ!", "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
@@ -550,6 +591,57 @@ public class BookingDetailPanel extends JFrame {
         row.add(leftLabel, BorderLayout.WEST);
         row.add(rightLabel, BorderLayout.EAST);
         return row;
+    }
+
+    private JPanel createWrappingRow(String leftText, JLabel rightLabel, boolean isRightBold) {
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setOpaque(false);
+        row.setPreferredSize(new Dimension(0, 52));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
+
+        JLabel leftLabel = new JLabel(leftText);
+        leftLabel.setForeground(new Color(80, 80, 80));
+        leftLabel.setFont(new Font("Lexend", Font.PLAIN, 14));
+        leftLabel.setVerticalAlignment(SwingConstants.TOP);
+
+        rightLabel.setFont(new Font("Lexend", isRightBold ? Font.BOLD : Font.PLAIN, 14));
+        rightLabel.setForeground(Color.BLACK);
+        rightLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        rightLabel.setVerticalAlignment(SwingConstants.TOP);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        gbc.insets = new Insets(0, 0, 0, 16);
+        row.add(leftLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.NORTHEAST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        row.add(rightLabel, gbc);
+        return row;
+    }
+
+    private void setWrappedValueText(JLabel label, String value) {
+        String displayValue = value == null || value.isBlank() ? "--" : value.trim();
+        label.setToolTipText(displayValue);
+        label.setText("<html><div align='right'>" + escapeHtml(displayValue) + "</div></html>");
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private JPanel createPitchRow(String courtName, String time, String price) {

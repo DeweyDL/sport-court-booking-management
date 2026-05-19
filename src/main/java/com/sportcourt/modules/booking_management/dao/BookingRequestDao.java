@@ -32,7 +32,9 @@ public interface BookingRequestDao {
 
     BookingInvoiceDTO getInvoiceDetails(String invoiceId) throws SQLException;
 
-    boolean confirmPendingDepositBooking(String invoiceId) throws SQLException;
+    boolean confirmPendingDepositBooking(String invoiceId, String confirmingEmployeeId) throws SQLException;
 
     boolean cancelBookingInvoice(String bookingDetailId) throws SQLException;
+
+    boolean checkInBooking(String invoiceId) throws SQLException;
 }
