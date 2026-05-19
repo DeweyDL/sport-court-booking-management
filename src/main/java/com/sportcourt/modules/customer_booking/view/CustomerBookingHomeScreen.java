@@ -72,16 +72,8 @@ public class CustomerBookingHomeScreen extends JPanel {
         gbc.anchor = GridBagConstraints.NORTH;
 
         gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, s(24), 0);
-        content.add(buildHeader(), gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(0, 0, s(22), 0);
-        content.add(buildFilterCard(), gbc);
-
-        gbc.gridy++;
         gbc.insets = new Insets(0, 0, s(16), 0);
-        content.add(buildResultHeader(), gbc);
+        content.add(buildFilterCard(), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -216,10 +208,22 @@ public class CustomerBookingHomeScreen extends JPanel {
                     + " - " + selectedBranch.address()
                     + " | " + selectedSportType.sportTypeName()
                     + " | " + selectedDate.format(DATE_FORMATTER));
-            reloadCourts();
+            navigateToSchedule();
         } catch (RuntimeException e) {
             showError(e.getMessage());
         }
+    }
+
+    private void navigateToSchedule() {
+        if (selectedBranch == null || selectedSportType == null) return;
+        try {
+            List<CourtSearchResult> courts = controller.searchCourts(
+                    "", selectedBranch.branchId(), selectedSportType.sportTypeId(),
+                    CourtSortBy.COURT_NAME, true);
+            if (!courts.isEmpty()) {
+                onBookingRequested.accept(selectedBranch, courts.get(0), selectedDate);
+            }
+        } catch (RuntimeException ignored) {}
     }
 
     private void reloadCourts() {
@@ -227,28 +231,14 @@ public class CustomerBookingHomeScreen extends JPanel {
             renderEmptyState("Nhấn Đặt sân để chọn chi nhánh và loại thể thao");
             return;
         }
-
-        try {
-            SortOption sort = (SortOption) sortBox.getSelectedItem();
-            if (sort == null) {
-                sort = new SortOption("Giá thấp đến cao", CourtSortBy.PRICE, true);
-            }
-            List<CourtSearchResult> courts = controller.searchCourts(
-                    searchField.getText(),
-                    selectedBranch.branchId(),
-                    selectedSportType.sportTypeId(),
-                    sort.sortBy(),
-                    sort.ascending()
-            );
-            renderCourts(courts);
-        } catch (RuntimeException e) {
-            showError(e.getMessage());
-        }
+        renderEmptyState("Chọn chi nhánh, loại thể thao và ngày đặt để xem khung giờ trống.");
     }
 
     private void renderCourts(List<CourtSearchResult> courts) {
         courtContainer.removeAll();
-        resultCountLabel.setText("(" + courts.size() + " sân)");
+        if (resultCountLabel != null) {
+            resultCountLabel.setText("(" + courts.size() + " sân)");
+        }
 
         if (courts.isEmpty()) {
             renderEmptyState("Không tìm thấy sân phù hợp.");
@@ -277,7 +267,9 @@ public class CustomerBookingHomeScreen extends JPanel {
         label.setHorizontalAlignment(SwingConstants.CENTER);
         empty.add(label, BorderLayout.CENTER);
         courtContainer.add(empty, BorderLayout.NORTH);
-        resultCountLabel.setText("(0 sân)");
+        if (resultCountLabel != null) {
+            resultCountLabel.setText("(0 sân)");
+        }
         courtContainer.revalidate();
         courtContainer.repaint();
     }

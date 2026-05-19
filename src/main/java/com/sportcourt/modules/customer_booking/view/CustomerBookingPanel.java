@@ -1,6 +1,7 @@
 package com.sportcourt.modules.customer_booking.view;
 
 import com.sportcourt.modules.customer_booking.controller.CustomerBookingController;
+import com.sportcourt.modules.customer_booking.dto.BookingPreview;
 import com.sportcourt.modules.customer_booking.dto.BranchOption;
 import com.sportcourt.modules.customer_booking.dto.CourtSearchResult;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
@@ -8,6 +9,8 @@ import com.sportcourt.modules.customer_booking.dto.SlotStatus;
 
 import javax.swing.*;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +30,8 @@ public class CustomerBookingPanel extends JPanel {
     private CourtSearchResult currentCourt;
     private LocalDate currentBookingDate = LocalDate.now();
     private List<SlotStatus> pendingSlots = List.of();
+    private String pendingDepositInvoiceId;
+    private BigDecimal pendingDepositAmount;
     private boolean firstShow = true;
 
     public CustomerBookingPanel() {
@@ -59,6 +64,8 @@ public class CustomerBookingPanel extends JPanel {
         currentCourt = court;
         currentBookingDate = bookingDate == null ? LocalDate.now() : bookingDate;
         pendingSlots = List.of();
+        pendingDepositInvoiceId = null;
+        pendingDepositAmount = null;
         scheduleScreen.showCourt(branch, court, currentBookingDate);
         cardLayout.show(this, SCHEDULE);
         revalidate();
@@ -84,6 +91,8 @@ public class CustomerBookingPanel extends JPanel {
         }
 
         pendingSlots = List.copyOf(selectedSlots);
+        pendingDepositInvoiceId = null;
+        pendingDepositAmount = null;
         currentBookingDate = pendingSlots.get(0).bookingDate();
         String slotCourtId = pendingSlots.get(0).courtId();
         if (currentCourt == null || !currentCourt.courtId().equals(slotCourtId)) {
@@ -96,32 +105,73 @@ public class CustomerBookingPanel extends JPanel {
     }
 
     private void submitBooking() {
+        if ((pendingSlots == null || pendingSlots.isEmpty()) && pendingDepositInvoiceId != null) {
+            showCurrentDepositDialog();
+            return;
+        }
+
         if (currentBranch == null || pendingSlots.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Chưa có thông tin đặt sân", "Đặt sân",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        // 1. Tạo hóa đơn trước (trạng thái ĐÃ ĐẶT CHỜ CỌC) để giữ chỗ
+        BookingPreview preview;
         try {
-            List<SelectedBookingSlot> selectedBookingSlots = pendingSlots.stream()
-                    .map(slot -> new SelectedBookingSlot(
-                            slot.courtId(),
-                            slot.priceBoardId(),
-                            slot.bookingDate(),
-                            slot.price()
-                    ))
+            List<SelectedBookingSlot> slots = pendingSlots.stream()
+                    .map(s -> new SelectedBookingSlot(s.courtId(), s.priceBoardId(), s.bookingDate(), s.price()))
                     .collect(Collectors.toList());
-            controller.createBooking(currentBranch.branchId(), selectedBookingSlots);
-            pendingSlots = List.of();
-            homeScreen.refreshCourts();
-            CustomerBookingDialogs.showSuccessDialog(this, this::showHome, this::showHome);
+            preview = controller.createBooking(currentBranch.branchId(), slots);
         } catch (RuntimeException e) {
-            JOptionPane.showMessageDialog(
-                    this,
+            JOptionPane.showMessageDialog(this,
                     e.getMessage() == null || e.getMessage().isBlank() ? "Không thể đặt sân" : e.getMessage(),
-                    "Đặt sân",
-                    JOptionPane.ERROR_MESSAGE
-            );
+                    "Đặt sân", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        String invoiceId = preview.invoiceId();
+        BigDecimal deposit = computeDeposit();
+        pendingDepositInvoiceId = invoiceId;
+        pendingDepositAmount = deposit;
+
+        // 2. Hiển thị dialog QR — nếu thanh toán thành công → cập nhật ĐÃ CỌC + thông báo
+        //                         nếu timeout/đóng   → huỷ hóa đơn
+        showCurrentDepositDialog();
+        pendingSlots = List.of();
+    }
+
+    private void showCurrentDepositDialog() {
+        String invoiceId = pendingDepositInvoiceId;
+        BigDecimal deposit = pendingDepositAmount;
+        if (invoiceId == null || invoiceId.isBlank() || deposit == null) {
+            JOptionPane.showMessageDialog(this, "Chưa có thông tin đặt sân", "Đặt sân",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        CustomerBookingDialogs.showDepositPaymentDialog(this, invoiceId, deposit,
+                () -> {
+                    try { controller.markBookingAsDeposited(invoiceId); } catch (Exception ignored) {}
+                    pendingSlots = List.of();
+                    pendingDepositInvoiceId = null;
+                    pendingDepositAmount = null;
+                    homeScreen.refreshCourts();
+                    CustomerBookingDialogs.showSuccessDialog(this, this::showHome, this::showHome);
+                },
+                () -> {
+                    try { controller.cancelPendingBooking(invoiceId); } catch (Exception ignored) {}
+                    pendingDepositInvoiceId = null;
+                    pendingDepositAmount = null;
+                }
+        );
+    }
+
+    private BigDecimal computeDeposit() {
+        BigDecimal total = pendingSlots.stream()
+                .map(SlotStatus::price)
+                .filter(p -> p != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.multiply(new BigDecimal("0.70")).setScale(2, RoundingMode.HALF_UP);
     }
 }

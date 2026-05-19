@@ -8,37 +8,67 @@ import com.sportcourt.modules.payment.util.QrCodeRenderer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.sportcourt.modules.customer_booking.view.CustomerBookingViewStyle.*;
 
-final class CustomerBookingDialogs {
+public final class CustomerBookingDialogs {
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
+    private static final int DEPOSIT_HOLD_SECONDS = 300;
+    private static final Map<String, DepositPaymentSession> ACTIVE_DEPOSIT_SESSIONS = new ConcurrentHashMap<>();
 
     private CustomerBookingDialogs() {
     }
 
-    static boolean showDepositPaymentDialog(Component parent, BigDecimal deposit) {
-        PaymentService service = new PaymentServiceImpl();
+    public static void showDepositPaymentDialog(Component parent, String invoiceId, BigDecimal deposit,
+                                                Runnable onPaymentConfirmed, Runnable onCancelInvoice) {
+        String sessionKey = invoiceId == null || invoiceId.isBlank()
+                ? "TRANSIENT-" + System.nanoTime()
+                : invoiceId.trim();
 
-        // Tạo link PayOS theo số tiền cọc (booking chưa tạo nên chưa có hóa đơn)
-        PaymentQrInfo qr;
-        try {
-            int amount = deposit == null ? 0 : deposit.intValue();
-            qr = service.createPaymentLink(amount, "Coc dat san");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(parent,
-                    "Không tạo được mã thanh toán: " + ex.getMessage(),
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
-            return false;
+        DepositPaymentSession session = ACTIVE_DEPOSIT_SESSIONS.get(sessionKey);
+        if (session == null || session.isTerminal()) {
+            PaymentService service = new PaymentServiceImpl();
+            PaymentQrInfo qr;
+            try {
+                int amount = deposit == null ? 0 : deposit.intValue();
+                String description = invoiceId == null || invoiceId.isBlank()
+                        ? "Coc dat san"
+                        : "Coc " + invoiceId.trim();
+                qr = service.createPaymentLink(amount, description);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(parent,
+                        "Không tạo được mã thanh toán: " + ex.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+                runQuietly(onCancelInvoice);
+                return;
+            }
+
+            session = new DepositPaymentSession(sessionKey, deposit, qr, service, onCancelInvoice);
+            ACTIVE_DEPOSIT_SESSIONS.put(sessionKey, session);
+            session.start();
         }
 
+        session.setOnPaymentConfirmed(onPaymentConfirmed);
+
         Window owner = SwingUtilities.getWindowAncestor(parent);
-        PaymentDialog dialog = new PaymentDialog(owner, deposit, qr, service);
+        PaymentDialog dialog = new PaymentDialog(owner, session);
+        session.attach(dialog);
         dialog.setVisible(true);
-        return dialog.confirmed();
+    }
+
+    public static void showDepositPaymentDialog(Component parent, BigDecimal deposit,
+                                                Runnable onPaymentConfirmed, Runnable onCancelInvoice) {
+        showDepositPaymentDialog(parent, null, deposit, onPaymentConfirmed, onCancelInvoice);
     }
 
     static void showSuccessDialog(Component parent, Runnable onHome, Runnable onHistory) {
@@ -51,7 +81,6 @@ final class CustomerBookingDialogs {
         return MONEY_FORMAT.format(value == null ? BigDecimal.ZERO : value) + "đ";
     }
 
-    /** Mã BIN PayOS -> tên ngân hàng (một số ngân hàng phổ biến). */
     private static String bankName(String bin) {
         if (bin == null) {
             return "";
@@ -71,73 +100,250 @@ final class CustomerBookingDialogs {
         };
     }
 
-    private static final class PaymentDialog extends JDialog {
+    private static void runQuietly(Runnable action) {
+        if (action == null) {
+            return;
+        }
+        try {
+            action.run();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static String normalizedStatus(String status) {
+        if (status == null) {
+            return "";
+        }
+        return Normalizer.normalize(status, Normalizer.Form.NFD)
+                .replace('Đ', 'D')
+                .replace('đ', 'd')
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT);
+    }
+
+    private static boolean isPaidStatus(String status) {
+        String normalized = normalizedStatus(status);
+        return normalized.equals("PAID") || normalized.equals("DA THANH TOAN");
+    }
+
+    private static boolean isExpiredStatus(String status) {
+        String normalized = normalizedStatus(status);
+        return normalized.equals("EXPIRED") || normalized.equals("HET HAN");
+    }
+
+    private static boolean isCancelledStatus(String status) {
+        String normalized = normalizedStatus(status);
+        return normalized.equals("CANCELLED")
+                || normalized.equals("CANCELED")
+                || normalized.equals("DA HUY");
+    }
+
+    private static String formatCountdown(int remainingSeconds) {
+        int min = Math.max(0, remainingSeconds) / 60;
+        int sec = Math.max(0, remainingSeconds) % 60;
+        return String.format("%d:%02d", min, sec);
+    }
+
+    private static final class DepositPaymentSession {
+        private final String key;
+        private final BigDecimal deposit;
         private final PaymentQrInfo qr;
         private final PaymentService service;
-        private boolean confirmed;
-        private SwingWorker<Void, String> poller;
+        private final Runnable onCancelInvoice;
+        private final List<PaymentDialog> dialogs = new CopyOnWriteArrayList<>();
 
-        private PaymentDialog(Window owner, BigDecimal deposit, PaymentQrInfo qr, PaymentService service) {
-            super(owner, "Thanh toán đặt cọc", ModalityType.APPLICATION_MODAL);
+        private Runnable onPaymentConfirmed;
+        private SwingWorker<Void, String> poller;
+        private Timer countdownTimer;
+        private int remainingSeconds = DEPOSIT_HOLD_SECONDS;
+        private boolean terminal;
+
+        private DepositPaymentSession(String key, BigDecimal deposit, PaymentQrInfo qr,
+                                      PaymentService service, Runnable onCancelInvoice) {
+            this.key = key;
+            this.deposit = deposit;
             this.qr = qr;
             this.service = service;
-            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-            setContentPane(buildContent(deposit));
-            pack();
-            setMinimumSize(new Dimension(s(680), s(520)));
-            setLocationRelativeTo(owner);
-            startPolling();
-            addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override
-                public void windowClosed(java.awt.event.WindowEvent e) {
-                    stopPolling();
+            this.onCancelInvoice = onCancelInvoice;
+        }
+
+        private synchronized boolean isTerminal() {
+            return terminal;
+        }
+
+        private synchronized int remainingSeconds() {
+            return remainingSeconds;
+        }
+
+        private BigDecimal deposit() {
+            return deposit;
+        }
+
+        private PaymentQrInfo qr() {
+            return qr;
+        }
+
+        private synchronized void setOnPaymentConfirmed(Runnable onPaymentConfirmed) {
+            this.onPaymentConfirmed = onPaymentConfirmed;
+        }
+
+        private void start() {
+            countdownTimer = new Timer(1000, e -> {
+                boolean shouldExpire;
+                synchronized (this) {
+                    if (terminal) {
+                        return;
+                    }
+                    remainingSeconds = Math.max(0, remainingSeconds - 1);
+                    shouldExpire = remainingSeconds == 0;
+                }
+                updateDialogs();
+                if (shouldExpire) {
+                    expire();
                 }
             });
+            countdownTimer.start();
+            startPolling();
         }
 
-        private boolean confirmed() {
-            return confirmed;
+        private void attach(PaymentDialog dialog) {
+            if (isTerminal()) {
+                dialog.dispose();
+                return;
+            }
+            for (PaymentDialog existing : dialogs) {
+                if (existing.isDisplayable()) {
+                    existing.toFront();
+                    existing.requestFocus();
+                    dialog.dispose();
+                    return;
+                }
+            }
+            dialogs.add(dialog);
+            dialog.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    dialogs.remove(dialog);
+                }
+            });
+            dialog.updateCountdown(remainingSeconds());
         }
 
-        // ===== POLLING: tự động đóng khi PayOS báo đã thanh toán =====
+        private void updateDialogs() {
+            int remaining = remainingSeconds();
+            for (PaymentDialog dialog : dialogs) {
+                dialog.updateCountdown(remaining);
+            }
+        }
+
         private void startPolling() {
             poller = new SwingWorker<>() {
                 @Override
                 protected Void doInBackground() throws Exception {
-                    while (!isCancelled()) {
-                        String st = service.checkStatus(qr.orderCode());
-                        publish(st);
-                        if ("ĐÃ THANH TOÁN".equals(st) || "ĐÃ HUỶ".equals(st) || "HẾT HẠN".equals(st)) {
+                    while (!isCancelled() && !isTerminal()) {
+                        String status = service.checkStatus(qr.orderCode());
+                        publish(status);
+                        if (isPaidStatus(status) || isExpiredStatus(status) || isCancelledStatus(status)) {
                             break;
                         }
-                        Thread.sleep(4000);   // 4 giây/lần
+                        Thread.sleep(4000);
                     }
                     return null;
                 }
 
                 @Override
                 protected void process(List<String> chunks) {
-                    String st = chunks.get(chunks.size() - 1);
-                    if ("ĐÃ THANH TOÁN".equals(st)) {
-                        confirmed = true;
-                        dispose();
-                    } else if ("HẾT HẠN".equals(st)) {
-                        JOptionPane.showMessageDialog(PaymentDialog.this,
-                                "Mã thanh toán đã hết hạn.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                        dispose();
+                    if (chunks == null || chunks.isEmpty() || isTerminal()) {
+                        return;
+                    }
+                    String status = chunks.get(chunks.size() - 1);
+                    if (isPaidStatus(status)) {
+                        finishPaid();
+                    } else if (isExpiredStatus(status) || isCancelledStatus(status)) {
+                        expire();
                     }
                 }
             };
             poller.execute();
         }
 
-        private void stopPolling() {
+        private void finishPaid() {
+            Runnable callback;
+            synchronized (this) {
+                if (terminal) {
+                    return;
+                }
+                terminal = true;
+                callback = onPaymentConfirmed;
+                stopInternal();
+            }
+            ACTIVE_DEPOSIT_SESSIONS.remove(key, this);
+            disposeDialogs();
+            SwingUtilities.invokeLater(() -> runQuietly(callback));
+        }
+
+        private void expire() {
+            synchronized (this) {
+                if (terminal) {
+                    return;
+                }
+                terminal = true;
+                remainingSeconds = 0;
+                stopInternal();
+            }
+            ACTIVE_DEPOSIT_SESSIONS.remove(key, this);
+            updateDialogs();
+            disposeDialogs();
+
+            Thread worker = new Thread(() -> {
+                try {
+                    service.cancel(qr.orderCode());
+                } finally {
+                    runQuietly(onCancelInvoice);
+                }
+            }, "deposit-payment-expire");
+            worker.setDaemon(true);
+            worker.start();
+        }
+
+        private void stopInternal() {
+            if (countdownTimer != null) {
+                countdownTimer.stop();
+            }
             if (poller != null) {
                 poller.cancel(true);
             }
         }
 
-        private JComponent buildContent(BigDecimal deposit) {
+        private void disposeDialogs() {
+            for (PaymentDialog dialog : dialogs) {
+                SwingUtilities.invokeLater(dialog::dispose);
+            }
+            dialogs.clear();
+        }
+    }
+
+    private static final class PaymentDialog extends JDialog {
+        private final DepositPaymentSession session;
+        private JLabel countdownLabel;
+
+        private PaymentDialog(Window owner, DepositPaymentSession session) {
+            super(owner, "Thanh toán đặt cọc", ModalityType.MODELESS);
+            this.session = session;
+            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            setContentPane(buildContent());
+            pack();
+            setMinimumSize(new Dimension(s(680), s(520)));
+            setLocationRelativeTo(owner);
+        }
+
+        private void updateCountdown(int remainingSeconds) {
+            if (countdownLabel != null) {
+                countdownLabel.setText("Sân sẽ được giữ chỗ trong vòng " + formatCountdown(remainingSeconds));
+            }
+        }
+
+        private JComponent buildContent() {
             JPanel root = new JPanel(new BorderLayout());
             root.setBackground(PAGE_BG);
             root.setBorder(new EmptyBorder(s(18), s(18), s(18), s(18)));
@@ -150,19 +356,17 @@ final class CustomerBookingDialogs {
             title.setAlignmentX(Component.LEFT_ALIGNMENT);
             card.add(title);
             card.add(Box.createVerticalStrut(s(22)));
-            card.add(paymentRow("Tiền cọc", money(deposit), regular(20f), bold(20f), TEXT_DARK));
+            card.add(paymentRow("Tiền cọc", money(session.deposit()), regular(20f), bold(20f), TEXT_DARK));
             card.add(Box.createVerticalStrut(s(24)));
             card.add(separator());
             card.add(Box.createVerticalStrut(s(22)));
-            card.add(paymentRow("TỔNG CỘNG", money(deposit), bold(24f), bold(32f), GREEN_DARK));
+            card.add(paymentRow("TỔNG CỘNG", money(session.deposit()), bold(24f), bold(32f), GREEN_DARK));
             card.add(Box.createVerticalStrut(s(18)));
             card.add(separator());
             card.add(Box.createVerticalStrut(s(24)));
             card.add(bankTransferPanel());
             card.add(Box.createVerticalStrut(s(24)));
             card.add(holdNotice());
-            card.add(Box.createVerticalStrut(s(18)));
-            card.add(actions());
 
             root.add(card, BorderLayout.CENTER);
             return root;
@@ -213,10 +417,9 @@ final class CustomerBookingDialogs {
             return panel;
         }
 
-        // QR THẬT từ PayOS (vẽ chuỗi VietQR bằng ZXing)
         private JComponent qrView() {
             int size = s(173);
-            JLabel qrLabel = new JLabel(QrCodeRenderer.toIcon(qr.qrCodeData(), size));
+            JLabel qrLabel = new JLabel(QrCodeRenderer.toIcon(session.qr().qrCodeData(), size));
             qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
             qrLabel.setPreferredSize(new Dimension(size, size));
             qrLabel.setMinimumSize(new Dimension(size, size));
@@ -224,6 +427,7 @@ final class CustomerBookingDialogs {
         }
 
         private JComponent bankInfo() {
+            PaymentQrInfo qr = session.qr();
             JPanel info = new JPanel(new GridLayout(3, 2, s(18), s(18)));
             info.setOpaque(false);
             info.add(label("Ngân hàng", regular(20f), TEXT_OLIVE));
@@ -244,51 +448,16 @@ final class CustomerBookingDialogs {
         private JComponent holdNotice() {
             RoundedPanel notice = new RoundedPanel(s(15), Color.WHITE, false);
             notice.setLayout(new BorderLayout());
-            notice.setBorder(new EmptyBorder(s(10), s(16), s(10), s(16)));
+            notice.setBorder(new EmptyBorder(s(12), s(16), s(12), s(16)));
+            notice.setAlignmentX(Component.LEFT_ALIGNMENT);
             notice.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(76)));
-            JLabel text = label("<html><div style='text-align:center'>Quét mã QR để chuyển khoản.<br>"
-                            + "Hệ thống tự xác nhận khi nhận được tiền.</div></html>",
-                    bold(20f), GREEN_DARK);
-            text.setHorizontalAlignment(SwingConstants.CENTER);
-            notice.add(text, BorderLayout.CENTER);
+
+            countdownLabel = label("", bold(20f), GREEN_DARK);
+            countdownLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            countdownLabel.setVerticalAlignment(SwingConstants.CENTER);
+            notice.add(countdownLabel, BorderLayout.CENTER);
+            updateCountdown(session.remainingSeconds());
             return notice;
-        }
-
-        private JComponent actions() {
-            JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT, s(12), 0));
-            row.setOpaque(false);
-            row.setAlignmentX(Component.LEFT_ALIGNMENT);
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, s(48)));
-
-            JButton cancel = roundedAction("Hủy", Color.WHITE, TEXT_DARK);
-            cancel.setBorder(BorderFactory.createCompoundBorder(
-                    new RoundedBorder(BORDER, s(999)),
-                    new EmptyBorder(s(8), s(22), s(8), s(22))
-            ));
-            cancel.addActionListener(e -> {
-                stopPolling();
-                service.cancel(qr.orderCode());   // hủy link bên PayOS
-                dispose();
-            });
-
-            JButton paid = roundedAction("Tôi đã chuyển khoản", GREEN, GREEN_DARK);
-            paid.addActionListener(e -> {
-                // Kiểm tra ngay với PayOS, không tin tưởng thao tác người dùng
-                String st = service.checkStatus(qr.orderCode());
-                if ("ĐÃ THANH TOÁN".equals(st)) {
-                    confirmed = true;
-                    stopPolling();
-                    dispose();
-                } else {
-                    JOptionPane.showMessageDialog(this,
-                            "Chưa nhận được thanh toán. Vui lòng đợi vài giây sau khi chuyển khoản rồi thử lại.",
-                            "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                }
-            });
-
-            row.add(cancel);
-            row.add(paid);
-            return row;
         }
     }
 

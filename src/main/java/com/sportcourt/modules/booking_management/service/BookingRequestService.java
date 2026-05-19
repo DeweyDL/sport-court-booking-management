@@ -20,4 +20,6 @@ public interface BookingRequestService {
     boolean confirmPendingDepositBooking(String invoiceId);
 
     boolean cancelBooking(String invoiceId);
+
+    boolean checkInBooking(String invoiceId);
 }

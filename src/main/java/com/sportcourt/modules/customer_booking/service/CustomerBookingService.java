@@ -42,4 +42,6 @@ public interface CustomerBookingService {
     void insertCourtBookingDetails(String invoiceId, List<SelectedBookingSlot> selectedBookingSlots);
 
     void cancelPendingBooking(String invoiceId);
+
+    void markPendingInvoiceAsDeposited(String invoiceId);
 }

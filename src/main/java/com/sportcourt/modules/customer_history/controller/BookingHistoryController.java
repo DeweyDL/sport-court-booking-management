@@ -34,4 +34,8 @@ public class BookingHistoryController {
     public void confirmCourtBooking(String detailId) {
         service.confirmCourtBooking(detailId);
     }
+
+    public void markDeposited(String invoiceId) {
+        service.markDeposited(invoiceId);
+    }
 }

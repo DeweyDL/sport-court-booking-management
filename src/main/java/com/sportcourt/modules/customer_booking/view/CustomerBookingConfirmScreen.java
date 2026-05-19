@@ -279,9 +279,7 @@ public class CustomerBookingConfirmScreen extends JPanel {
     }
 
     private void showDepositDialog() {
-        if (CustomerBookingDialogs.showDepositPaymentDialog(this, deposit())) {
-            onSubmit.run();
-        }
+        onSubmit.run();
     }
 
     private final class DepositDialog extends JDialog {

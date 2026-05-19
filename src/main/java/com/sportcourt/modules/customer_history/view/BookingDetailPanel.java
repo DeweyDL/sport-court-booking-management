@@ -9,11 +9,16 @@ import com.sportcourt.modules.customer_history.controller.BookingHistoryControll
 import com.sportcourt.modules.customer_history.dto.BookingDetailDTO;
 import com.sportcourt.modules.customer_history.dto.ServiceDetailDTO;
 
+import com.sportcourt.modules.customer_booking.controller.CustomerBookingController;
+import com.sportcourt.modules.customer_booking.view.CustomerBookingDialogs;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URL;
 import java.util.List;
 
@@ -35,6 +40,7 @@ public class BookingDetailPanel extends JPanel {
     private final JPanel mainArea = new JPanel(new GridBagLayout());
     private final JLabel statusLabel = new JLabel("Đang tải...");
     private Image bannerImage;
+    private BookingDetailDTO currentDetail;
 
     public BookingDetailPanel(BookingHistoryController controller, Runnable onBack) {
         this.controller = controller;
@@ -224,6 +230,7 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private void renderDetail(BookingDetailDTO detail) {
+        this.currentDetail = detail;
         mainArea.removeAll();
 
         GridBagConstraints g = new GridBagConstraints();
@@ -497,15 +504,16 @@ public class BookingDetailPanel extends JPanel {
         String overallStatus = detail.getOverallStatus();
         // --- KẾT THÚC LOGIC ---
 
+        BigDecimal depositDue = depositDue(detail);
         card.add(createStatusBadge(overallStatus));
         card.add(Box.createVerticalStrut(UIScale.scale(16)));
 
-        String rentStr = detail.getTotalValue() != null ? String.format("%,.0f\u0111", detail.getTotalValue()).replace(",", ".") : "0\u0111";
+        String rentStr = money(detail.getTotalValue());
         card.add(makeSummaryRow("Tiền thuê sân", rentStr, false));
 
-        if (detail.getDeposit() != null && detail.getDeposit().compareTo(java.math.BigDecimal.ZERO) > 0) {
+        if (depositDue.compareTo(BigDecimal.ZERO) > 0) {
             card.add(Box.createVerticalStrut(UIScale.scale(8)));
-            String depositStr = String.format("%,.0f\u0111", detail.getDeposit()).replace(",", ".");
+            String depositStr = money(depositDue);
             card.add(makeSummaryRow("Tiền cọc", depositStr, false));
         }
 
@@ -524,10 +532,11 @@ public class BookingDetailPanel extends JPanel {
         bot.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(32)));
 
         JLabel botLbl = new JLabel("TỔNG CỘNG");
+        botLbl.setText("TỔNG CỌC");
         botLbl.setFont(AppFonts.lexendBold(14f));
         botLbl.setForeground(TEXT_DARK);
 
-        String totalStr = detail.getTotalAmount() != null ? String.format("%,.0f\u0111", detail.getTotalAmount()).replace(",", ".") : "0\u0111";
+        String totalStr = money(depositDue);
         JLabel botVal = new JLabel(totalStr);
         botVal.setFont(AppFonts.lexendBold(18f));
         botVal.setForeground(new Color(34, 139, 34));
@@ -544,20 +553,13 @@ public class BookingDetailPanel extends JPanel {
                 (currentSession.getEmployeeId() != null || currentSession.isOwner());
 
         if (upperStatus.contains("CHỜ CỌC") || upperStatus.contains("CHƯA")) {
-            JButton btnPay = createActionButton("THANH TOÁN CỌC", new Color(57, 255, 20), new Color(0, 100, 0));
+            // Chỉ khách hàng thanh toán cọc — không cho staff confirm khi chưa có cọc
+            JButton btnPay = createActionButton("ĐẶT CỌC", new Color(57, 255, 20), new Color(0, 100, 0));
             btnPay.addActionListener(e -> handlePayDeposit(detail.getInvoiceId()));
             card.add(btnPay);
 
-            // Nhân viên/admin thấy thêm nút xác nhận
-            if (isStaff) {
-                card.add(Box.createVerticalStrut(UIScale.scale(8)));
-                JButton btnConfirm = createActionButton("XÁC NHẬN ĐẶT SÂN", new Color(0, 150, 255), Color.WHITE);
-                btnConfirm.addActionListener(e -> handleConfirmBooking(detail));
-                card.add(btnConfirm);
-            }
-
         } else if (upperStatus.contains("ĐÃ CỌC")) {
-            // Nhân viên/admin thấy nút xác nhận
+            // Chỉ khi đã cọc thì staff mới được xác nhận (qua module booking_management hoặc tại đây)
             if (isStaff) {
                 JButton btnConfirm = createActionButton("XÁC NHẬN ĐẶT SÂN", new Color(0, 150, 255), Color.WHITE);
                 btnConfirm.addActionListener(e -> handleConfirmBooking(detail));
@@ -588,7 +590,7 @@ public class BookingDetailPanel extends JPanel {
         if (upperSt.contains("CHỜ CỌC") || upperSt.contains("CHƯA")) {
             bg = new Color(255, 77, 77);
             fg = Color.WHITE;
-            displayStatus = "Đã đặt chờ cọc";
+            displayStatus = "Chờ cọc";
         } else if (upperSt.equals("ĐÃ CỌC")) {
             bg = new Color(255, 200, 0);
             fg = new Color(100, 60, 0);
@@ -639,6 +641,31 @@ public class BookingDetailPanel extends JPanel {
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(45)));
         btn.setPreferredSize(new Dimension(10, UIScale.scale(45)));
         return btn;
+    }
+
+    private BigDecimal depositDue(BookingDetailDTO detail) {
+        if (detail == null) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal deposit = detail.getDeposit();
+        if (deposit != null && deposit.compareTo(BigDecimal.ZERO) > 0) {
+            return deposit;
+        }
+
+        BigDecimal totalValue = detail.getTotalValue();
+        if (totalValue == null || totalValue.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return totalValue.multiply(new BigDecimal("0.70")).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String money(BigDecimal amount) {
+        if (amount == null) {
+            return "0đ";
+        }
+        return String.format("%,.0fđ", amount).replace(",", ".");
     }
 
     private JPanel makeSummaryRow(String label, String value, boolean bold) {
@@ -703,10 +730,24 @@ public class BookingDetailPanel extends JPanel {
     }
 
     private void handlePayDeposit(String invoiceId) {
-        Window parentWindow = SwingUtilities.getWindowAncestor(this);
-        JOptionPane.showMessageDialog(parentWindow,
-                "Chức năng thanh toán cọc đang được kết nối với cổng thanh toán cho mã đơn: " + invoiceId,
-                "Đang phát triển", JOptionPane.INFORMATION_MESSAGE);
+        BigDecimal deposit = depositDue(currentDetail);
+
+        CustomerBookingDialogs.showDepositPaymentDialog(
+                this,
+                invoiceId,
+                deposit,
+                () -> {
+                    try { controller.markDeposited(invoiceId); } catch (Exception ignored) {}
+                    JOptionPane.showMessageDialog(
+                            SwingUtilities.getWindowAncestor(this),
+                            "Thanh toán cọc thành công!", "Thông báo",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    loadDetail(invoiceId);
+                },
+                () -> {
+                    try { new CustomerBookingController().cancelPendingBooking(invoiceId); } catch (Exception ignored) {}
+                }
+        );
     }
 
     private void handleConfirmBooking(BookingDetailDTO detail) {

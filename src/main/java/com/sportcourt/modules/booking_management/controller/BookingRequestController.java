@@ -76,5 +76,7 @@ public class BookingRequestController {
         return service.cancelBooking(id); // ID này tự động chuyển tiếp xuống DAO xử lý MACT_THUE_SAN
     }
 
-
+    public boolean checkInBooking(String invoiceId) {
+        return service.checkInBooking(invoiceId);
+    }
 }
