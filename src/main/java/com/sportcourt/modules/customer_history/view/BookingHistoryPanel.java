@@ -295,6 +295,11 @@ public class BookingHistoryPanel extends JPanel {
             String customerId = SessionManager.getCurrentSession()
                     .map(UserSession::getCustomerId)
                     .orElse(null);
+            if (customerId == null || customerId.isBlank()) {
+                allItems = new ArrayList<>();
+                applyFilterAndRender();
+                return;
+            }
             final String cid = customerId;
             SwingWorker<List<BookingHistoryItemDTO>, Void> worker = new SwingWorker<>() {
                 @Override
@@ -438,18 +443,23 @@ public class BookingHistoryPanel extends JPanel {
 
             Color statusBg = new Color(225, 245, 228);
             Color statusFg = new Color(34, 139, 34);
-            if (st.contains("HỦY") || st.contains("HUỸ")) {
+            if (st.contains("HỦY") || st.contains("HUỶ")) {
                 statusBg = new Color(253, 236, 234);
                 statusFg = new Color(211, 47, 47);
-            } else if (st.contains("CHỞ") || st.contains("CHƯA") || st.equals("TRỐNG")) {
+            } else if (st.contains("CHỜ") || st.contains("CHƯA") || st.equals("TRỐNG")) {
                 statusBg = new Color(255, 244, 229);
                 statusFg = new Color(230, 81, 0);
+            } else if (st.equals("ĐÃ CỌC")) {
+                statusBg = new Color(254, 243, 199);
+                statusFg = new Color(146, 64, 14);
             }
+
+            String displayStatus = resolveDisplayStatus(rawStatus);
 
             RoundedPanel statusPill = new RoundedPanel(UIScale.scale(12), statusBg, false);
             statusPill.setLayout(new BorderLayout());
             statusPill.setBorder(new EmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
-            JLabel stLbl = new JLabel(st);
+            JLabel stLbl = new JLabel(displayStatus);
             stLbl.setFont(AppFonts.lexendBold(10f));
             stLbl.setForeground(statusFg);
             statusPill.add(stLbl, BorderLayout.CENTER);
@@ -494,6 +504,19 @@ public class BookingHistoryPanel extends JPanel {
             card.add(right, BorderLayout.EAST);
 
             return card;
+        }
+
+        private String resolveDisplayStatus(String rawStatus) {
+            if (rawStatus == null) return "TRỐNG";
+            return switch (rawStatus.toUpperCase()) {
+                case "ĐÃ ĐẶT CHỜ CỌC" -> "Chờ cọc";
+                case "ĐÃ CỌC" -> "Đã cọc, chờ xác nhận";
+                case "ĐÃ XÁC NHẬN" -> "Đã xác nhận";
+                case "ĐANG SỬ DỤNG" -> "Đang sử dụng";
+                case "ĐÃ HOÀN THÀNH" -> "Đã hoàn thành";
+                case "ĐÃ HUỶ", "ĐÃ HỦY" -> "Đã hủy";
+                default -> rawStatus;
+            };
         }
     }
 }

@@ -11,6 +11,8 @@ public interface BookingHistoryDAO {
 
     void confirmCourtBooking(String detailId);
 
+    void markDeposited(String invoiceId);
+
     List<BookingHistoryItemDTO> findByCustomerId(String customerId, String keyword);
 
     BookingDetailDTO findDetailByInvoiceId(String invoiceId);
