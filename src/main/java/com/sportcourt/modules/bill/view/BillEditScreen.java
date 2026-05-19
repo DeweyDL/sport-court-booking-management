@@ -6,6 +6,7 @@ import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.CourtRentalItem;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.util.BillPdfExporter;
 import com.sportcourt.modules.branch.entity.Branch;
 import com.sportcourt.modules.payment.dto.PaymentQrInfo;
 import com.sportcourt.modules.payment.service.PaymentService;
@@ -17,7 +18,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.Path2D;
-import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -30,16 +30,16 @@ import java.util.function.Consumer;
 
 public class BillEditScreen extends JPanel {
 
-    private static final Color PAGE_BG      = Color.WHITE;
-    private static final Color CARD_BG      = new Color(247, 248, 250);
-    private static final Color PILL_GREEN   = new Color(34, 139, 58);
+    private static final Color PAGE_BG = Color.WHITE;
+    private static final Color CARD_BG = new Color(247, 248, 250);
+    private static final Color PILL_GREEN = new Color(34, 139, 58);
     private static final Color ACTION_GREEN = new Color(46, 204, 88);
     private static final Color ACCENT_GREEN = new Color(22, 130, 50);
-    private static final Color BANNER_DARK  = new Color(33, 60, 33);
-    private static final Color BORDER_BLUE  = new Color(29, 78, 216);
-    private static final Color TITLE_DARK   = new Color(17, 24, 39);
-    private static final Color MUTED        = new Color(107, 114, 128);
-    private static final Color DIVIDER      = new Color(229, 231, 235);
+    private static final Color BANNER_DARK = new Color(33, 60, 33);
+    private static final Color BORDER_BLUE = new Color(29, 78, 216);
+    private static final Color TITLE_DARK = new Color(17, 24, 39);
+    private static final Color MUTED = new Color(107, 114, 128);
+    private static final Color DIVIDER = new Color(229, 231, 235);
 
     private static final int CARD_RADIUS = 18;
     private static final int NAME_COL_W = 200;  // cột tên — rộng cố định để mọi dòng thẳng hàng
@@ -49,11 +49,11 @@ public class BillEditScreen extends JPanel {
     private static final int PRICE_COL_W = 112; // cột giá — rộng cố định
     private static final int ACTION_COL_W = 34;  // cột nút xóa cuối dòng — dùng chung để thẳng hàng
 
-    private static final DateTimeFormatter DATE_FMT  = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final NumberFormat      MONEY_FMT = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
-
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final NumberFormat MONEY_FMT = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+    private static final int BANNER_H = 210;
+    private static final int BANNER_RADIUS = 40;
     private final String maHD;
-    private Branch branch;
     private final Runnable onBack;
     private final Runnable onAddEquipment;
     private final Runnable onAddProduct;
@@ -63,6 +63,7 @@ public class BillEditScreen extends JPanel {
     private final boolean readOnly;
     private final boolean allowBookingModeControls;
     private final ManageBillController controller = new ManageBillController();
+    private Branch branch;
     private JScrollPane scrollPane;   // giữ tham chiếu để khôi phục vị trí cuộn sau reload
     private JPanel contentPanel;      // vùng cột (trái/phải) — chỉ refresh phần này khi đổi số lượng
     private boolean advanceBookingMode;
@@ -106,11 +107,13 @@ public class BillEditScreen extends JPanel {
                 null, false, onAddCourtWithMode, allowBookingModeControls);
     }
 
+    // ── Init ─────────────────────────────────────────────────────────────────
+
     private BillEditScreen(String maHD, Branch branch, Runnable onBack,
                            Runnable onAddEquipment, Runnable onAddProduct, Runnable onAddCourt,
                            java.util.List<ServiceItem> extraServices, boolean readOnly,
                            Consumer<Boolean> onAddCourtWithMode, boolean allowBookingModeControls) {
-        this.maHD   = maHD;
+        this.maHD = maHD;
         this.branch = branch;
         this.onBack = onBack;
         this.onAddEquipment = onAddEquipment;
@@ -126,7 +129,15 @@ public class BillEditScreen extends JPanel {
         buildScreen();
     }
 
-    /** Danh sách dịch vụ của hóa đơn + các mục vừa chọn thêm (chưa lưu DB). */
+    private static String money(BigDecimal value) {
+        return MONEY_FMT.format(value == null ? BigDecimal.ZERO : value);
+    }
+
+    // ── Top bar (logo + back) ────────────────────────────────────────────────
+
+    /**
+     * Danh sách dịch vụ của hóa đơn + các mục vừa chọn thêm (chưa lưu DB).
+     */
     private java.util.List<ServiceItem> allServices(BillDetail detail) {
         if (extraServices.isEmpty()) return detail.danhSachDichVu();
         java.util.List<ServiceItem> all = new java.util.ArrayList<>(detail.danhSachDichVu());
@@ -134,7 +145,7 @@ public class BillEditScreen extends JPanel {
         return all;
     }
 
-    // ── Init ─────────────────────────────────────────────────────────────────
+    // ── Banner ───────────────────────────────────────────────────────────────
 
     private void buildScreen() {
         setOpaque(true);
@@ -170,8 +181,6 @@ public class BillEditScreen extends JPanel {
         return container;
     }
 
-    // ── Top bar (logo + back) ────────────────────────────────────────────────
-
     private JPanel buildTopBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(true);
@@ -185,16 +194,13 @@ public class BillEditScreen extends JPanel {
         backBtn.setContentAreaFilled(false);
         backBtn.setFocusPainted(false);
         backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        backBtn.addActionListener(e -> { if (onBack != null) onBack.run(); });
+        backBtn.addActionListener(e -> {
+            if (onBack != null) onBack.run();
+        });
 
         bar.add(backBtn, BorderLayout.EAST);
         return bar;
     }
-
-    // ── Banner ───────────────────────────────────────────────────────────────
-
-    private static final int BANNER_H = 210;
-    private static final int BANNER_RADIUS = 40;
 
     private JPanel buildBanner() {
         final BufferedImage heroImg = loadHeroImage();
@@ -222,7 +228,9 @@ public class BillEditScreen extends JPanel {
         textBand.setOpaque(false);
         textBand.setPreferredSize(new Dimension(0, BANNER_H / 2));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
         textBand.add(title, gbc);
         gbc.gridy = 1;
         gbc.insets = new Insets(2, 0, 0, 0);
@@ -328,6 +336,8 @@ public class BillEditScreen extends JPanel {
         return path;
     }
 
+    // ── Body ─────────────────────────────────────────────────────────────────
+
     private Shape bottomRoundedClip(int width, int height, int radius) {
         int r = Math.min(radius, Math.min(width, height));
         Path2D.Float path = new Path2D.Float();
@@ -340,8 +350,6 @@ public class BillEditScreen extends JPanel {
         path.closePath();
         return path;
     }
-
-    // ── Body ─────────────────────────────────────────────────────────────────
 
     private JComponent buildBody(BillDetail detail) {
         JPanel content = new JPanel(new GridBagLayout());
@@ -382,7 +390,7 @@ public class BillEditScreen extends JPanel {
 
     private void populateContent(JPanel content, BillDetail detail) {
         content.removeAll();
-        JPanel left  = buildLeftColumn(detail);
+        JPanel left = buildLeftColumn(detail);
         JPanel right = buildRightColumn(detail);
         right.setPreferredSize(new Dimension(360, right.getPreferredSize().height));
 
@@ -390,15 +398,25 @@ public class BillEditScreen extends JPanel {
         g.gridy = 0;
         g.fill = GridBagConstraints.BOTH;
         g.anchor = GridBagConstraints.NORTHWEST;
-        g.gridx = 0; g.weightx = 1.0; g.weighty = 1.0;
+        g.gridx = 0;
+        g.weightx = 1.0;
+        g.weighty = 1.0;
         content.add(left, g);
-        g.gridx = 1; g.weightx = 0; g.insets = new Insets(0, 20, 0, 0);
+        g.gridx = 1;
+        g.weightx = 0;
+        g.insets = new Insets(0, 20, 0, 0);
         content.add(right, g);
     }
 
-    /** Chỉ dựng lại phần cột (giữ banner/topbar/scroll) — không giật như reload cả màn. */
+    // ── Left column ──────────────────────────────────────────────────────────
+
+    /**
+     * Chỉ dựng lại phần cột (giữ banner/topbar/scroll) — không giật như reload cả màn.
+     */
     private void refreshContent() {
-        if (contentPanel == null) { return; }
+        if (contentPanel == null) {
+            return;
+        }
         int scrollPos = scrollPane != null ? scrollPane.getVerticalScrollBar().getValue() : 0;
         BillResult<BillDetail> res = controller.getDetail(maHD);
         if (!res.success() || res.data() == null) {
@@ -413,8 +431,6 @@ public class BillEditScreen extends JPanel {
         });
     }
 
-    // ── Left column ──────────────────────────────────────────────────────────
-
     private JPanel buildLeftColumn(BillDetail detail) {
         JPanel col = new JPanel();
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
@@ -423,7 +439,7 @@ public class BillEditScreen extends JPanel {
         List<CourtRentalItem> courts = detail.danhSachThuesan();
         List<ServiceItem> services = allServices(detail);
         List<ServiceItem> equips = services.stream().filter(s -> s.maDC() != null).toList();
-        List<ServiceItem> prods  = services.stream().filter(s -> s.maSP() != null).toList();
+        List<ServiceItem> prods = services.stream().filter(s -> s.maSP() != null).toList();
 
         col.add(buildCourtSection(courts));
         col.add(Box.createVerticalStrut(18));
@@ -538,7 +554,8 @@ public class BillEditScreen extends JPanel {
 
     private JButton trashButton(Runnable action) {
         JButton b = new JButton("🗑") {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(new Color(254, 226, 226));
@@ -582,15 +599,17 @@ public class BillEditScreen extends JPanel {
 
         // Mọi cột rộng CỐ ĐỊNH + cột đệm cuối hút phần dư
         // → mọi dòng (sân/dụng cụ/sản phẩm) thẳng hàng nhau tuyệt đối.
-        row.add(name,         rowGbc(0));
-        row.add(qty,          rowGbc(1));
+        row.add(name, rowGbc(0));
+        row.add(qty, rowGbc(1));
         row.add(price, rowGbc(2));
         row.add(Box.createHorizontalGlue(), rowGbc(3));
         row.add(actionSpacer(), rowGbc(4));
         return row;
     }
 
-    /** Ràng buộc GridBag dùng chung cho courtRow & serviceRow để các cột trùng khít. */
+    /**
+     * Ràng buộc GridBag dùng chung cho courtRow & serviceRow để các cột trùng khít.
+     */
     private GridBagConstraints rowGbc(int gridx) {
         GridBagConstraints g = new GridBagConstraints();
         g.gridy = 0;
@@ -598,11 +617,24 @@ public class BillEditScreen extends JPanel {
         g.weightx = 0;
         g.fill = GridBagConstraints.NONE;
         switch (gridx) {
-            case 0 -> { g.anchor = GridBagConstraints.WEST; }                       // tên
-            case 1 -> { g.anchor = GridBagConstraints.WEST; }                       // giờ/số lượng
-            case 2 -> { g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 12, 0, 0); } // giá
-            case 3 -> { g.weightx = 1.0; g.fill = GridBagConstraints.HORIZONTAL; } // đệm hút phần dư
-            default -> { g.anchor = GridBagConstraints.CENTER; g.insets = new Insets(0, 10, 0, 0); } // nút
+            case 0 -> {
+                g.anchor = GridBagConstraints.WEST;
+            }                       // tên
+            case 1 -> {
+                g.anchor = GridBagConstraints.WEST;
+            }                       // giờ/số lượng
+            case 2 -> {
+                g.anchor = GridBagConstraints.WEST;
+                g.insets = new Insets(0, 12, 0, 0);
+            } // giá
+            case 3 -> {
+                g.weightx = 1.0;
+                g.fill = GridBagConstraints.HORIZONTAL;
+            } // đệm hút phần dư
+            default -> {
+                g.anchor = GridBagConstraints.CENTER;
+                g.insets = new Insets(0, 10, 0, 0);
+            } // nút
         }
         return g;
     }
@@ -653,9 +685,12 @@ public class BillEditScreen extends JPanel {
         refreshContent();
     }
 
+    // ── Right column ─────────────────────────────────────────────────────────
+
     private JButton circleBtn(String sign, Runnable action) {
         JButton btn = new JButton(sign) {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor("+".equals(sign) ? ACTION_GREEN : new Color(220, 53, 69));
@@ -676,8 +711,6 @@ public class BillEditScreen extends JPanel {
         return btn;
     }
 
-    // ── Right column ─────────────────────────────────────────────────────────
-
     private JPanel buildRightColumn(BillDetail detail) {
         JPanel col = new JPanel();
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
@@ -693,14 +726,14 @@ public class BillEditScreen extends JPanel {
         JPanel card = card();
         card.add(rightHeader("THÔNG TIN CHI NHÁNH"));
         if (branch != null) {
-            card.add(infoRow("Tên",     branch.tenChiNhanh()));
+            card.add(infoRow("Tên", branch.tenChiNhanh()));
             card.add(addressRow("Địa chỉ", branch.diaChi()));
         } else {
             card.add(emptyRow("Không có thông tin chi nhánh."));
         }
         card.add(Box.createVerticalStrut(6));
         card.add(rightHeader("THÔNG TIN KHÁCH HÀNG"));
-        card.add(infoRow("Tên",           detail.tenKhachHang()));
+        card.add(infoRow("Tên", detail.tenKhachHang()));
         card.add(infoRow("Số điện thoại", detail.sdtKhachHang()));
         card.add(Box.createVerticalStrut(8));
         return card;
@@ -727,7 +760,7 @@ public class BillEditScreen extends JPanel {
         btnUpdate.addActionListener(e -> {
             try {
                 int pct = Integer.parseInt(txtPct.getText().trim());
-                if(pct < 0 || pct > 100) throw new NumberFormatException();
+                if (pct < 0 || pct > 100) throw new NumberFormatException();
                 BillResult<Void> r = controller.updateDiscount(maHD, pct);
                 if (r.success()) {
                     refreshContent();
@@ -749,6 +782,8 @@ public class BillEditScreen extends JPanel {
         row.add(right, BorderLayout.EAST);
         return row;
     }
+
+    // ── Builders ─────────────────────────────────────────────────────────────
 
     private JPanel buildPaymentCard(BillDetail detail) {
         JPanel card = card();
@@ -774,10 +809,10 @@ public class BillEditScreen extends JPanel {
         BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
         BigDecimal remaining = detail.tongTien() != null ? detail.tongTien() : BigDecimal.ZERO;
 
-        card.add(payRow("Tiền thuê sân",     courtTotal));
+        card.add(payRow("Tiền thuê sân", courtTotal));
         card.add(payRow("Tiền thuê dụng cụ", equipTotal));
-        card.add(payRow("Tiền sản phẩm",     prodTotal));
-        card.add(payRowBold("Tổng cộng",     subtotal));
+        card.add(payRow("Tiền sản phẩm", prodTotal));
+        card.add(payRowBold("Tổng cộng", subtotal));
         BigDecimal chietKhau = detail.chietKhauHang() != null ? detail.chietKhauHang() : BigDecimal.ZERO;
         BigDecimal tierDiscount = courtTotal.multiply(chietKhau).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
         BigDecimal pct = detail.giamGia() == null ? BigDecimal.ZERO : detail.giamGia();
@@ -788,20 +823,20 @@ public class BillEditScreen extends JPanel {
             card.add(payRowDiscount("Tiền giảm (" + pct.toPlainString() + "%)", pctDiscount));
         }
         card.add(payRowDiscount("Giảm giá hạng KH (" + chietKhau.stripTrailingZeros().toPlainString() + "%)", tierDiscount));
-        card.add(payRow("Tiền cọc",          deposit));
+        card.add(payRow("Tiền cọc", deposit));
         card.add(grandTotalRow(remaining));
         if (!readOnly) {
             card.add(payButton(detail));
+            card.add(exportPdfButton());
         }
         card.add(Box.createVerticalStrut(8));
         return card;
     }
 
-    // ── Builders ─────────────────────────────────────────────────────────────
-
     private JPanel card() {
         JPanel p = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
@@ -895,7 +930,8 @@ public class BillEditScreen extends JPanel {
 
     private JComponent bookingIcon() {
         JComponent c = new JComponent() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int s = 20;
@@ -1086,7 +1122,8 @@ public class BillEditScreen extends JPanel {
         boolean unpaid = "CHƯA THANH TOÁN".equalsIgnoreCase(status);
 
         JButton btn = new JButton(unpaid ? "THANH TOÁN" : "ĐÃ THANH TOÁN") {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(isEnabled() ? ACTION_GREEN : new Color(180, 188, 184));
@@ -1135,6 +1172,8 @@ public class BillEditScreen extends JPanel {
         wrap.add(btn, BorderLayout.CENTER);
         return wrap;
     }
+
+    // ── Utilities ────────────────────────────────────────────────────────────
 
     private JPanel emptyRow(String msg) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 18, 6));
@@ -1450,20 +1489,20 @@ public class BillEditScreen extends JPanel {
         header.setOpaque(false);
         JLabel title = new JLabel("Thanh toán hóa đơn " + bill.maHD());
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        
+
         JPanel detailsPanel = new JPanel(new GridLayout(0, 1, 0, 4));
         detailsPanel.setOpaque(false);
         detailsPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
-        
+
         JLabel lblTong = new JLabel("Tổng tiền: " + money(bill.tongGiaTri()) + "đ");
         lblTong.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        
+
         JLabel lblCoc = new JLabel("Tiền cọc: " + money(bill.tienCoc()) + "đ");
         lblCoc.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        
+
         detailsPanel.add(lblTong);
         detailsPanel.add(lblCoc);
-        
+
         BigDecimal chietKhau = bill.chietKhauHang() != null ? bill.chietKhauHang() : BigDecimal.ZERO;
         BigDecimal courtTotal = bill.danhSachThuesan().stream()
                 .map(c -> c.donGiaThue() == null ? BigDecimal.ZERO : c.donGiaThue())
@@ -1485,7 +1524,7 @@ public class BillEditScreen extends JPanel {
         lblTierGiam.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblTierGiam.setForeground(new Color(220, 53, 69));
         detailsPanel.add(lblTierGiam);
-        
+
         JLabel lblConLai = new JLabel("Còn lại cần thanh toán: " + money(bill.tongTien()) + "đ");
         lblConLai.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblConLai.setForeground(new Color(16, 110, 0));
@@ -1580,13 +1619,10 @@ public class BillEditScreen extends JPanel {
         };
     }
 
-    private static String money(BigDecimal value) {
-        return MONEY_FMT.format(value == null ? BigDecimal.ZERO : value);
-    }
-
     private JButton pillBtn(String text) {
         JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(PILL_GREEN);
@@ -1604,4 +1640,36 @@ public class BillEditScreen extends JPanel {
         btn.setBorder(new EmptyBorder(7, 16, 7, 16));
         return btn;
     }
+
+    private JComponent exportPdfButton() {
+        JButton btn = new JButton("Xuất PDF") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(29, 78, 216)); // màu xanh dương
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                super.paintComponent(g);
+                g2.dispose();
+            }
+        };
+        btn.setFont(new Font("Lexend", Font.BOLD, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(e ->
+                BillPdfExporter.exportFromView(controller, maHD, this)
+        );
+
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.setBorder(new EmptyBorder(4, 18, 6, 18));
+        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
+        btn.setPreferredSize(new Dimension(0, 40));
+        wrap.add(btn, BorderLayout.CENTER);
+        return wrap;
+    }
 }
+
