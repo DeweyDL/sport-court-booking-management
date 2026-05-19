@@ -26,8 +26,8 @@ public class JdbcManageBillDao implements ManageBillDao {
     @Override
     public List<BillSummary> findAll(String keyword, String branchId) throws SQLException {
         boolean filterBranch = branchId != null && !branchId.isBlank();
-        String sql = """
-                SELECT hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG,
+        String sql = "SELECT " + (filterBranch ? "DISTINCT " : "") + """
+                       hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG,
                        hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN,
                        hd.TIEN_COC, hd.GIAMGIA, hd.TONGGIATRI, hd.TRANGTHAI,
                        hd.TONGTIEN, hd.CREATED_AT
@@ -36,6 +36,19 @@ public class JdbcManageBillDao implements ManageBillDao {
                 LEFT JOIN USERS u_kh ON u_kh.USER_ID = kh.USER_ID
                 LEFT JOIN NHAN_VIEN nv ON nv.MANV = hd.MANV
                 LEFT JOIN USERS u_nv ON u_nv.USER_ID = nv.USER_ID
+                """
+                + (filterBranch ? """
+                LEFT JOIN CHI_TIET_HOA_DON_THUE_SAN ct_branch
+                       ON ct_branch.MAHD = hd.MAHD
+                      AND NVL(ct_branch.IS_DELETED, 0) = 0
+                LEFT JOIN SAN_CON sc_branch
+                       ON sc_branch.MASAN = ct_branch.MASAN
+                      AND NVL(sc_branch.IS_DELETED, 0) = 0
+                LEFT JOIN KHU_VUC kv_branch
+                       ON kv_branch.MAKV = sc_branch.MAKV
+                      AND NVL(kv_branch.IS_DELETED, 0) = 0
+                """ : "")
+                + """
                 WHERE NVL(hd.IS_DELETED, 0) = 0
                   AND (
                       UPPER(hd.MAHD) LIKE '%' || UPPER(?) || '%'
@@ -46,19 +59,7 @@ public class JdbcManageBillDao implements ManageBillDao {
                 + (filterBranch ? """
                   AND (
                       nv.MACN = ?
-                      OR EXISTS (
-                          SELECT 1
-                          FROM CHI_TIET_HOA_DON_THUE_SAN ct_branch
-                          JOIN SAN_CON sc_branch
-                            ON sc_branch.MASAN = ct_branch.MASAN
-                           AND NVL(sc_branch.IS_DELETED, 0) = 0
-                          JOIN KHU_VUC kv_branch
-                            ON kv_branch.MAKV = sc_branch.MAKV
-                           AND NVL(kv_branch.IS_DELETED, 0) = 0
-                          WHERE ct_branch.MAHD = hd.MAHD
-                            AND NVL(ct_branch.IS_DELETED, 0) = 0
-                            AND kv_branch.MACN = ?
-                      )
+                      OR kv_branch.MACN = ?
                   )
                 """ : "")
                 + "ORDER BY hd.CREATED_AT DESC";
