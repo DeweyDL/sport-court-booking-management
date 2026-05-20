@@ -17,8 +17,8 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                 CASE
                     WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ ĐẶT CHỜ CỌC' THEN 1 ELSE 0 END) > 0
                         THEN 'ĐÃ ĐẶT CHỜ CỌC'
-                    WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ CỌC' THEN 1 ELSE 0 END) > 0
-                        THEN 'ĐÃ CỌC'
+                    WHEN SUM(CASE WHEN CT.TRANGTHAI IN ('ĐÃ CỌC CHỜ XÁC NHẬN', 'ĐÃ CỌC') THEN 1 ELSE 0 END) > 0
+                        THEN 'ĐÃ CỌC CHỜ XÁC NHẬN'
                     WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐÃ XÁC NHẬN' THEN 1 ELSE 0 END) > 0
                         THEN 'ĐÃ XÁC NHẬN'
                     WHEN SUM(CASE WHEN CT.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN 1 ELSE 0 END) > 0
@@ -132,17 +132,17 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
             if (st.contains("CHỜ CỌC") || st.contains("CHƯA")) {
                 hasWaitDeposit = true;
             }
-            if (st.contains("ĐÃ CỌC") && !st.contains("CHỜ")) {  // chỉ "ĐÃ CỌC" thuần
+            if (st.contains("ĐÃ CỌC")) {
                 hasDeposited = true;
             }
-            if (st.contains("XÁC NHẬN")) {  // bỏ "ĐÃ CỌC" ra khỏi đây
+            if (st.contains("XÁC NHẬN") && !st.contains("ĐÃ CỌC")) {
                 hasConfirmed = true;
             }
         }
 
         if (allCancelled) return "Đã hủy";
         if (hasWaitDeposit) return "Đã đặt chờ cọc";
-        if (hasDeposited) return "Đã cọc";        // thêm dòng này
+        if (hasDeposited) return "Đã cọc chờ xác nhận";
         if (hasConfirmed) return "Đã xác nhận";
         return "TRỐNG";
     }
@@ -151,7 +151,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
     public void markDeposited(String invoiceId) {
         String sql = """
                 UPDATE CHI_TIET_HOA_DON_THUE_SAN
-                SET TRANGTHAI = 'ĐÃ CỌC'
+                SET TRANGTHAI = 'ĐÃ CỌC CHỜ XÁC NHẬN'
                 WHERE MAHD = ?
                     AND IS_DELETED = 0
                     AND TRANGTHAI = 'ĐÃ ĐẶT CHỜ CỌC'
@@ -171,7 +171,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                 UPDATE CHI_TIET_HOA_DON_THUE_SAN
                 SET TRANGTHAI = 'ĐÃ XÁC NHẬN'
                 WHERE MACT_THUE_SAN = ?
-                    AND TRANGTHAI = 'ĐÃ CỌC'
+                    AND TRANGTHAI IN ('ĐÃ CỌC CHỜ XÁC NHẬN', 'ĐÃ CỌC')
                     AND IS_DELETED = 0
                 """;
         try (Connection conn = ConnectionUtils.getMyConnection();
@@ -179,7 +179,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
             ps.setString(1, detailId);
             int rows = ps.executeUpdate();
             if (rows == 0) {
-                throw new RuntimeException("Không thể xác nhận. Chi tiết không ở trạng thái 'ĐÃ CỌC' hoặc không tồn tại.");
+                throw new RuntimeException("Không thể xác nhận. Chi tiết không ở trạng thái 'ĐÃ CỌC CHỜ XÁC NHẬN' hoặc không tồn tại.");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage(), e);

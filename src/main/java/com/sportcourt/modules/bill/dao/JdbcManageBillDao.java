@@ -24,7 +24,7 @@ import java.util.Optional;
 
 public class JdbcManageBillDao implements ManageBillDao {
     private static final String COURT_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
-    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
     private static final String COURT_STATUS_IN_USE = "ĐANG SỬ DỤNG";
     private static final String COURT_STATUS_CANCELLED = "ĐÃ HUỶ";
 

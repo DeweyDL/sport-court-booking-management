@@ -249,7 +249,7 @@ public class CourtDAOImpl implements CourtDAO {
             WHERE ct.MASAN = ?
               AND kv.MACN = ?
               AND ct.IS_DELETED = 0
-              AND ct.TRANGTHAI IN (?, ?, ?, ?)
+              AND ct.TRANGTHAI IN (?, ?, ?, ?, ?)
             """;
 
         try (Connection connection = ConnectionUtils.getMyConnection();
@@ -258,9 +258,10 @@ public class CourtDAOImpl implements CourtDAO {
             ps.setString(1, courtId);
             ps.setString(2, branchId);
             ps.setString(3, "ĐÃ ĐẶT CHỜ CỌC");
-            ps.setString(4, "ĐÃ CỌC");
-            ps.setString(5, "ĐÃ XÁC NHẬN");
-            ps.setString(6, "ĐANG SỬ DỤNG");
+            ps.setString(4, "ĐÃ CỌC CHỜ XÁC NHẬN");
+            ps.setString(5, "ĐÃ CỌC");
+            ps.setString(6, "ĐÃ XÁC NHẬN");
+            ps.setString(7, "ĐANG SỬ DỤNG");
 
             try (ResultSet rs = ps.executeQuery()) {
                 rs.next();

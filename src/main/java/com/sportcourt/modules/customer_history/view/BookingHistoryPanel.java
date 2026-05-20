@@ -446,12 +446,12 @@ public class BookingHistoryPanel extends JPanel {
             if (st.contains("HỦY") || st.contains("HUỶ")) {
                 statusBg = new Color(253, 236, 234);
                 statusFg = new Color(211, 47, 47);
+            } else if (st.contains("ĐÃ CỌC")) {
+                statusBg = new Color(254, 243, 199);
+                statusFg = new Color(146, 64, 14);
             } else if (st.contains("CHỜ") || st.contains("CHƯA") || st.equals("TRỐNG")) {
                 statusBg = new Color(255, 244, 229);
                 statusFg = new Color(230, 81, 0);
-            } else if (st.equals("ĐÃ CỌC")) {
-                statusBg = new Color(254, 243, 199);
-                statusFg = new Color(146, 64, 14);
             }
 
             String displayStatus = resolveDisplayStatus(rawStatus);
@@ -510,7 +510,7 @@ public class BookingHistoryPanel extends JPanel {
             if (rawStatus == null) return "TRỐNG";
             return switch (rawStatus.toUpperCase()) {
                 case "ĐÃ ĐẶT CHỜ CỌC" -> "Chờ cọc";
-                case "ĐÃ CỌC" -> "Đã cọc, chờ xác nhận";
+                case "ĐÃ CỌC CHỜ XÁC NHẬN", "ĐÃ CỌC" -> "Đã cọc, chờ xác nhận";
                 case "ĐÃ XÁC NHẬN" -> "Đã xác nhận";
                 case "ĐANG SỬ DỤNG" -> "Đang sử dụng";
                 case "ĐÃ HOÀN THÀNH" -> "Đã hoàn thành";

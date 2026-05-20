@@ -135,7 +135,7 @@ public class CustomerBookingPanel extends JPanel {
         pendingDepositInvoiceId = invoiceId;
         pendingDepositAmount = deposit;
 
-        // 2. Hiển thị dialog QR — nếu thanh toán thành công → cập nhật ĐÃ CỌC + thông báo
+        // 2. Hiển thị dialog QR — nếu thanh toán thành công → cập nhật ĐÃ CỌC CHỜ XÁC NHẬN + thông báo
         //                         nếu timeout/đóng   → huỷ hóa đơn
         showCurrentDepositDialog();
         pendingSlots = List.of();
@@ -151,20 +151,59 @@ public class CustomerBookingPanel extends JPanel {
         }
 
         CustomerBookingDialogs.showDepositPaymentDialog(this, invoiceId, deposit,
-                () -> {
-                    try { controller.markBookingAsDeposited(invoiceId); } catch (Exception ignored) {}
-                    pendingSlots = List.of();
-                    pendingDepositInvoiceId = null;
-                    pendingDepositAmount = null;
-                    homeScreen.refreshCourts();
-                    CustomerBookingDialogs.showSuccessDialog(this, this::showHome, this::showHome);
-                },
-                () -> {
-                    try { controller.cancelPendingBooking(invoiceId); } catch (Exception ignored) {}
-                    pendingDepositInvoiceId = null;
-                    pendingDepositAmount = null;
-                }
+                () -> handleDepositPaid(invoiceId),
+                () -> handleDepositExpired(invoiceId)
         );
+    }
+
+    private void handleDepositPaid(String invoiceId) {
+        try {
+            controller.markBookingAsDeposited(invoiceId);
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this,
+                    e.getMessage() == null || e.getMessage().isBlank()
+                            ? "Không thể cập nhật trạng thái đặt cọc."
+                            : e.getMessage(),
+                    "Đặt sân", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        pendingSlots = List.of();
+        pendingDepositInvoiceId = null;
+        pendingDepositAmount = null;
+        homeScreen.refreshCourts();
+        scheduleScreen.refreshCurrentSchedule();
+        CustomerBookingDialogs.showSuccessDialog(this, this::showHome, this::showHome);
+    }
+
+    private void handleDepositExpired(String invoiceId) {
+        Thread worker = new Thread(() -> {
+            RuntimeException failure = null;
+            try {
+                controller.cancelPendingBooking(invoiceId);
+            } catch (RuntimeException e) {
+                failure = e;
+            }
+
+            RuntimeException cancelFailure = failure;
+            SwingUtilities.invokeLater(() -> {
+                pendingSlots = List.of();
+                pendingDepositInvoiceId = null;
+                pendingDepositAmount = null;
+                homeScreen.refreshCourts();
+                scheduleScreen.refreshCurrentSchedule();
+
+                if (cancelFailure != null) {
+                    JOptionPane.showMessageDialog(this,
+                            cancelFailure.getMessage() == null || cancelFailure.getMessage().isBlank()
+                                    ? "Không thể hủy đặt sân quá hạn."
+                                    : cancelFailure.getMessage(),
+                            "Đặt sân", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        }, "customer-booking-expire-cancel");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private BigDecimal computeDeposit() {

@@ -591,10 +591,10 @@ public class BookingDetailPanel extends JPanel {
             bg = new Color(255, 77, 77);
             fg = Color.WHITE;
             displayStatus = "Chờ cọc";
-        } else if (upperSt.equals("ĐÃ CỌC")) {
+        } else if (upperSt.contains("ĐÃ CỌC")) {
             bg = new Color(255, 200, 0);
             fg = new Color(100, 60, 0);
-            displayStatus = "Đã cọc";
+            displayStatus = "Đã cọc chờ xác nhận";
         } else if (upperSt.contains("XÁC NHẬN")) {
             bg = new Color(102, 255, 102);
             fg = new Color(0, 100, 0);

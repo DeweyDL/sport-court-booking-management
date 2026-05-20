@@ -705,7 +705,7 @@ BEGIN
     FROM CHI_TIET_HOA_DON_THUE_SAN
     WHERE MAHD = P_MAHD
       AND IS_DELETED = 0
-      AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
+      AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC CHỜ XÁC NHẬN', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
 
     IF V_COUNT > 0 THEN
         RAISE_APPLICATION_ERROR(-20152, 'Khong the thanh toan khi con chi tiet thue san chua bat dau su dung.');
@@ -947,6 +947,7 @@ AS
     V_TIEN_COC_CU   HOA_DON.TIEN_COC%TYPE;
     V_TONG_TIEN_SAN NUMBER := 0;
     V_TIEN_COC_MOI  NUMBER := 0;
+    V_INITIAL_STATUS CHI_TIET_HOA_DON_THUE_SAN.TRANGTHAI%TYPE;
 BEGIN
     IF P_MAHD IS NULL THEN
         RAISE_APPLICATION_ERROR(-20200, 'MAHD khong duoc null.');
@@ -1033,13 +1034,19 @@ BEGIN
 
     PKG_COURT_CTX.G_INTERNAL_RECALC := TRUE;
 
+    IF P_LA_DAT_TRUOC = 1 THEN
+        V_INITIAL_STATUS := 'ĐÃ ĐẶT CHỜ CỌC';
+    ELSE
+        V_INITIAL_STATUS := 'ĐANG SỬ DỤNG';
+    END IF;
+
     PRC_THEM_CHI_TIET_THUE_SAN(
             P_MACT_THUE_SAN => P_MACT_THUE_SAN,
             P_MAHD          => P_MAHD,
             P_MASAN         => P_MASAN,
             P_MABG          => P_MABG,
             P_NGAYTHUE      => P_NGAYTHUE,
-            P_TRANGTHAI     => 'ĐANG SỬ DỤNG'
+            P_TRANGTHAI     => V_INITIAL_STATUS
         );
 
     SELECT NVL(SUM(DON_GIA_THUE), 0)
