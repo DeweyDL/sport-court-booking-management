@@ -88,6 +88,10 @@ public class CustomerBookingScheduleScreen extends JPanel {
         loadMatrix();
     }
 
+    public void refreshCurrentSchedule() {
+        loadMatrix();
+    }
+
     // ── header ───────────────────────────────────────────────────────────────
 
     private JComponent buildHeader() {

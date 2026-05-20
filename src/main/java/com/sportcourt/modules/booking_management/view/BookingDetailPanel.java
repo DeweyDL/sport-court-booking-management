@@ -157,10 +157,15 @@ public class BookingDetailPanel extends JFrame {
 
         // Thiết kế nhãn và ẩn nút dựa vào trạng thái đơn đặt
         String normalizedStatus = status == null ? "" : status.trim();
+        boolean depositedWaitingConfirmation = isDepositedWaitingConfirmation(normalizedStatus);
         if (normalizedStatus.equalsIgnoreCase("ĐÃ XÁC NHẬN") || normalizedStatus.equalsIgnoreCase("Đã xác nhận")) {
             paymentStatusLabel.setForeground(new Color(22, 101, 52));
             paymentStatusLabel.getParent().setBackground(new Color(220, 252, 231));
             btnCancel.setVisible(true);
+        } else if (normalizedStatus.equalsIgnoreCase("ĐANG SỬ DỤNG")) {
+            paymentStatusLabel.setForeground(new Color(30, 64, 175));
+            paymentStatusLabel.getParent().setBackground(new Color(219, 234, 254));
+            btnCancel.setVisible(false);
         } else if (normalizedStatus.equalsIgnoreCase("ĐÃ HUỶ")
                 || normalizedStatus.equalsIgnoreCase("Đã hủy")
                 || normalizedStatus.equalsIgnoreCase("ĐÃ HỦY")
@@ -170,7 +175,7 @@ public class BookingDetailPanel extends JFrame {
             paymentStatusLabel.setForeground(new Color(153, 27, 27));
             paymentStatusLabel.getParent().setBackground(new Color(254, 226, 226));
             btnCancel.setVisible(false); // Ẩn hoàn toàn nút hủy khi đơn đã ở trạng thái hủy
-        } else if (normalizedStatus.equalsIgnoreCase("ĐÃ CỌC")) {
+        } else if (depositedWaitingConfirmation) {
             paymentStatusLabel.setForeground(new Color(180, 83, 9));
             paymentStatusLabel.getParent().setBackground(new Color(254, 243, 199));
             btnCancel.setVisible(true);
@@ -180,7 +185,7 @@ public class BookingDetailPanel extends JFrame {
             paymentStatusLabel.getParent().setBackground(new Color(254, 243, 199));
             btnCancel.setVisible(true);
         }
-        btnConfirm.setVisible(allowConfirmAction && normalizedStatus.equalsIgnoreCase("ĐÃ CỌC"));
+        btnConfirm.setVisible(allowConfirmAction && depositedWaitingConfirmation);
         btnCheckIn.setVisible(normalizedStatus.equalsIgnoreCase("ĐÃ XÁC NHẬN"));
 
         pitchesPanel.removeAll();
@@ -200,6 +205,12 @@ public class BookingDetailPanel extends JFrame {
 
         pitchesPanel.revalidate();
         pitchesPanel.repaint();
+    }
+
+    private boolean isDepositedWaitingConfirmation(String status) {
+        if (status == null) return false;
+        return status.equalsIgnoreCase("ĐÃ CỌC CHỜ XÁC NHẬN")
+                || status.equalsIgnoreCase("ĐÃ CỌC");
     }
 
     public BookingDetailPanel() {
@@ -260,7 +271,7 @@ public class BookingDetailPanel extends JFrame {
                 "Chi nhánh mặc định",
                 "Địa chỉ hệ thống",
                 estimatedPrice,
-                "ĐÃ CỌC",
+                "ĐÃ CỌC CHỜ XÁC NHẬN",
                 fallbackPitches
         );
     }

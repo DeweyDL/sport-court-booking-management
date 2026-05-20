@@ -44,4 +44,6 @@ public interface CustomerBookingService {
     void cancelPendingBooking(String invoiceId);
 
     void markPendingInvoiceAsDeposited(String invoiceId);
+
+    int expireStalePendingBookings();
 }

@@ -92,6 +92,10 @@ public class CustomerBookingController {
         customerBookingService.markPendingInvoiceAsDeposited(invoiceId);
     }
 
+    public int expireStalePendingBookings() {
+        return customerBookingService.expireStalePendingBookings();
+    }
+
     private String resolveCustomerId(UserSession session) {
         String customerId = session.getCustomerId();
         if (customerId != null && !customerId.isBlank()) {

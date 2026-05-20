@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcBookingRequestDao implements BookingRequestDao {
-    private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
+    private static final String STATUS_LEGACY_DEPOSITED = "ĐÃ CỌC";
     private static final String STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
     private static final String STATUS_IN_USE = "ĐANG SỬ DỤNG";
 
@@ -417,7 +418,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                 JOIN LOAI_THE_THAO ltt ON ltt.MATT = kv.MATT AND ltt.IS_DELETED = 0
                 JOIN CHI_NHANH cn ON cn.MACN = kv.MACN AND cn.IS_DELETED = 0
                 WHERE ct.IS_DELETED = 0
-                  AND ct.TRANGTHAI = ?
+                  AND ct.TRANGTHAI IN (?, ?)
                   AND NVL(hd.TIEN_COC, 0) > 0
                   AND (? IS NULL OR kv.MACN = ?)
                   AND (? IS NULL OR TRUNC(ct.NGAYTHUE) = ?)
@@ -432,6 +433,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = 1;
             ps.setString(index++, STATUS_DEPOSITED);
+            ps.setString(index++, STATUS_LEGACY_DEPOSITED);
             bindNullableString(ps, index++, branchIdOrNull);
             bindNullableString(ps, index++, branchIdOrNull);
             bindNullableDate(ps, index++, dateOrNull);
@@ -478,7 +480,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                 JOIN SAN_CON sc ON sc.MASAN = ct.MASAN AND sc.IS_DELETED = 0
                 JOIN KHU_VUC kv ON kv.MAKV = sc.MAKV AND kv.IS_DELETED = 0
                 WHERE ct.IS_DELETED = 0
-                  AND ct.TRANGTHAI = ?
+                  AND ct.TRANGTHAI IN (?, ?)
                   AND NVL(hd.TIEN_COC, 0) > 0
                   AND (? IS NULL OR kv.MACN = ?)
                 """;
@@ -486,8 +488,9 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, STATUS_DEPOSITED);
-            bindNullableString(ps, 2, branchIdOrNull);
+            ps.setString(2, STATUS_LEGACY_DEPOSITED);
             bindNullableString(ps, 3, branchIdOrNull);
+            bindNullableString(ps, 4, branchIdOrNull);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt("REQUEST_COUNT") : 0;
             }
@@ -501,7 +504,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                 SET TRANGTHAI = ?
                 WHERE MAHD = ?
                   AND IS_DELETED = 0
-                  AND TRIM(TRANGTHAI) = ?
+                  AND TRIM(TRANGTHAI) IN (?, ?)
                 """;
         String updateInvoiceEmployeeSql = """
                 UPDATE HOA_DON hd
@@ -521,7 +524,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                       FROM CHI_TIET_HOA_DON_THUE_SAN ct
                       WHERE ct.MAHD = hd.MAHD
                         AND NVL(ct.IS_DELETED, 0) = 0
-                        AND TRIM(ct.TRANGTHAI) = ?
+                        AND TRIM(ct.TRANGTHAI) IN (?, ?)
                   )
                 """;
 
@@ -535,6 +538,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                     ps.setString(2, invoiceId);
                     ps.setString(3, confirmingEmployeeId);
                     ps.setString(4, STATUS_DEPOSITED);
+                    ps.setString(5, STATUS_LEGACY_DEPOSITED);
                     updatedInvoice = ps.executeUpdate();
                 }
 
@@ -548,6 +552,7 @@ public class JdbcBookingRequestDao implements BookingRequestDao {
                     ps.setString(1, STATUS_CONFIRMED);
                     ps.setString(2, invoiceId);
                     ps.setString(3, STATUS_DEPOSITED);
+                    ps.setString(4, STATUS_LEGACY_DEPOSITED);
                     updatedDetails = ps.executeUpdate();
                 }
 

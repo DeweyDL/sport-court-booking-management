@@ -16,4 +16,6 @@ public interface CustomerBookingOrderDAO {
     public void cancelPendingBooking(String invoiceId) throws SQLException;
 
     public void markAllDetailsDeposited(String invoiceId) throws SQLException;
+
+    public int expireStalePendingBookings() throws SQLException;
 }

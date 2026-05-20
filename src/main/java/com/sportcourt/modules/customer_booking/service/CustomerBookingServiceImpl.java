@@ -96,6 +96,7 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         requireNotBlank(courtId, "Thiếu mã sân.");
         requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
+            orderDAO.expireStalePendingBookings();
             return scheduleDAO.findAvailableSlots(courtId.trim(), bookingDate);
         } catch (SQLException e) {
             throw databaseError("Không thể tải lịch sân trống.", e);
@@ -107,6 +108,7 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         requireNotBlank(areaId, "Thiếu mã khu vực.");
         requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
+            orderDAO.expireStalePendingBookings();
             return scheduleDAO.findBookedSlots(areaId.trim(), bookingDate);
         } catch (SQLException e) {
             throw databaseError("Không thể tải danh sách khung giờ đã đặt.", e);
@@ -129,6 +131,7 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
         requireNotBlank(priceBoardId, "Thiếu mã bảng giá.");
         requireNotNull(bookingDate, "Thiếu ngày đặt sân.");
         try {
+            orderDAO.expireStalePendingBookings();
             return scheduleDAO.isSlotAvailable(courtId.trim(), priceBoardId.trim(), bookingDate);
         } catch (SQLException e) {
             throw databaseError("Không thể kiểm tra trạng thái khung giờ.", e);
@@ -159,6 +162,7 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
     public BookingPreview createPendingInvoice(CreateBookingRequest request) {
         validateCreateRequest(request);
         try {
+            orderDAO.expireStalePendingBookings();
             return orderDAO.createPendingInvoice(request);
         } catch (SQLException e) {
             throw databaseError("Không thể tạo hóa đơn đặt sân.", e);
@@ -193,6 +197,15 @@ public class CustomerBookingServiceImpl implements CustomerBookingService {
             orderDAO.markAllDetailsDeposited(invoiceId.trim());
         } catch (SQLException e) {
             throw databaseError("Không thể cập nhật trạng thái hóa đơn sau thanh toán.", e);
+        }
+    }
+
+    @Override
+    public int expireStalePendingBookings() {
+        try {
+            return orderDAO.expireStalePendingBookings();
+        } catch (SQLException e) {
+            throw databaseError("Không thể hủy đặt sân quá hạn.", e);
         }
     }
 

@@ -40,7 +40,8 @@ public class BookingRequest extends JPanel {
     private static final Color COLOR_BORDER_LIGHT = new Color(230, 230, 230);
     private static final int ROUND_ARC = 20;
     private static final String STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
-    private static final String STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
+    private static final String STATUS_IN_USE = "ĐANG SỬ DỤNG";
     private static final DecimalFormat MONEY_FORMAT = new DecimalFormat("#,##0");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final int BOOKING_BLOCK_PAD_X = 4;
@@ -353,16 +354,8 @@ public class BookingRequest extends JPanel {
                     List<BookingCourtOption> courts = controller.getCourtsByArea(areaId);
                     if (courts != null) localCourts.addAll(courts);
 
-                    List<BookingSlotDTO> bookings = controller.getBookings(branch.branchId(), areaId, date, STATUS_CONFIRMED);
-
-                    if (bookings != null) {
-                        // Lọc chỉ lấy những lịch đặt có ngày trùng với ngày chọn từ DatePicker
-                        List<BookingSlotDTO> filteredBookings = bookings.stream()
-                                .filter(b -> b.bookingDate() != null && b.bookingDate().isEqual(date))
-                                .toList();
-
-                        localBookings.addAll(filteredBookings);
-                    }
+                    addBookingsByStatus(localBookings, branch.branchId(), areaId, date, STATUS_CONFIRMED);
+                    addBookingsByStatus(localBookings, branch.branchId(), areaId, date, STATUS_IN_USE);
                 }
                 // 2. Truyền chính xác biến local vào luồng EDT
                 SwingUtilities.invokeLater(() -> {
@@ -376,6 +369,21 @@ public class BookingRequest extends JPanel {
                 SwingUtilities.invokeLater(() -> model.setRowCount(0));
             }
         }).start();
+    }
+
+    private void addBookingsByStatus(List<BookingSlotDTO> target,
+                                     String branchId,
+                                     String areaId,
+                                     LocalDate date,
+                                     String status) {
+        List<BookingSlotDTO> bookings = controller.getBookings(branchId, areaId, date, status);
+        if (bookings == null) return;
+
+        List<BookingSlotDTO> filteredBookings = bookings.stream()
+                .filter(b -> b.bookingDate() != null && b.bookingDate().isEqual(date))
+                .toList();
+
+        target.addAll(filteredBookings);
     }
 
     private void populateGrid(List<BookingCourtOption> courts, List<BookingSlotDTO> bookings, BookingOpenHours hours) {

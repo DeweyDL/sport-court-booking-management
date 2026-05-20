@@ -41,11 +41,6 @@ BEGIN
                                 'Khong duoc sua DON_GIA_THUE thu cong. Hay doi MABG/MASAN neu can lay gia moi.');
     END IF;
 
-    IF INSERTING AND :NEW.TRANGTHAI = 'ĐANG SỬ DỤNG' THEN
-        RAISE_APPLICATION_ERROR(-20064,
-                                'Khong duoc tao moi chi tiet thue san o trang thai DANG SU DUNG. Hay tao DA XAC NHAN roi xac nhan khach den san.');
-    END IF;
-
     IF UPDATING
         AND :NEW.IS_DELETED = 0
         AND :NEW.TRANGTHAI = 'ĐANG SỬ DỤNG'
@@ -337,7 +332,7 @@ BEGIN
         FROM CHI_TIET_HOA_DON_THUE_SAN
         WHERE MAHD = :OLD.MAHD
           AND IS_DELETED = 0
-          AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
+          AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC CHỜ XÁC NHẬN', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
 
         IF V_COUNT > 0 THEN
             RAISE_APPLICATION_ERROR(

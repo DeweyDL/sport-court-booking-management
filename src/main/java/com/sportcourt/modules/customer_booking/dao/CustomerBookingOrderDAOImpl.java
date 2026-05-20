@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.Optional;
 
 public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
+    private static final int PENDING_DEPOSIT_TTL_SECONDS = 5 * 60;
     private static final String BOOKING_DETAIL_STATUS_WAITING_DEPOSIT = "ĐÃ ĐẶT CHỜ CỌC";
-    private static final String BOOKING_DETAIL_STATUS_DEPOSITED = "ĐÃ CỌC";
+    private static final String BOOKING_DETAIL_STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
     private static final String BOOKING_DETAIL_STATUS_CANCELLED = "ĐÃ HUỶ";
     private static final String INVOICE_STATUS_UNPAID = "CHƯA THANH TOÁN";
     private static final String INVOICE_STATUS_CANCELLED = "ĐÃ HUỶ";
@@ -143,8 +144,30 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
                     for (String detailId : detailIds) {
                         cancelBookingDetail(connection, detailId);
                     }
+                    cancelEmptyPendingInvoice(connection, invoiceId);
                 }
                 connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    @Override
+    public int expireStalePendingBookings() throws SQLException {
+        try (Connection connection = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                int expiredCount = 0;
+                for (String invoiceId : findStalePendingInvoiceIds(connection)) {
+                    expiredCount += cancelExpiredPendingInvoice(connection, invoiceId);
+                }
+                connection.commit();
+                return expiredCount;
             } catch (SQLException | RuntimeException e) {
                 connection.rollback();
                 throw e;
@@ -275,7 +298,116 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
         return list;
     }
 
-    private void cancelEmptyPendingInvoice(Connection connection, String invoiceId) throws SQLException {
+    private int cancelExpiredPendingInvoice(Connection connection, String invoiceId) throws SQLException {
+        List<String> detailIds = findStalePendingBookingDetailIds(connection, invoiceId);
+        if (detailIds.isEmpty()) {
+            return 0;
+        }
+
+        clearPendingInvoiceDeposit(connection, invoiceId);
+        for (String detailId : detailIds) {
+            cancelBookingDetail(connection, detailId);
+        }
+        cancelEmptyPendingInvoice(connection, invoiceId);
+        return 1;
+    }
+
+    private List<String> findStalePendingBookingDetailIds(Connection connection, String invoiceId) throws SQLException {
+        String sql = """
+                SELECT CT.MACT_THUE_SAN
+                FROM HOA_DON HD
+                JOIN CHI_TIET_HOA_DON_THUE_SAN CT
+                    ON CT.MAHD = HD.MAHD
+                    AND CT.IS_DELETED = 0
+                    AND CT.TRANGTHAI = ?
+                WHERE HD.MAHD = ?
+                    AND HD.TRANGTHAI = ?
+                    AND HD.IS_DELETED = 0
+                    AND HD.CREATED_AT <= SYSDATE - (? / 86400)
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM CHI_TIET_HOA_DON_THUE_SAN OTHER_CT
+                        WHERE OTHER_CT.MAHD = HD.MAHD
+                            AND OTHER_CT.IS_DELETED = 0
+                            AND OTHER_CT.TRANGTHAI <> ?
+                    )
+                ORDER BY CT.NGAYTHUE, CT.MACT_THUE_SAN
+                FOR UPDATE OF CT.TRANGTHAI
+                """;
+
+        List<String> list = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            ps.setString(2, invoiceId);
+            ps.setString(3, INVOICE_STATUS_UNPAID);
+            ps.setInt(4, PENDING_DEPOSIT_TTL_SECONDS);
+            ps.setString(5, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getString("MACT_THUE_SAN"));
+                }
+            }
+        }
+        return list;
+    }
+
+    private void clearPendingInvoiceDeposit(Connection connection, String invoiceId) throws SQLException {
+        String sql = """
+                UPDATE HOA_DON
+                SET TIEN_COC = 0
+                WHERE MAHD = ?
+                    AND TRANGTHAI = ?
+                    AND IS_DELETED = 0
+                    AND TIEN_COC <> 0
+                """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, invoiceId);
+            ps.setString(2, INVOICE_STATUS_UNPAID);
+            ps.executeUpdate();
+        }
+    }
+
+    private List<String> findStalePendingInvoiceIds(Connection connection) throws SQLException {
+        String sql = """
+                SELECT HD.MAHD
+                FROM HOA_DON HD
+                WHERE HD.TRANGTHAI = ?
+                    AND HD.IS_DELETED = 0
+                    AND HD.CREATED_AT <= SYSDATE - (? / 86400)
+                    AND EXISTS (
+                        SELECT 1
+                        FROM CHI_TIET_HOA_DON_THUE_SAN CT
+                        WHERE CT.MAHD = HD.MAHD
+                            AND CT.IS_DELETED = 0
+                            AND CT.TRANGTHAI = ?
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM CHI_TIET_HOA_DON_THUE_SAN CT
+                        WHERE CT.MAHD = HD.MAHD
+                            AND CT.IS_DELETED = 0
+                            AND CT.TRANGTHAI <> ?
+                    )
+                ORDER BY HD.CREATED_AT, HD.MAHD
+                """;
+
+        List<String> list = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, INVOICE_STATUS_UNPAID);
+            ps.setInt(2, PENDING_DEPOSIT_TTL_SECONDS);
+            ps.setString(3, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            ps.setString(4, BOOKING_DETAIL_STATUS_WAITING_DEPOSIT);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(rs.getString("MAHD"));
+                }
+            }
+        }
+        return list;
+    }
+
+    private int cancelEmptyPendingInvoice(Connection connection, String invoiceId) throws SQLException {
         String sql = """
                 UPDATE HOA_DON HD
                 SET HD.TRANGTHAI = ?
@@ -296,7 +428,7 @@ public class CustomerBookingOrderDAOImpl implements CustomerBookingOrderDAO {
             ps.setString(2, invoiceId);
             ps.setString(3, INVOICE_STATUS_UNPAID);
             ps.setString(4, BOOKING_DETAIL_STATUS_CANCELLED);
-            ps.executeUpdate();
+            return ps.executeUpdate();
         }
     }
 
