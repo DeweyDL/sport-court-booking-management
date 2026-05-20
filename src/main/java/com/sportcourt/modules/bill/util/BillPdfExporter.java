@@ -183,8 +183,8 @@ public class BillPdfExporter {
     private void drawCourtTable(List<CourtRentalItem> items) throws Exception {
         drawSectionTitle("CHI TIẾT THUÊ SÂN");
 
-        float[] cols = {0.14f, 0.22f, 0.22f, 0.24f, 0.18f};
-        String[] heads = {"Mã sân", "Ngày thuê", "Giờ (bắt đầu - kết thúc)", "Đơn giá (VNĐ)", "Trạng thái"};
+        float[] cols = {0.22f, 0.22f, 0.30f, 0.26f};
+        String[] heads = {"Mã sân", "Ngày thuê", "Giờ (bắt đầu - kết thúc)", "Đơn giá (VNĐ)"};
         drawTableHeader(cols, heads);
 
         if (items == null || items.isEmpty()) {
@@ -197,7 +197,7 @@ public class BillPdfExporter {
                 String gio = item.gioBatDau() + "h00 - " + item.gioKetThuc() + "h00";
                 String gia = item.donGiaThue() != null ? money(item.donGiaThue()) : "";
                 drawTableRow(cols,
-                        new String[]{nvl(item.maSan()), ngay, gio, gia, nvl(item.trangThai())},
+                        new String[]{nvl(item.maSan()), ngay, gio, gia},
                         i++ % 2 == 1);
             }
         }
@@ -207,8 +207,8 @@ public class BillPdfExporter {
     private void drawServiceTable(List<ServiceItem> items) throws Exception {
         drawSectionTitle("CHI TIẾT DỊCH VỤ / SẢN PHẨM");
 
-        float[] cols = {0.32f, 0.14f, 0.22f, 0.22f, 0.10f};
-        String[] heads = {"Tên sản phẩm / dụng cụ", "Số lượng", "Đơn giá (VNĐ)", "Thành tiền (VNĐ)", "T.Thái"};
+        float[] cols = {0.22f, 0.22f, 0.30f, 0.26f};
+        String[] heads = {"Tên sản phẩm / dụng cụ", "Số lượng", "Đơn giá (VNĐ)", "Thành tiền (VNĐ)"};
         drawTableHeader(cols, heads);
 
         if (items == null || items.isEmpty()) {
@@ -225,8 +225,7 @@ public class BillPdfExporter {
                                 nvl(item.tenSanPham()),
                                 String.valueOf(item.soLuong()),
                                 item.donGia() != null ? money(item.donGia()) : "",
-                                money(thanhTien),
-                                nvl(item.trangThai())
+                                money(thanhTien)
                         },
                         i++ % 2 == 1);
             }
@@ -259,10 +258,6 @@ public class BillPdfExporter {
         String ttStr = bill.tongTien() != null ? money(bill.tongTien()) + " VNĐ" : "---";
         drawText(ttStr, rx - textW(ttStr, fontBold, 10), y - lineH * 4, fontBold, 10, CLR_GREEN_TEXT);
 
-        String tt = nvl(bill.trangThai());
-        Color ttClr = tt.startsWith("ĐÃ THANH") ? CLR_GREEN_TEXT : new Color(180, 40, 40);
-        drawText("Trạng thái: " + tt, MARGIN, curY - sumH + 8, fontBold, 9, ttClr);
-
         curY -= sumH + 16;
     }
 
@@ -284,7 +279,7 @@ public class BillPdfExporter {
         checkPageBreak(22);
         float rh = 20f;
         fillRect(MARGIN, curY - rh, CONTENT_W, rh, CLR_TABLE_HEAD);
-        float x = MARGIN + 5;
+        float x = MARGIN + 8;
         for (int i = 0; i < cols.length; i++) {
             drawText(labels[i], x, curY - 13, fontBold, 8, Color.WHITE);
             x += CONTENT_W * cols[i];
@@ -296,11 +291,11 @@ public class BillPdfExporter {
         float rh = 20f;
         if (alt) fillRect(MARGIN, curY - rh, CONTENT_W, rh, CLR_ROW_ALT);
         drawLine(MARGIN, curY - rh, MARGIN + CONTENT_W, curY - rh, CLR_DIVIDER);
-        float x = MARGIN + 5;
+        float x = MARGIN + 8;  // giống header
         for (int i = 0; i < cols.length; i++) {
             float cw = CONTENT_W * cols[i];
-            String v = truncate(nvl(values[i]), fontRegular, 8, cw - 6);
-            drawText(v, x, curY - 13, fontRegular, 8, Color.BLACK);
+            String v = truncate(nvl(values[i]), fontRegular, 8, cw - 10);
+            drawText(v, x, curY - 13, fontRegular, 8, Color.BLACK);  // bỏ (i==0?0:4)
             x += cw;
         }
         curY -= rh;
