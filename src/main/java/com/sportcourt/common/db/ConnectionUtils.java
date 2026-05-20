@@ -18,6 +18,10 @@ public final class ConnectionUtils {
         return OracleConnection.getOracleConnection();
     }
 
+    public static void shutdownConnectionPool() {
+        ConnectionPool.getInstance().shutdown();
+    }
+
     public static void close(Connection conn, PreparedStatement ps, ResultSet rs) {
         try {
             if (rs != null) {
