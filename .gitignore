@@ -28,6 +28,8 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+*.xml
+!pom.xml
 
 ### VS Code ###
 .vscode/
@@ -37,3 +39,12 @@ build/
 
 ### config ###
 src/main/resources/db/db.properties
+src/main/resources/mail/mail.properties
+src/main/resources/payos/payos.properties
+docs/
+./agent_rules_sport_court_booking_management.md
+.claude/
+.agents/
+./CLAUDE.md
+./.rtk
+./AGENTS.md

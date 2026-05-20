@@ -3,3 +3,7 @@ db.port=1521
 db.service=FREEPDB1
 db.username=your_username
 db.password=your_password
+
+db.pool.maxSize=10
+db.pool.connectionTimeoutMs=10000
+db.pool.validationTimeoutSeconds=3
