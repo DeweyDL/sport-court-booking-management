@@ -10,17 +10,15 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 public class BranchChange extends JPanel {
-    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        double widthRatio = screenSize.getWidth() / 1920.0;
-        double heightRatio = screenSize.getHeight() / 1080.0;
-        double ratio = Math.min(widthRatio, heightRatio);
-        if (ratio < 0.8) ratio = 0.8;
+    private static final int DIALOG_MIN_WIDTH = 640;
 
-        int width = (int) (baseWidth * ratio);
-        int height = (int) (baseHeight * ratio);
-        dialog.setSize(width, height);
+    private static void applyContentFitWindowSize(JDialog dialog) {
+        dialog.pack();
+        int height = dialog.getHeight();
+        dialog.setSize(Math.max(dialog.getWidth(), DIALOG_MIN_WIDTH), height);
+        dialog.setMinimumSize(new Dimension(DIALOG_MIN_WIDTH, height));
     }
+
     private final BranchController branchController;
     private final Consumer<String> onSaved;
 
@@ -62,8 +60,7 @@ public class BranchChange extends JPanel {
             dialog.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
             dialog.setContentPane(this);
             dialog.setResizable(false);
-            dialog.pack();
-            applyResponsiveWindowSize(dialog, 560, 580);
+            applyContentFitWindowSize(dialog);
         }
         return dialog;
     }
@@ -72,13 +69,7 @@ public class BranchChange extends JPanel {
         JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
         content.add(createHeader(), BorderLayout.NORTH);
-
-        JScrollPane formScroll = new JScrollPane(createForm());
-        formScroll.setBorder(null);
-        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
-        formScroll.getViewport().setBackground(new Color(248, 249, 252));
-        content.add(formScroll, BorderLayout.CENTER);
-
+        content.add(createForm(), BorderLayout.CENTER);
         content.add(createActions(), BorderLayout.SOUTH);
         return content;
     }
@@ -267,10 +258,6 @@ public class BranchChange extends JPanel {
         if (dialog != null) {
             dialog.setVisible(false);
         }
-    }
-
-    private void showAreaList() {
-        JOptionPane.showMessageDialog(this, "Chưa có chức năng này.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {
