@@ -9,17 +9,15 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 public class BranchAdd extends JPanel {
-    private static void applyResponsiveWindowSize(JDialog dialog, int baseWidth, int baseHeight) {
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        double widthRatio = screenSize.getWidth() / 1920.0;
-        double heightRatio = screenSize.getHeight() / 1080.0;
-        double ratio = Math.min(widthRatio, heightRatio);
-        if (ratio < 0.8) ratio = 0.8;
+    private static final int DIALOG_MIN_WIDTH = 640;
 
-        int width = (int) (baseWidth * ratio);
-        int height = (int) (baseHeight * ratio);
-        dialog.setSize(width, height);
+    private static void applyContentFitWindowSize(JDialog dialog) {
+        dialog.pack();
+        int height = dialog.getHeight();
+        dialog.setSize(Math.max(dialog.getWidth(), DIALOG_MIN_WIDTH), height);
+        dialog.setMinimumSize(new Dimension(DIALOG_MIN_WIDTH, height));
     }
+
     private final BranchController branchController;
     private final Consumer<String> onSaved;
 
@@ -68,8 +66,7 @@ public class BranchAdd extends JPanel {
             dialog.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
             dialog.setContentPane(this);
             dialog.setResizable(false);
-            dialog.pack();
-            applyResponsiveWindowSize(dialog, 560, 540);
+            applyContentFitWindowSize(dialog);
         }
         return dialog;
     }
@@ -78,13 +75,7 @@ public class BranchAdd extends JPanel {
         JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
         content.add(createHeader(), BorderLayout.NORTH);
-
-        JScrollPane formScroll = new JScrollPane(createForm());
-        formScroll.setBorder(null);
-        com.sportcourt.common.style.CrudViewStyle.configureScrollPane(formScroll);
-        formScroll.getViewport().setBackground(new Color(248, 249, 252));
-        content.add(formScroll, BorderLayout.CENTER);
-
+        content.add(createForm(), BorderLayout.CENTER);
         content.add(createActions(), BorderLayout.SOUTH);
         return content;
     }
@@ -131,41 +122,16 @@ public class BranchAdd extends JPanel {
     }
 
     private JPanel createActions() {
-        // Sử dụng GridBagLayout để kiểm soát vị trí chính xác
-        JPanel actions = new JPanel(new GridBagLayout());
+        JPanel actions = new JPanel(new GridLayout(1, 2, 10, 0));
         actions.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
 
-        // Thiết lập khoảng cách giữa các thành phần (padding)
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.BOTH; // Cho phép component giãn ra
-        gbc.weightx = 1.0; // Ưu tiên chiếm không gian chiều ngang
-
-        // --- Hàng 1: Nút "Xem danh sách các sân con" ---
-        JButton areaButton = createPillButton("Xem danh sách các khu vực", new Color(220, 252, 231), new Color(21, 128, 61), true);
-        areaButton.addActionListener(event -> showAreaList());
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2; // Chiếm 2 cột (toàn bộ hàng)
-        actions.add(areaButton, gbc);
-
-        // --- Hàng 2: Hai nút nằm cạnh nhau ---
-        gbc.gridwidth = 1; // Trả về mặc định chiếm 1 cột
-        gbc.gridy = 1; // Xuống hàng thứ 2
-
-        // Nút "Hủy"
         JButton cancelButton = createPillButton("Hủy", new Color(226, 232, 240), new Color(30, 41, 59), true);
         cancelButton.addActionListener(event -> cancelCreate());
-        gbc.gridx = 0;
-        actions.add(cancelButton, gbc);
+        actions.add(cancelButton);
 
-        // Nút "Tạo khu vực"
-        // Sử dụng màu xanh đậm hơn như trong ảnh
         JButton saveButton = createPillButton("Thêm chi nhánh", new Color(16, 110, 0), Color.WHITE, true);
         saveButton.addActionListener(event -> saveNewBranch());
-        gbc.gridx = 1;
-        actions.add(saveButton, gbc);
+        actions.add(saveButton);
 
         return actions;
     }
@@ -287,10 +253,6 @@ public class BranchAdd extends JPanel {
         if (dialog != null) {
             dialog.setVisible(false);
         }
-    }
-
-    private void showAreaList() {
-        JOptionPane.showMessageDialog(this, "Chưa có chức năng này.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {

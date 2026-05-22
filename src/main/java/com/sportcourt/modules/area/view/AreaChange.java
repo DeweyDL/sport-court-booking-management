@@ -52,6 +52,8 @@ public class AreaChange extends JPanel {
             dialog.setContentPane(this);
             dialog.setResizable(false);
             dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth(), 560), dialog.getHeight());
+            dialog.setMinimumSize(new Dimension(560, dialog.getHeight()));
         }
         return dialog;
     }
@@ -102,24 +104,7 @@ public class AreaChange extends JPanel {
         form.add(createEditableField("Loại thể thao", sportTypeComboBox));
         form.add(Box.createVerticalStrut(17));
         form.add(createReadOnlyField("Số lượng sân con", courtCountField));
-        form.add(Box.createVerticalStrut(18));
-        form.add(createSubCourtButton());
         return form;
-    }
-
-    private JButton createSubCourtButton() {
-        JButton button = createPillButton(
-                "Xem danh sách các sân con",
-                new Color(228, 250, 226),
-                new Color(16, 110, 0),
-                true
-        );
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMinimumSize(new Dimension(420, 44));
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        button.setPreferredSize(new Dimension(420, 44));
-        button.addActionListener(event -> showSubCourtList());
-        return button;
     }
 
     private JPanel createActions() {
@@ -311,10 +296,6 @@ public class AreaChange extends JPanel {
         if (dialog != null) {
             dialog.setVisible(false);
         }
-    }
-
-    private void showSubCourtList() {
-        JOptionPane.showMessageDialog(this, "Chưa làm chức năng liên quan đến sân con.", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private JTextField createDisplayField() {
