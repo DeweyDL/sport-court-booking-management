@@ -594,7 +594,7 @@ Sport_Court_Booking_Management/
 
 ---
 
-*Nếu gặp vấn đề không có trong tài liệu, vui lòng tạo Issue trên repository hoặc liên hệ nhóm phát triển.*
+*Nếu gặp vấn đề không có trong tài liệu, vui lòng tạo Issue trên repository hoặc liên hệ qua email: levanduy3122006@gmail.com.*
 
 ---
 ---
@@ -1187,4 +1187,4 @@ Sport_Court_Booking_Management/
 
 ---
 
-*If you encounter issues not covered in this document, please open an Issue on the repository or contact the development team.*
+*If you encounter issues not covered in this document, please open an Issue on the repository or contact the email: levanduy3122006@gmail.com.*
