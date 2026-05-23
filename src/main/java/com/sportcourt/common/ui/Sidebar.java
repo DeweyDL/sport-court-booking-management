@@ -138,9 +138,7 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.COURT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
         if (canView(FunctionId.PRICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ BẢNG GIÁ", "/icon/report.1.png"));
         if (canView(FunctionId.BOOKING_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ ĐẶT SÂN", "/icon/home.1.png"));
-        if (canView(FunctionId.SERVICE_MANAGEMENT)) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));
-        if (canView(FunctionId.INVOICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ HÓA ĐƠN", "/icon/report.1.png"));
-        if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
+        if (canView(FunctionId.SERVICE_MANAGEMENT)) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));        if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
         }
         if (canView(FunctionId.CUSTOMER_RANK_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ HẠNG KHÁCH HÀNG", "/icon/user.1.png"));
