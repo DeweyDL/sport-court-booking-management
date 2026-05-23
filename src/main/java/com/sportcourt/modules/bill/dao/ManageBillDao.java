@@ -13,6 +13,7 @@ public interface ManageBillDao {
     List<BillSummary> findAll(String keyword, String branchId) throws SQLException;
     Optional<BillDetail> findDetailById(String maHD) throws SQLException;
     boolean updateStatus(String maHD, String newStatus, String requiredCurrentStatus) throws SQLException;
+    boolean markDepositPaid(String maHD) throws SQLException;
     boolean softDelete(String maHD) throws SQLException;
     String createEmptyBill(String maKH, String maNV) throws SQLException;
     void addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) throws SQLException;
