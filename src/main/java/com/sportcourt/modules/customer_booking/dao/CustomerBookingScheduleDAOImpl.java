@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CustomerBookingScheduleDAOImpl implements CustomerBookingScheduleDAO {
-    private static final String COURT_STATUS_ACTIVE = "\u0110ANG HO\u1EA0T \u0110\u1ED8NG";
-    private static final String BOOKING_DETAIL_STATUS_CANCELLED = "\u0110\u00C3 HU\u1EF6";
+    private static final String COURT_STATUS_ACTIVE = "ĐANG HOẠT ĐỘNG";
+    private static final String BOOKING_DETAIL_STATUS_CANCELLED = "ĐÃ HUỶ";
 
     @Override
     public List<PriceSlot> findPriceBoardsByArea(String areaId) throws SQLException {
