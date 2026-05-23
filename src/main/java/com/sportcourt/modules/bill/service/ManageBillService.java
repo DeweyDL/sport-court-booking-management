@@ -12,6 +12,7 @@ public interface ManageBillService {
     BillResult<List<BillSummary>> searchBills(String keyword);
     BillResult<BillDetail> getDetail(String maHD);
     BillResult<Void> markAsPaid(String maHD);
+    BillResult<Void> markDepositPaid(String maHD);
     BillResult<Void> cancelBill(String maHD);
     BillResult<Void> softDelete(String maHD);
     BillResult<String> createEmptyBill(String maKH, String maNV);
