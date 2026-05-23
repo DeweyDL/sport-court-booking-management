@@ -75,6 +75,22 @@ public class ManageBillServiceImpl implements ManageBillService {
     }
 
     @Override
+    public BillResult<Void> markDepositPaid(String maHD) {
+        if (isBlank(maHD)) {
+            return BillResult.fail("Thiếu mã hóa đơn.");
+        }
+        try {
+            boolean updated = dao.markDepositPaid(maHD.trim());
+            if (!updated) {
+                return BillResult.fail("Không thể cập nhật cọc: hóa đơn không có chi tiết sân đang chờ cọc.");
+            }
+            return BillResult.ok("Đã thanh toán cọc.", null);
+        } catch (SQLException e) {
+            return BillResult.fail("Lỗi khi cập nhật cọc: " + e.getMessage());
+        }
+    }
+
+    @Override
     public BillResult<Void> cancelBill(String maHD) {
         if (isBlank(maHD)) {
             return BillResult.fail("Thiếu mã hóa đơn.");
