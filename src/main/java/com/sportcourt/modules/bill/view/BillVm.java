@@ -17,6 +17,8 @@ public class BillVm {
     private String trangThai;
     private BigDecimal tongTien;
     private LocalDateTime createdAt;
+    private String maCN;
+    private String tenChiNhanh;
 
     private BillVm() {}
 
@@ -33,6 +35,8 @@ public class BillVm {
         vm.trangThai = summary.trangThai();
         vm.tongTien = summary.tongTien();
         vm.createdAt = summary.createdAt();
+        vm.maCN = summary.maCN();
+        vm.tenChiNhanh = summary.tenChiNhanh();
         return vm;
     }
 
@@ -47,4 +51,6 @@ public class BillVm {
     public String getTrangThai() { return trangThai; }
     public BigDecimal getTongTien() { return tongTien; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getMaCN() { return maCN; }
+    public String getTenChiNhanh() { return tenChiNhanh; }
 }
