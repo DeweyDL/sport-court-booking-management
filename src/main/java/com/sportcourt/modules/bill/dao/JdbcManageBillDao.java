@@ -20,6 +20,7 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class JdbcManageBillDao implements ManageBillDao {
@@ -35,12 +36,14 @@ public class JdbcManageBillDao implements ManageBillDao {
                        hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG,
                        hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN,
                        hd.TIEN_COC, hd.GIAMGIA, hd.TONGGIATRI, hd.TRANGTHAI,
-                       hd.TONGTIEN, hd.CREATED_AT
+                       hd.TONGTIEN, hd.CREATED_AT,
+                       cn.MACN AS MACN_CHI_NHANH, cn.TEN_CHI_NHANH
                 FROM HOA_DON hd
                 LEFT JOIN KHACH_HANG kh ON kh.MAKH = hd.MAKH
                 LEFT JOIN USERS u_kh ON u_kh.USER_ID = kh.USER_ID
                 LEFT JOIN NHAN_VIEN nv ON nv.MANV = hd.MANV
                 LEFT JOIN USERS u_nv ON u_nv.USER_ID = nv.USER_ID
+                LEFT JOIN CHI_NHANH cn ON cn.MACN = nv.MACN AND NVL(cn.IS_DELETED, 0) = 0
                 """
                 + (filterBranch ? """
                 LEFT JOIN CHI_TIET_HOA_DON_THUE_SAN ct_branch
@@ -56,9 +59,21 @@ public class JdbcManageBillDao implements ManageBillDao {
                 + """
                 WHERE NVL(hd.IS_DELETED, 0) = 0
                   AND (
-                      UPPER(hd.MAHD) LIKE '%' || UPPER(?) || '%'
-                      OR UPPER(u_kh.HOTEN) LIKE '%' || UPPER(?) || '%'
-                      OR hd.MAKH LIKE '%' || ? || '%'
+                      ? IS NULL
+                      OR UPPER(NVL(hd.MAHD, '')) LIKE ?
+                      OR UPPER(NVL(hd.MAKH, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.HOTEN, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.SDT, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.EMAIL, '')) LIKE ?
+                      OR UPPER(NVL(hd.MANV, '')) LIKE ?
+                      OR UPPER(NVL(u_nv.HOTEN, '')) LIKE ?
+                      OR UPPER(NVL(u_nv.SDT, '')) LIKE ?
+                      OR UPPER(NVL(TRIM(hd.TRANGTHAI), '')) LIKE ?
+                      OR UPPER(NVL(cn.MACN, '')) LIKE ?
+                      OR UPPER(NVL(cn.TEN_CHI_NHANH, '')) LIKE ?
+                      OR TO_CHAR(NVL(hd.TONGGIATRI, 0)) LIKE ?
+                      OR TO_CHAR(NVL(hd.TONGTIEN, 0)) LIKE ?
+                      OR TO_CHAR(hd.CREATED_AT, 'DD/MM/YYYY') LIKE ?
                   )
                 """
                 + (filterBranch ? """
@@ -71,13 +86,16 @@ public class JdbcManageBillDao implements ManageBillDao {
         List<BillSummary> result = new ArrayList<>();
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            String kw = keyword == null ? "" : keyword.trim();
-            stmt.setString(1, kw);
-            stmt.setString(2, kw);
-            stmt.setString(3, kw);
+            String normalizedKeyword = normalizeKeyword(keyword);
+            String likeValue = toLikeValue(normalizedKeyword);
+            int paramIndex = 1;
+            stmt.setString(paramIndex++, normalizedKeyword);
+            for (int i = 0; i < 14; i++) {
+                stmt.setString(paramIndex++, likeValue);
+            }
             if (filterBranch) {
-                stmt.setString(4, branchId);
-                stmt.setString(5, branchId);
+                stmt.setString(paramIndex++, branchId);
+                stmt.setString(paramIndex, branchId);
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -92,7 +110,9 @@ public class JdbcManageBillDao implements ManageBillDao {
                             rs.getBigDecimal("TONGGIATRI"),
                             trimmed(rs.getString("TRANGTHAI")),
                             rs.getBigDecimal("TONGTIEN"),
-                            toLocalDateTime(rs.getTimestamp("CREATED_AT"))
+                            toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                            rs.getString("MACN_CHI_NHANH"),
+                            rs.getString("TEN_CHI_NHANH")
                     ));
                 }
             }
@@ -384,6 +404,16 @@ public class JdbcManageBillDao implements ManageBillDao {
 
     private static String trimmed(String s) {
         return s == null ? null : s.trim();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) return null;
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed.toUpperCase(Locale.ROOT);
+    }
+
+    private String toLikeValue(String keyword) {
+        return keyword == null ? null : "%" + keyword + "%";
     }
 
     @Override

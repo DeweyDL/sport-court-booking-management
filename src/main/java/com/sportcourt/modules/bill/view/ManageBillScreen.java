@@ -12,6 +12,7 @@ import com.sportcourt.modules.branch.entity.Branch;
 import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.util.BillPdfExporter;
 import com.sportcourt.modules.customer.controller.ManageCustomerController;
 import com.sportcourt.modules.payment.dto.PaymentQrInfo;
 import com.sportcourt.modules.payment.service.PaymentService;
@@ -39,6 +40,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
     private static final int ROW_HEIGHT = 68;
     private static final int COLUMN_GAP = 14;
 
+    private static final double W_BRANCH = 0.12;
     private static final double W_BILL_ID = 0.10;
     private static final double W_CUSTOMER = 0.15;
     private static final double W_STAFF = 0.12;
@@ -55,6 +57,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
 
     private final ManageBillController controller = new ManageBillController();
     private final List<BillVm> bills = new ArrayList<>();
+    private final boolean isOwner;
 
     private final CardLayout cardLayout  = new CardLayout();
     private final JPanel     cardPanel   = new JPanel(cardLayout);
@@ -74,6 +77,7 @@ public class ManageBillScreen extends JPanel implements Scrollable {
 
     public ManageBillScreen() {
         AppFonts.register();
+        isOwner = SessionManager.requireSession().isOwner();
         setLayout(new BorderLayout());
         setBackground(CrudViewStyle.PAGE_BACKGROUND);
 
@@ -245,6 +249,9 @@ public class ManageBillScreen extends JPanel implements Scrollable {
         gbc.insets = new Insets(0, 0, 0, COLUMN_GAP);
 
         Color hBg = new Color(248, 249, 250);
+        if (isOwner) {
+            gbc.weightx = W_BRANCH;  header.add(cell(headerLabel("CHI NHÁNH"),    SwingConstants.LEFT,   hBg, 8, 8), gbc);
+        }
         gbc.weightx = W_BILL_ID;     header.add(cell(headerLabel("MÃ HÓA ĐƠN"),    SwingConstants.LEFT,   hBg, 8, 8), gbc);
         gbc.weightx = W_CUSTOMER;    header.add(cell(headerLabel("KHÁCH HÀNG"),    SwingConstants.LEFT,   hBg, 8, 8), gbc);
         gbc.weightx = W_STAFF;       header.add(cell(headerLabel("NHÂN VIÊN"),     SwingConstants.LEFT,   hBg, 8, 8), gbc);
@@ -278,6 +285,9 @@ public class ManageBillScreen extends JPanel implements Scrollable {
 
         String dateText = bill.getCreatedAt() != null ? bill.getCreatedAt().format(DATE_FMT) : "--";
 
+        if (isOwner) {
+            gbc.weightx = W_BRANCH;  row.add(cell(cellLabel(bill.getTenChiNhanh(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
+        }
         gbc.weightx = W_BILL_ID;     row.add(cell(cellLabel(bill.getMaHD(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = W_CUSTOMER;    row.add(cell(cellLabel(bill.getTenKhachHang(), new Color(17, 24, 39)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
         gbc.weightx = W_STAFF;       row.add(cell(cellLabel(bill.getTenNhanVien(), new Color(75, 85, 99)), SwingConstants.LEFT, rowBg, 8, 8), gbc);
@@ -516,7 +526,12 @@ public class ManageBillScreen extends JPanel implements Scrollable {
     }
 
     private void printBill(BillVm bill) {
-        AppDialog.showInfo(this, "Chức năng in hóa đơn " + bill.getMaHD() + " đang được phát triển.");
+        if (bill == null || bill.getMaHD() == null || bill.getMaHD().isBlank()) {
+            AppDialog.showError(this, "Thiếu mã hóa đơn để xuất PDF.");
+            return;
+        }
+
+        BillPdfExporter.exportFromView(controller, bill.getMaHD(), this);
     }
 
     private void showList() {
