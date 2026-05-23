@@ -1120,8 +1120,9 @@ public class BillEditScreen extends JPanel {
     private JComponent payButton(BillDetail detail) {
         String status = detail.trangThai() == null ? "" : detail.trangThai().trim();
         boolean unpaid = "CHƯA THANH TOÁN".equalsIgnoreCase(status);
+        boolean waitingDeposit = hasWaitingDeposit(detail);
 
-        JButton btn = new JButton(unpaid ? "THANH TOÁN" : "ĐÃ THANH TOÁN") {
+        JButton btn = new JButton(unpaid && waitingDeposit ? "THANH TOÁN CỌC" : (unpaid ? "THANH TOÁN" : "ĐÃ THANH TOÁN")) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -1140,6 +1141,18 @@ public class BillEditScreen extends JPanel {
         btn.setEnabled(unpaid);
         btn.setCursor(new Cursor(unpaid ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
         btn.addActionListener(e -> {
+            if (waitingDeposit) {
+                BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
+                if (!showDepositPaymentDialog(deposit)) return;
+                BillResult<Void> r = controller.markDepositPaid(maHD);
+                if (r.success()) {
+                    AppDialog.showInfo(this, "Đã thanh toán cọc đặt trước.");
+                    refreshContent();
+                } else {
+                    AppDialog.showError(this, r.message() == null ? "Thanh toán cọc thất bại." : r.message());
+                }
+                return;
+            }
             BigDecimal remaining = detail.tongTien();
             if (remaining != null && remaining.compareTo(BigDecimal.ZERO) > 0) {
                 boolean paid = showPaymentDialog(detail);
@@ -1171,6 +1184,14 @@ public class BillEditScreen extends JPanel {
         btn.setPreferredSize(new Dimension(0, 46));
         wrap.add(btn, BorderLayout.CENTER);
         return wrap;
+    }
+
+    private boolean hasWaitingDeposit(BillDetail detail) {
+        BigDecimal deposit = detail.tienCoc() == null ? BigDecimal.ZERO : detail.tienCoc();
+        return deposit.compareTo(BigDecimal.ZERO) > 0
+                && detail.danhSachThuesan().stream()
+                .anyMatch(item -> "ĐÃ ĐẶT CHỜ CỌC".equalsIgnoreCase(
+                        item.trangThai() == null ? "" : item.trangThai().trim()));
     }
 
     // ── Utilities ────────────────────────────────────────────────────────────

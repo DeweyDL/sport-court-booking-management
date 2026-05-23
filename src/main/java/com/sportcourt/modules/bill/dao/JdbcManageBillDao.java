@@ -25,7 +25,8 @@ import java.util.Optional;
 
 public class JdbcManageBillDao implements ManageBillDao {
     private static final String COURT_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
-    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
+    private static final String COURT_STATUS_WAITING_DEPOSIT = "ĐÃ ĐẶT CHỜ CỌC";
+    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC";
     private static final String COURT_STATUS_IN_USE = "ĐANG SỬ DỤNG";
     private static final String COURT_STATUS_CANCELLED = "ĐÃ HUỶ";
 
@@ -213,11 +214,76 @@ public class JdbcManageBillDao implements ManageBillDao {
                 UPDATE HOA_DON SET TRANGTHAI = ?
                 WHERE MAHD = ? AND TRIM(TRANGTHAI) = TRIM(?) AND NVL(IS_DELETED, 0) = 0
                 """;
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                if (isPayingInvoice(newStatus, requiredCurrentStatus)) {
+                    startConfirmedCourtDetails(conn, maHD);
+                }
+
+                stmt.setString(1, newStatus);
+                stmt.setString(2, maHD);
+                stmt.setString(3, requiredCurrentStatus);
+                boolean updated = stmt.executeUpdate() > 0;
+                if (updated) {
+                    conn.commit();
+                } else {
+                    conn.rollback();
+                }
+                return updated;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    private boolean isPayingInvoice(String newStatus, String requiredCurrentStatus) {
+        return "ĐÃ THANH TOÁN".equals(trimmed(newStatus))
+                && "CHƯA THANH TOÁN".equals(trimmed(requiredCurrentStatus));
+    }
+
+    private void startConfirmedCourtDetails(Connection conn, String maHD) throws SQLException {
+        String startConfirmedSql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MAHD = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                  AND TRIM(TRANGTHAI) = ?
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(startConfirmedSql)) {
+            stmt.setString(1, COURT_STATUS_IN_USE);
+            stmt.setString(2, maHD);
+            stmt.setString(3, COURT_STATUS_CONFIRMED);
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public boolean markDepositPaid(String maHD) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN CT
+                SET CT.TRANGTHAI = ?
+                WHERE CT.MAHD = ?
+                  AND NVL(CT.IS_DELETED, 0) = 0
+                  AND TRIM(CT.TRANGTHAI) = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM HOA_DON HD
+                      WHERE HD.MAHD = CT.MAHD
+                        AND NVL(HD.IS_DELETED, 0) = 0
+                        AND NVL(HD.TIEN_COC, 0) > 0
+                        AND TRIM(HD.TRANGTHAI) = 'CHƯA THANH TOÁN'
+                  )
+                """;
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, newStatus);
+            stmt.setString(1, COURT_STATUS_DEPOSITED);
             stmt.setString(2, maHD);
-            stmt.setString(3, requiredCurrentStatus);
+            stmt.setString(3, COURT_STATUS_WAITING_DEPOSIT);
             return stmt.executeUpdate() > 0;
         }
     }
@@ -429,10 +495,10 @@ public class JdbcManageBillDao implements ManageBillDao {
                 int nextDetailNumber = findNextNumericId(conn, "CHI_TIET_HOA_DON_THUE_SAN", "MACT_THUE_SAN", "CTHDTS-");
                 for (SelectedBookingSlot slot : slots) {
                     String detailId = "CTHDTS-" + nextDetailNumber++;
-                    insertConfirmedCourtRental(conn, maHD, detailId, slot);
                     if (advanceBooking) {
-                        updateCourtRentalStatus(conn, detailId, COURT_STATUS_DEPOSITED, COURT_STATUS_CONFIRMED);
+                        insertCourtRental(conn, maHD, detailId, slot, COURT_STATUS_WAITING_DEPOSIT);
                     } else {
+                        insertCourtRental(conn, maHD, detailId, slot, COURT_STATUS_CONFIRMED);
                         updateCourtRentalStatus(conn, detailId, COURT_STATUS_IN_USE, COURT_STATUS_CONFIRMED);
                     }
                 }
@@ -466,7 +532,7 @@ public class JdbcManageBillDao implements ManageBillDao {
         }
     }
 
-    private void insertConfirmedCourtRental(Connection conn, String maHD, String detailId, SelectedBookingSlot slot) throws SQLException {
+    private void insertCourtRental(Connection conn, String maHD, String detailId, SelectedBookingSlot slot, String status) throws SQLException {
         String sql = "{call PRC_THEM_CHI_TIET_THUE_SAN(?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cs = conn.prepareCall(sql)) {
             cs.setString(1, detailId);
@@ -474,7 +540,7 @@ public class JdbcManageBillDao implements ManageBillDao {
             cs.setString(3, slot.courtId());
             cs.setString(4, slot.priceBoardId());
             cs.setDate(5, java.sql.Date.valueOf(slot.bookingDate()));
-            cs.setString(6, COURT_STATUS_CONFIRMED);
+            cs.setString(6, status);
             cs.execute();
         }
     }

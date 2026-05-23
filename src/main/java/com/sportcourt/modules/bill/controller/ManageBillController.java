@@ -33,6 +33,10 @@ public class ManageBillController {
         return service.markAsPaid(maHD);
     }
 
+    public BillResult<Void> markDepositPaid(String maHD) {
+        return service.markDepositPaid(maHD);
+    }
+
     public BillResult<Void> cancelBill(String maHD) {
         return service.cancelBill(maHD);
     }
