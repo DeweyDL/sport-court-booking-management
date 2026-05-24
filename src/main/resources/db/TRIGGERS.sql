@@ -285,60 +285,68 @@ CREATE OR REPLACE TRIGGER TRG_BU_HOA_DON_THANH_TOAN_CHECK
     ON HOA_DON
     FOR EACH ROW
 DECLARE
+    V_COUNT_TS    PLS_INTEGER := 0;
+    V_COUNT_DV    PLS_INTEGER := 0;
     V_COUNT       PLS_INTEGER := 0;
     V_INVALID_SAN PLS_INTEGER := 0;
 BEGIN
-    -- Không cho thay đổi từ trạng thái đã kết thúc
-    IF :OLD.TRANGTHAI IN ('ĐÃ XÁC NHẬN', 'ĐÃ HUỶ')
+    IF :OLD.TRANGTHAI IN ('ĐÃ THANH TOÁN', 'ĐÃ HUỶ')
         AND :NEW.TRANGTHAI <> :OLD.TRANGTHAI THEN
-        RAISE_APPLICATION_ERROR(-20061, 'Khong duoc thay doi trang thai cua hoa don da thanh toan hoac da huy.');
+        RAISE_APPLICATION_ERROR(-20061,
+            'Khong duoc thay doi trang thai cua hoa don da thanh toan hoac da huy.');
     END IF;
 
-    -- Validate chuyển sang ĐÃ THANH TOÁN
+
     IF :NEW.TRANGTHAI = 'ĐÃ THANH TOÁN' AND :OLD.TRANGTHAI <> 'ĐÃ THANH TOÁN' THEN
         IF :OLD.TRANGTHAI <> 'CHƯA THANH TOÁN' THEN
-            RAISE_APPLICATION_ERROR(-20061, 'Chi duoc xac nhan thanh toan hoa don dang o trang thai CHUA THANH TOAN.');
+            RAISE_APPLICATION_ERROR(-20061,
+                'Chi duoc xac nhan thanh toan hoa don dang o trang thai CHUA THANH TOAN.');
         END IF;
 
-        -- Phải có ít nhất 1 chi tiết thuê sân đang/đã sử dụng
         SELECT COUNT(1)
-        INTO V_COUNT
-        FROM CHI_TIET_HOA_DON_THUE_SAN CT
-        WHERE CT.MAHD = :OLD.MAHD
-          AND CT.IS_DELETED = 0
-          AND CT.TRANGTHAI IN ('ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH');
+          INTO V_COUNT_TS
+          FROM CHI_TIET_HOA_DON_THUE_SAN CT
+         WHERE CT.MAHD = :OLD.MAHD
+           AND CT.IS_DELETED = 0
+           AND CT.TRANGTHAI IN ('ĐANG SỬ DỤNG', 'ĐÃ HOÀN THÀNH');
 
-        IF V_COUNT = 0 THEN
-            RAISE_APPLICATION_ERROR(-20062, 'Hoa don khong co chi tiet thue san hop le de thanh toan.');
+        SELECT COUNT(1)
+          INTO V_COUNT_DV
+          FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG CT
+         WHERE CT.MAHD = :OLD.MAHD
+           AND CT.IS_DELETED = 0;
+
+        IF V_COUNT_TS = 0 AND V_COUNT_DV = 0 THEN
+            RAISE_APPLICATION_ERROR(-20062,
+                'Hoa don phai co it nhat 1 chi tiet thue san hoac dich vu hop le de thanh toan.');
         END IF;
 
-        -- Kiểm tra sân con không bị xóa/bảo trì
         SELECT COUNT(1)
-        INTO V_INVALID_SAN
-        FROM CHI_TIET_HOA_DON_THUE_SAN CT
-                 JOIN SAN_CON SC ON SC.MASAN = CT.MASAN
-        WHERE CT.MAHD = :OLD.MAHD
-          AND CT.IS_DELETED = 0
-          AND CT.TRANGTHAI <> 'ĐÃ HUỶ'
-          AND (SC.IS_DELETED <> 0 OR SC.TRANGTHAI <> 'ĐANG HOẠT ĐỘNG');
+          INTO V_INVALID_SAN
+          FROM CHI_TIET_HOA_DON_THUE_SAN CT
+          JOIN SAN_CON SC ON SC.MASAN = CT.MASAN
+         WHERE CT.MAHD = :OLD.MAHD
+           AND CT.IS_DELETED = 0
+           AND CT.TRANGTHAI <> 'ĐÃ HUỶ'
+           AND (SC.IS_DELETED <> 0 OR SC.TRANGTHAI <> 'ĐANG HOẠT ĐỘNG');
 
         IF V_INVALID_SAN > 0 THEN
-            RAISE_APPLICATION_ERROR(-20063, 'Khong the thanh toan vi co san con da xoa hoac dang bao tri.');
+            RAISE_APPLICATION_ERROR(-20063,
+                'Khong the thanh toan vi co san con da xoa hoac dang bao tri.');
         END IF;
 
-        -- Không còn chi tiết chờ sử dụng
+
         SELECT COUNT(1)
-        INTO V_COUNT
-        FROM CHI_TIET_HOA_DON_THUE_SAN
-        WHERE MAHD = :OLD.MAHD
-          AND IS_DELETED = 0
-          AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC CHỜ XÁC NHẬN', 'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
+          INTO V_COUNT
+          FROM CHI_TIET_HOA_DON_THUE_SAN
+         WHERE MAHD = :OLD.MAHD
+           AND IS_DELETED = 0
+           AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC CHỜ XÁC NHẬN',
+                             'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
 
         IF V_COUNT > 0 THEN
-            RAISE_APPLICATION_ERROR(
-                    -20062,
-                    'Khong the thanh toan khi con chi tiet thue san chua bat dau su dung.'
-                );
+            RAISE_APPLICATION_ERROR(-20062,
+                'Khong the thanh toan khi con chi tiet thue san chua bat dau su dung.');
         END IF;
     END IF;
 END;
