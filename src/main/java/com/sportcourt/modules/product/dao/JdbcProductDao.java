@@ -151,6 +151,18 @@ public class JdbcProductDao implements ProductDao {
             throw new SQLException("Connection không hợp lệ.");
         }
 
+        // SELECT FOR UPDATE trong cùng transaction của service để tránh Lost Update:
+        // lock hàng trước khi ghi, đảm bảo không có transaction khác ghi đè đồng thời.
+        String lockSql = "SELECT MASP FROM SAN_PHAM WHERE MASP = ? AND IS_DELETED = 0 FOR UPDATE";
+        try (PreparedStatement lockPs = conn.prepareStatement(lockSql)) {
+            lockPs.setString(1, product.getMaSp());
+            try (ResultSet rs = lockPs.executeQuery()) {
+                if (!rs.next()) return false;
+            }
+        } catch (SQLException e) {
+            throw buildProductSqlException(e);
+        }
+
         String sql = ""
                 + "UPDATE SAN_PHAM "
                 + "SET TENSP = ?, DVT = ?, GIA = ?, SL_TON = ? "
