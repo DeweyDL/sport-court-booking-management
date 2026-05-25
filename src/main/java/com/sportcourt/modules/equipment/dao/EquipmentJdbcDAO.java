@@ -91,16 +91,41 @@ public class EquipmentJdbcDAO implements EquipmentDAO {
 
     @Override
     public boolean updateEquipment(EquipmentUpdateRequest request) throws SQLException {
-        String sql = "UPDATE DUNG_CU_THE_THAO SET TENDC = ?, DVT = ?, GIA = ?, SL_TON = ? " +
+        // SELECT FOR UPDATE trước khi ghi để tránh Lost Update:
+        // nếu 2 manager cùng mở form sửa, chỉ một người được lock hàng tại 1 thời điểm.
+        String lockSql = "SELECT MADC FROM DUNG_CU_THE_THAO " +
+                "WHERE MADC = ? AND IS_DELETED = 0 FOR UPDATE";
+        String updateSql = "UPDATE DUNG_CU_THE_THAO SET TENDC = ?, DVT = ?, GIA = ?, SL_TON = ? " +
                 "WHERE MADC = ? AND IS_DELETED = 0";
-        try (Connection connection = ConnectionUtils.getMyConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, request.getTenDc().trim());
-            statement.setString(2, request.getDvt() != null ? request.getDvt().trim() : "");
-            statement.setBigDecimal(3, request.getGia());
-            statement.setInt(4, request.getSlTon());
-            statement.setString(5, request.getMaDc().trim());
-            return statement.executeUpdate() > 0;
+        try (Connection connection = ConnectionUtils.getMyConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement lockStmt = connection.prepareStatement(lockSql)) {
+                    lockStmt.setString(1, request.getMaDc().trim());
+                    try (ResultSet rs = lockStmt.executeQuery()) {
+                        if (!rs.next()) {
+                            connection.rollback();
+                            return false;
+                        }
+                    }
+                }
+                int rows;
+                try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
+                    updateStmt.setString(1, request.getTenDc().trim());
+                    updateStmt.setString(2, request.getDvt() != null ? request.getDvt().trim() : "");
+                    updateStmt.setBigDecimal(3, request.getGia());
+                    updateStmt.setInt(4, request.getSlTon());
+                    updateStmt.setString(5, request.getMaDc().trim());
+                    rows = updateStmt.executeUpdate();
+                }
+                connection.commit();
+                return rows > 0;
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         }
     }
 

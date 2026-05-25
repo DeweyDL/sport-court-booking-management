@@ -14,5 +14,7 @@ public record BillSummary(
         BigDecimal tongGiaTri,
         String trangThai,
         BigDecimal tongTien,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String maCN,
+        String tenChiNhanh
 ) {}

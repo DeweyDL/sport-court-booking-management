@@ -20,11 +20,13 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class JdbcManageBillDao implements ManageBillDao {
     private static final String COURT_STATUS_CONFIRMED = "ĐÃ XÁC NHẬN";
-    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC CHỜ XÁC NHẬN";
+    private static final String COURT_STATUS_WAITING_DEPOSIT = "ĐÃ ĐẶT CHỜ CỌC";
+    private static final String COURT_STATUS_DEPOSITED = "ĐÃ CỌC";
     private static final String COURT_STATUS_IN_USE = "ĐANG SỬ DỤNG";
     private static final String COURT_STATUS_CANCELLED = "ĐÃ HUỶ";
 
@@ -35,12 +37,14 @@ public class JdbcManageBillDao implements ManageBillDao {
                        hd.MAHD, hd.MAKH, u_kh.HOTEN AS TEN_KHACH_HANG,
                        hd.MANV, u_nv.HOTEN AS TEN_NHAN_VIEN,
                        hd.TIEN_COC, hd.GIAMGIA, hd.TONGGIATRI, hd.TRANGTHAI,
-                       hd.TONGTIEN, hd.CREATED_AT
+                       hd.TONGTIEN, hd.CREATED_AT,
+                       cn.MACN AS MACN_CHI_NHANH, cn.TEN_CHI_NHANH
                 FROM HOA_DON hd
                 LEFT JOIN KHACH_HANG kh ON kh.MAKH = hd.MAKH
                 LEFT JOIN USERS u_kh ON u_kh.USER_ID = kh.USER_ID
                 LEFT JOIN NHAN_VIEN nv ON nv.MANV = hd.MANV
                 LEFT JOIN USERS u_nv ON u_nv.USER_ID = nv.USER_ID
+                LEFT JOIN CHI_NHANH cn ON cn.MACN = nv.MACN AND NVL(cn.IS_DELETED, 0) = 0
                 """
                 + (filterBranch ? """
                 LEFT JOIN CHI_TIET_HOA_DON_THUE_SAN ct_branch
@@ -56,9 +60,21 @@ public class JdbcManageBillDao implements ManageBillDao {
                 + """
                 WHERE NVL(hd.IS_DELETED, 0) = 0
                   AND (
-                      UPPER(hd.MAHD) LIKE '%' || UPPER(?) || '%'
-                      OR UPPER(u_kh.HOTEN) LIKE '%' || UPPER(?) || '%'
-                      OR hd.MAKH LIKE '%' || ? || '%'
+                      ? IS NULL
+                      OR UPPER(NVL(hd.MAHD, '')) LIKE ?
+                      OR UPPER(NVL(hd.MAKH, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.HOTEN, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.SDT, '')) LIKE ?
+                      OR UPPER(NVL(u_kh.EMAIL, '')) LIKE ?
+                      OR UPPER(NVL(hd.MANV, '')) LIKE ?
+                      OR UPPER(NVL(u_nv.HOTEN, '')) LIKE ?
+                      OR UPPER(NVL(u_nv.SDT, '')) LIKE ?
+                      OR UPPER(NVL(TRIM(hd.TRANGTHAI), '')) LIKE ?
+                      OR UPPER(NVL(cn.MACN, '')) LIKE ?
+                      OR UPPER(NVL(cn.TEN_CHI_NHANH, '')) LIKE ?
+                      OR TO_CHAR(NVL(hd.TONGGIATRI, 0)) LIKE ?
+                      OR TO_CHAR(NVL(hd.TONGTIEN, 0)) LIKE ?
+                      OR TO_CHAR(hd.CREATED_AT, 'DD/MM/YYYY') LIKE ?
                   )
                 """
                 + (filterBranch ? """
@@ -71,13 +87,16 @@ public class JdbcManageBillDao implements ManageBillDao {
         List<BillSummary> result = new ArrayList<>();
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            String kw = keyword == null ? "" : keyword.trim();
-            stmt.setString(1, kw);
-            stmt.setString(2, kw);
-            stmt.setString(3, kw);
+            String normalizedKeyword = normalizeKeyword(keyword);
+            String likeValue = toLikeValue(normalizedKeyword);
+            int paramIndex = 1;
+            stmt.setString(paramIndex++, normalizedKeyword);
+            for (int i = 0; i < 14; i++) {
+                stmt.setString(paramIndex++, likeValue);
+            }
             if (filterBranch) {
-                stmt.setString(4, branchId);
-                stmt.setString(5, branchId);
+                stmt.setString(paramIndex++, branchId);
+                stmt.setString(paramIndex, branchId);
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -92,7 +111,9 @@ public class JdbcManageBillDao implements ManageBillDao {
                             rs.getBigDecimal("TONGGIATRI"),
                             trimmed(rs.getString("TRANGTHAI")),
                             rs.getBigDecimal("TONGTIEN"),
-                            toLocalDateTime(rs.getTimestamp("CREATED_AT"))
+                            toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                            rs.getString("MACN_CHI_NHANH"),
+                            rs.getString("TEN_CHI_NHANH")
                     ));
                 }
             }
@@ -193,11 +214,76 @@ public class JdbcManageBillDao implements ManageBillDao {
                 UPDATE HOA_DON SET TRANGTHAI = ?
                 WHERE MAHD = ? AND TRIM(TRANGTHAI) = TRIM(?) AND NVL(IS_DELETED, 0) = 0
                 """;
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                if (isPayingInvoice(newStatus, requiredCurrentStatus)) {
+                    startConfirmedCourtDetails(conn, maHD);
+                }
+
+                stmt.setString(1, newStatus);
+                stmt.setString(2, maHD);
+                stmt.setString(3, requiredCurrentStatus);
+                boolean updated = stmt.executeUpdate() > 0;
+                if (updated) {
+                    conn.commit();
+                } else {
+                    conn.rollback();
+                }
+                return updated;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
+        }
+    }
+
+    private boolean isPayingInvoice(String newStatus, String requiredCurrentStatus) {
+        return "ĐÃ THANH TOÁN".equals(trimmed(newStatus))
+                && "CHƯA THANH TOÁN".equals(trimmed(requiredCurrentStatus));
+    }
+
+    private void startConfirmedCourtDetails(Connection conn, String maHD) throws SQLException {
+        String startConfirmedSql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN
+                SET TRANGTHAI = ?
+                WHERE MAHD = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                  AND TRIM(TRANGTHAI) = ?
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(startConfirmedSql)) {
+            stmt.setString(1, COURT_STATUS_IN_USE);
+            stmt.setString(2, maHD);
+            stmt.setString(3, COURT_STATUS_CONFIRMED);
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public boolean markDepositPaid(String maHD) throws SQLException {
+        String sql = """
+                UPDATE CHI_TIET_HOA_DON_THUE_SAN CT
+                SET CT.TRANGTHAI = ?
+                WHERE CT.MAHD = ?
+                  AND NVL(CT.IS_DELETED, 0) = 0
+                  AND TRIM(CT.TRANGTHAI) = ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM HOA_DON HD
+                      WHERE HD.MAHD = CT.MAHD
+                        AND NVL(HD.IS_DELETED, 0) = 0
+                        AND NVL(HD.TIEN_COC, 0) > 0
+                        AND TRIM(HD.TRANGTHAI) = 'CHƯA THANH TOÁN'
+                  )
+                """;
         try (Connection conn = ConnectionUtils.getMyConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, newStatus);
+            stmt.setString(1, COURT_STATUS_DEPOSITED);
             stmt.setString(2, maHD);
-            stmt.setString(3, requiredCurrentStatus);
+            stmt.setString(3, COURT_STATUS_WAITING_DEPOSIT);
             return stmt.executeUpdate() > 0;
         }
     }
@@ -386,6 +472,16 @@ public class JdbcManageBillDao implements ManageBillDao {
         return s == null ? null : s.trim();
     }
 
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) return null;
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed.toUpperCase(Locale.ROOT);
+    }
+
+    private String toLikeValue(String keyword) {
+        return keyword == null ? null : "%" + keyword + "%";
+    }
+
     @Override
     public void addCourtBookingDetails(String maHD, List<SelectedBookingSlot> slots, boolean advanceBooking) throws SQLException {
         if (slots == null || slots.isEmpty()) return;
@@ -399,10 +495,10 @@ public class JdbcManageBillDao implements ManageBillDao {
                 int nextDetailNumber = findNextNumericId(conn, "CHI_TIET_HOA_DON_THUE_SAN", "MACT_THUE_SAN", "CTHDTS-");
                 for (SelectedBookingSlot slot : slots) {
                     String detailId = "CTHDTS-" + nextDetailNumber++;
-                    insertConfirmedCourtRental(conn, maHD, detailId, slot);
                     if (advanceBooking) {
-                        updateCourtRentalStatus(conn, detailId, COURT_STATUS_DEPOSITED, COURT_STATUS_CONFIRMED);
+                        insertCourtRental(conn, maHD, detailId, slot, COURT_STATUS_WAITING_DEPOSIT);
                     } else {
+                        insertCourtRental(conn, maHD, detailId, slot, COURT_STATUS_CONFIRMED);
                         updateCourtRentalStatus(conn, detailId, COURT_STATUS_IN_USE, COURT_STATUS_CONFIRMED);
                     }
                 }
@@ -436,7 +532,7 @@ public class JdbcManageBillDao implements ManageBillDao {
         }
     }
 
-    private void insertConfirmedCourtRental(Connection conn, String maHD, String detailId, SelectedBookingSlot slot) throws SQLException {
+    private void insertCourtRental(Connection conn, String maHD, String detailId, SelectedBookingSlot slot, String status) throws SQLException {
         String sql = "{call PRC_THEM_CHI_TIET_THUE_SAN(?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cs = conn.prepareCall(sql)) {
             cs.setString(1, detailId);
@@ -444,7 +540,7 @@ public class JdbcManageBillDao implements ManageBillDao {
             cs.setString(3, slot.courtId());
             cs.setString(4, slot.priceBoardId());
             cs.setDate(5, java.sql.Date.valueOf(slot.bookingDate()));
-            cs.setString(6, COURT_STATUS_CONFIRMED);
+            cs.setString(6, status);
             cs.execute();
         }
     }
