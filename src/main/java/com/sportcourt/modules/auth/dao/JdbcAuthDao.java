@@ -108,7 +108,7 @@ public class JdbcAuthDao implements AuthDao {
 
         String insertAccountRoleGroup = """
                 INSERT INTO ACCOUNT_ROLE_GROUP(ACCOUNT_ROLE_GROUP_ID, ACCOUNT_ID, GROUP_ID, CREATED_AT, IS_DELETED)
-                VALUES (?, ?, 'CUSTOMER', SYSDATE, 0)
+                VALUES (?, ?, 'RG-4', SYSDATE, 0)
                 """;
 
         try (Connection connection = ConnectionUtils.getMyConnection()) {
