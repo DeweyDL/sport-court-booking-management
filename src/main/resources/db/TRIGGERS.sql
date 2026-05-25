@@ -342,7 +342,7 @@ BEGIN
          WHERE MAHD = :OLD.MAHD
            AND IS_DELETED = 0
            AND TRANGTHAI IN ('ĐÃ ĐẶT CHỜ CỌC', 'ĐÃ CỌC CHỜ XÁC NHẬN',
-                             'ĐÃ CỌC', 'ĐÃ XÁC NHẬN');
+                             'ĐÃ XÁC NHẬN');
 
         IF V_COUNT > 0 THEN
             RAISE_APPLICATION_ERROR(-20062,
