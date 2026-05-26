@@ -23,13 +23,14 @@ public class JdbcBranchDao implements BranchDao {
         String sql = """
                 SELECT MACN, TEN_CHI_NHANH, DIACHI, HOTLINE, CREATED_AT, IS_DELETED
                 FROM CHI_NHANH
-                WHERE (
+                WHERE IS_DELETED = 0
+                  AND (
                         ? IS NULL
                         OR UPPER(MACN) LIKE ?
                         OR UPPER(TEN_CHI_NHANH) LIKE ?
                         OR UPPER(DIACHI) LIKE ?
                         OR UPPER(HOTLINE) LIKE ?
-                )
+                  )
                 ORDER BY CREATED_AT DESC, MACN ASC
                 """;
 
