@@ -107,7 +107,7 @@ public class ProductPanel extends JPanel implements Scrollable {
     public ProductSearchCriteria getSearchCriteria() {
         ProductSearchCriteria criteria = new ProductSearchCriteria();
         criteria.setKeyword(searchField.getText() == null ? "" : searchField.getText().trim());
-        criteria.setIncludeDeleted(true);
+        criteria.setIncludeDeleted(false);
         return criteria;
     }
 
