@@ -21,7 +21,7 @@ final class CourtEditPanel {
     private static final Color BUTTON_MUTED = new Color(226, 232, 240);
     private static final Color READONLY_BG = new Color(241, 245, 249);
     private static final Color INPUT_BORDER = new Color(203, 213, 225);
-    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_]{1,20}$");
+    private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Z0-9_-]{1,20}$");
 
     private CourtEditPanel() {
     }
