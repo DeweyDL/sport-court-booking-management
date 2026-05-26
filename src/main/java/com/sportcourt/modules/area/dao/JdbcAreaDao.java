@@ -36,7 +36,8 @@ public class JdbcAreaDao implements AreaDao {
                 SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT, k.IS_DELETED
                 FROM KHU_VUC k
                 JOIN LOAI_THE_THAO ltt ON ltt.MATT = k.MATT AND ltt.IS_DELETED = 0
-                WHERE (
+                WHERE k.IS_DELETED = 0
+                  AND (
                         ? IS NULL
                         OR UPPER(k.MAKV) LIKE ?
                         OR UPPER(k.MACN) LIKE ?
