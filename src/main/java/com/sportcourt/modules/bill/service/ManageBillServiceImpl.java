@@ -8,6 +8,7 @@ import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.entity.HoaDon;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.sql.SQLException;
@@ -54,6 +55,22 @@ public class ManageBillServiceImpl implements ManageBillService {
             return BillResult.ok("Lấy chi tiết hóa đơn thành công.", detail.get());
         } catch (SQLException e) {
             return BillResult.fail("Không thể lấy chi tiết hóa đơn: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public BillResult<HoaDon> findHoaDonById(String maHD) {
+        if (isBlank(maHD)) {
+            return BillResult.fail("Thiếu mã hóa đơn.");
+        }
+        try {
+            Optional<HoaDon> hoaDon = dao.findHoaDonById(maHD.trim());
+            if (hoaDon.isEmpty()) {
+                return BillResult.fail("Không tìm thấy hóa đơn.");
+            }
+            return BillResult.ok("Lấy hóa đơn thành công.", hoaDon.get());
+        } catch (SQLException e) {
+            return BillResult.fail("Không thể lấy hóa đơn: " + e.getMessage());
         }
     }
 

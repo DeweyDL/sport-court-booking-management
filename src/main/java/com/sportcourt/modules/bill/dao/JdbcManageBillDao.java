@@ -5,6 +5,9 @@ import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.CourtRentalItem;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.entity.ChiTietHoaDonDichVuDaDung;
+import com.sportcourt.modules.bill.entity.ChiTietHoaDonThueSan;
+import com.sportcourt.modules.bill.entity.HoaDon;
 
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
@@ -389,19 +392,20 @@ public class JdbcManageBillDao implements ManageBillDao {
 
     @Override
     public String createEmptyBill(String maKH, String maNV) throws SQLException {
-        String maHd = generateNextId("HOA_DON", "MAHD", "HD-");
         String sql = """
                 INSERT INTO HOA_DON (MAHD, MAKH, MANV, TIEN_COC, GIAMGIA, TONGGIATRI, TRANGTHAI, TONGTIEN, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, 0, 0, 0, 'CHƯA THANH TOÁN', 0, SYSDATE, 0)
                 """;
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, maHd);
-            stmt.setString(2, maKH);
-            stmt.setString(3, maNV);
-            stmt.executeUpdate();
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            String maHd = "HD-" + findNextNumericId(conn, "HOA_DON", "MAHD", "HD-");
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, maHd);
+                stmt.setString(2, maKH);
+                stmt.setString(3, maNV);
+                stmt.executeUpdate();
+            }
+            return maHd;
         }
-        return maHd;
     }
 
     @Override
@@ -412,35 +416,34 @@ public class JdbcManageBillDao implements ManageBillDao {
                     (MACT_DICH_VU, MAHD, MASP, MADC, SL, DON_GIA, TRANGTHAI, CREATED_AT, IS_DELETED)
                 VALUES (?, ?, ?, ?, ?, ?, 'ĐANG SỬ DỤNG', SYSDATE, 0)
                 """;
-        for (ServiceItem item : items) {
-            if (item.soLuong() <= 0) continue;
-            String maCt = generateNextId("CHI_TIET_HOA_DON_DICH_VU_DA_DUNG", "MACT_DICH_VU", "CTHDDV-");
-            try (Connection conn = ConnectionUtils.getMyConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, maCt);
-                stmt.setString(2, maHD);
-                if (item.maSP() != null) stmt.setString(3, item.maSP());
-                else stmt.setNull(3, Types.VARCHAR);
-                if (item.maDC() != null) stmt.setString(4, item.maDC());
-                else stmt.setNull(4, Types.VARCHAR);
-                stmt.setInt(5, item.soLuong());
-                stmt.setBigDecimal(6, item.donGia() == null ? BigDecimal.ZERO : item.donGia());
-                stmt.executeUpdate();
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                int nextNum = findNextNumericId(conn, "CHI_TIET_HOA_DON_DICH_VU_DA_DUNG", "MACT_DICH_VU", "CTHDDV-");
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    for (ServiceItem item : items) {
+                        if (item.soLuong() <= 0) continue;
+                        stmt.setString(1, "CTHDDV-" + nextNum++);
+                        stmt.setString(2, maHD);
+                        if (item.maSP() != null) stmt.setString(3, item.maSP());
+                        else stmt.setNull(3, Types.VARCHAR);
+                        if (item.maDC() != null) stmt.setString(4, item.maDC());
+                        else stmt.setNull(4, Types.VARCHAR);
+                        stmt.setInt(5, item.soLuong());
+                        stmt.setBigDecimal(6, item.donGia() == null ? BigDecimal.ZERO : item.donGia());
+                        stmt.executeUpdate();
+                    }
+                }
+                recalculateInvoice(conn, maHD);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
             }
         }
-    }
-
-    private String generateNextId(String tableName, String idColumn, String prefix) throws SQLException {
-        String sql = "SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(" + idColumn + ", '\\d+$'))), 0) + 1 AS NEXT_ID "
-                + "FROM " + tableName + " WHERE " + idColumn + " LIKE ?";
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, prefix + "%");
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) return prefix + rs.getLong("NEXT_ID");
-            }
-        }
-        throw new SQLException("Không thể sinh mã " + tableName + ".");
     }
 
     private List<ServiceItem> fetchServiceItems(Connection conn, String sql, String maHD) throws SQLException {
@@ -612,6 +615,17 @@ public class JdbcManageBillDao implements ManageBillDao {
         }
     }
 
+    private String fetchInvoiceIdForServiceDetail(Connection conn, String maCTHDDV) throws SQLException {
+        String sql = "SELECT MAHD FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maCTHDDV);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getString("MAHD");
+            }
+        }
+        throw new SQLException("Không tìm thấy chi tiết dịch vụ: " + maCTHDDV);
+    }
+
     private int findNextNumericId(Connection connection, String tableName, String columnName, String prefix) throws SQLException {
         String sql = """
                 SELECT NVL(MAX(TO_NUMBER(REGEXP_SUBSTR(%s, '\\d+$'))), 0) + 1 AS NEXT_ID
@@ -627,21 +641,33 @@ public class JdbcManageBillDao implements ManageBillDao {
 
     @Override
     public void updateServiceItemQty(String maCTHDDV, int newQty) throws SQLException {
-        String sql;
-        if (newQty < 1) {
-            sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET IS_DELETED = 1 WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
-        } else {
-            sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET SL = ? WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
-        }
-        try (Connection conn = ConnectionUtils.getMyConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            if (newQty < 1) {
-                stmt.setString(1, maCTHDDV);
-            } else {
-                stmt.setInt(1, newQty);
-                stmt.setString(2, maCTHDDV);
+        try (Connection conn = ConnectionUtils.getMyConnection()) {
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                String maHD = fetchInvoiceIdForServiceDetail(conn, maCTHDDV);
+                if (newQty < 1) {
+                    String sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET IS_DELETED = 1 WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
+                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                        stmt.setString(1, maCTHDDV);
+                        stmt.executeUpdate();
+                    }
+                } else {
+                    String sql = "UPDATE CHI_TIET_HOA_DON_DICH_VU_DA_DUNG SET SL = ? WHERE MACT_DICH_VU = ? AND IS_DELETED = 0";
+                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                        stmt.setInt(1, newQty);
+                        stmt.setString(2, maCTHDDV);
+                        stmt.executeUpdate();
+                    }
+                }
+                recalculateInvoice(conn, maHD);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
             }
-            stmt.executeUpdate();
         }
     }
 
@@ -658,17 +684,120 @@ public class JdbcManageBillDao implements ManageBillDao {
     @Override
     public void updateDiscount(String maHD, int discountPercent) throws SQLException {
         String updateSql = "UPDATE HOA_DON SET GIAMGIA = ? WHERE MAHD = ?";
-        String prcSql = "{call PRC_CAP_NHAT_SO_TIEN_HOA_DON(?)}";
         try (Connection conn = ConnectionUtils.getMyConnection()) {
-            try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
-                stmt.setInt(1, discountPercent);
-                stmt.setString(2, maHD);
-                stmt.executeUpdate();
-            }
-            try (CallableStatement cs = conn.prepareCall(prcSql)) {
-                cs.setString(1, maHD);
-                cs.execute();
+            boolean originalAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                    stmt.setInt(1, discountPercent);
+                    stmt.setString(2, maHD);
+                    stmt.executeUpdate();
+                }
+                recalculateInvoice(conn, maHD);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
             }
         }
+    }
+
+    @Override
+    public Optional<HoaDon> findHoaDonById(String maHD) throws SQLException {
+        String sql = """
+                SELECT MAHD, MAKH, MANV, TIEN_COC, GIAMGIA, TONGGIATRI, TRANGTHAI,
+                       TONGTIEN, CREATED_AT, IS_DELETED
+                FROM HOA_DON
+                WHERE MAHD = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maHD);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? Optional.of(mapHoaDon(rs)) : Optional.empty();
+            }
+        }
+    }
+
+    @Override
+    public Optional<ChiTietHoaDonThueSan> findCourtRentalById(String maCtThueSan) throws SQLException {
+        String sql = """
+                SELECT MACT_THUE_SAN, MAHD, MASAN, MABG, NGAYTHUE, DON_GIA_THUE,
+                       TRANGTHAI, CREATED_AT, IS_DELETED
+                FROM CHI_TIET_HOA_DON_THUE_SAN
+                WHERE MACT_THUE_SAN = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maCtThueSan);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? Optional.of(mapChiTietHoaDonThueSan(rs)) : Optional.empty();
+            }
+        }
+    }
+
+    @Override
+    public Optional<ChiTietHoaDonDichVuDaDung> findServiceItemById(String maCtDichVu) throws SQLException {
+        String sql = """
+                SELECT MACT_DICH_VU, MAHD, MASP, MADC, SL, DON_GIA,
+                       TRANGTHAI, CREATED_AT, IS_DELETED
+                FROM CHI_TIET_HOA_DON_DICH_VU_DA_DUNG
+                WHERE MACT_DICH_VU = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                """;
+        try (Connection conn = ConnectionUtils.getMyConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maCtDichVu);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? Optional.of(mapChiTietHoaDonDichVuDaDung(rs)) : Optional.empty();
+            }
+        }
+    }
+
+    private static HoaDon mapHoaDon(ResultSet rs) throws SQLException {
+        return new HoaDon(
+                rs.getString("MAHD"),
+                rs.getString("MAKH"),
+                rs.getString("MANV"),
+                rs.getBigDecimal("TIEN_COC"),
+                rs.getBigDecimal("GIAMGIA"),
+                rs.getBigDecimal("TONGGIATRI"),
+                trimmed(rs.getString("TRANGTHAI")),
+                rs.getBigDecimal("TONGTIEN"),
+                toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                rs.getInt("IS_DELETED") == 1
+        );
+    }
+
+    private static ChiTietHoaDonThueSan mapChiTietHoaDonThueSan(ResultSet rs) throws SQLException {
+        return new ChiTietHoaDonThueSan(
+                rs.getString("MACT_THUE_SAN"),
+                rs.getString("MAHD"),
+                rs.getString("MASAN"),
+                rs.getString("MABG"),
+                toLocalDateTime(rs.getTimestamp("NGAYTHUE")),
+                rs.getBigDecimal("DON_GIA_THUE"),
+                trimmed(rs.getString("TRANGTHAI")),
+                toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                rs.getInt("IS_DELETED") == 1
+        );
+    }
+
+    private static ChiTietHoaDonDichVuDaDung mapChiTietHoaDonDichVuDaDung(ResultSet rs) throws SQLException {
+        return new ChiTietHoaDonDichVuDaDung(
+                rs.getString("MACT_DICH_VU"),
+                rs.getString("MAHD"),
+                rs.getString("MASP"),
+                rs.getString("MADC"),
+                rs.getInt("SL"),
+                rs.getBigDecimal("DON_GIA"),
+                trimmed(rs.getString("TRANGTHAI")),
+                toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                rs.getInt("IS_DELETED") == 1
+        );
     }
 }
