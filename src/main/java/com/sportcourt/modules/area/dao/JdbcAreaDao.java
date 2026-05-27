@@ -1,6 +1,6 @@
 package com.sportcourt.modules.area.dao;
 
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.area.entity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.common.db.ConnectionUtils;
