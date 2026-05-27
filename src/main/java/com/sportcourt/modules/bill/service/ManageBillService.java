@@ -4,6 +4,7 @@ import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillResult;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.entity.HoaDon;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
 public interface ManageBillService {
     BillResult<List<BillSummary>> searchBills(String keyword);
     BillResult<BillDetail> getDetail(String maHD);
+    BillResult<HoaDon> findHoaDonById(String maHD);
     BillResult<Void> markAsPaid(String maHD);
     BillResult<Void> markDepositPaid(String maHD);
     BillResult<Void> cancelBill(String maHD);
