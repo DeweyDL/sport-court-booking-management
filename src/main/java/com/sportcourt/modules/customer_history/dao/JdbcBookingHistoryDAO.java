@@ -28,6 +28,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                     ELSE 'ĐÃ HUỶ'
                 END                              AS TRANGTHAI,
                 HD.TONGTIEN,
+                NVL(SUM(CT.DON_GIA_THUE), 0)     AS COURT_RENTAL_TOTAL,
                 HD.CREATED_AT,
                 MAX(LTT.TEN)                     AS SPORT_TYPE_NAME,
                 MAX(CN.TEN_CHI_NHANH)            AS BRANCH_NAME,
@@ -234,6 +235,7 @@ public class JdbcBookingHistoryDAO implements BookingHistoryDAO {
                     dto.setInvoiceId(rs.getString("MAHD"));
                     dto.setStatus(rs.getString("TRANGTHAI"));
                     dto.setTotalAmount(rs.getBigDecimal("TONGTIEN"));
+                    dto.setCourtRentalTotal(rs.getBigDecimal("COURT_RENTAL_TOTAL"));
                     dto.setCreatedAt(toLocalDateTime(rs.getTimestamp("CREATED_AT")));
                     dto.setSportTypeName(rs.getString("SPORT_TYPE_NAME"));
                     dto.setBranchName(rs.getString("BRANCH_NAME"));
