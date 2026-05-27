@@ -2,7 +2,7 @@ package com.sportcourt.modules.area.view;
 
 import com.sportcourt.common.style.CrudViewStyle;
 import com.sportcourt.modules.area.controller.AreaController;
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.area.entity.Area;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
