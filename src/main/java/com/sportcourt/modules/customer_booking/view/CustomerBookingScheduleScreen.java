@@ -17,6 +17,7 @@ import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,7 +48,7 @@ public class CustomerBookingScheduleScreen extends JPanel {
     private final JLabel slotLabel     = label("Chưa chọn khung giờ", bold(14f), GREEN_DARK);
     private final JLabel totalLabel    = label("Tổng tiền: 0 VND", bold(14f), GREEN_DARK);
     private final JSpinner dateSpinner = new JSpinner(
-            new SpinnerDateModel(new Date(), null, null, java.util.Calendar.DAY_OF_MONTH));
+            new SpinnerDateModel(new Date(), new Date(), null, java.util.Calendar.DAY_OF_MONTH));
 
     private JPanel matrixPanel;
     private CourtSearchResult currentCourt;
@@ -367,13 +368,18 @@ public class CustomerBookingScheduleScreen extends JPanel {
     // ── individual slot cell ──────────────────────────────────────────────────
 
     private JPanel buildSlotCell(String courtId, SlotStatus slot, int cellW, int rH) {
-        boolean available = slot != null && slot.status() == BookingSlotStatus.AVAILABLE;
-        boolean selected = isSelected(slot);
+        boolean isPast = bookingDate.isBefore(LocalDate.now())
+                || (bookingDate.equals(LocalDate.now())
+                    && slot != null
+                    && slot.startHour() <= LocalTime.now().getHour());
+        boolean available = !isPast && slot != null && slot.status() == BookingSlotStatus.AVAILABLE;
+        boolean selected = !isPast && isSelected(slot);
 
-        Color normalBg = selected  ? SELECTED_BG
-                : slot == null     ? EMPTY_CELL_BG
-                : available        ? Color.WHITE
-                :                    BOOKED_BG;
+        Color normalBg = selected            ? SELECTED_BG
+                : isPast && slot != null      ? BOOKED_BG
+                : slot == null               ? EMPTY_CELL_BG
+                : available                  ? Color.WHITE
+                :                              BOOKED_BG;
 
         JPanel cell = new JPanel(new GridBagLayout());
         cell.setOpaque(true);
@@ -383,7 +389,7 @@ public class CustomerBookingScheduleScreen extends JPanel {
         cell.setMaximumSize(new Dimension(cellW, rH));
         cell.setBorder(new MatteBorder(0, 0, 1, 1, CELL_BORDER_COLOR));
 
-        if (slot != null) {
+        if (slot != null && !isPast) {
             Color fg = (selected || !available) ? Color.WHITE : TEXT_DARK;
             JPanel inner = new JPanel();
             inner.setOpaque(false);
