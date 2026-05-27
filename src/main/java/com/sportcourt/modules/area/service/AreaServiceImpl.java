@@ -4,7 +4,7 @@ import com.sportcourt.modules.area.dao.AreaDao;
 import com.sportcourt.modules.area.dao.JdbcAreaDao;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.area.entity.Area;
 
 import java.sql.SQLException;
 import java.util.List;
