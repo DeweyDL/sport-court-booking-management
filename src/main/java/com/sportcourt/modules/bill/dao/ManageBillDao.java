@@ -3,6 +3,9 @@ package com.sportcourt.modules.bill.dao;
 import com.sportcourt.modules.bill.dto.BillDetail;
 import com.sportcourt.modules.bill.dto.BillSummary;
 import com.sportcourt.modules.bill.dto.ServiceItem;
+import com.sportcourt.modules.bill.entity.ChiTietHoaDonDichVuDaDung;
+import com.sportcourt.modules.bill.entity.ChiTietHoaDonThueSan;
+import com.sportcourt.modules.bill.entity.HoaDon;
 import com.sportcourt.modules.customer_booking.dto.SelectedBookingSlot;
 
 import java.sql.SQLException;
@@ -12,6 +15,9 @@ import java.util.Optional;
 public interface ManageBillDao {
     List<BillSummary> findAll(String keyword, String branchId) throws SQLException;
     Optional<BillDetail> findDetailById(String maHD) throws SQLException;
+    Optional<HoaDon> findHoaDonById(String maHD) throws SQLException;
+    Optional<ChiTietHoaDonThueSan> findCourtRentalById(String maCtThueSan) throws SQLException;
+    Optional<ChiTietHoaDonDichVuDaDung> findServiceItemById(String maCtDichVu) throws SQLException;
     boolean updateStatus(String maHD, String newStatus, String requiredCurrentStatus) throws SQLException;
     boolean markDepositPaid(String maHD) throws SQLException;
     boolean softDelete(String maHD) throws SQLException;

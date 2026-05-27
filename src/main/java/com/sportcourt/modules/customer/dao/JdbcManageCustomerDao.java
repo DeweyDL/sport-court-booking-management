@@ -5,6 +5,7 @@ import com.sportcourt.modules.customer.dto.CreateCustomerRequest;
 import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.entity.KhachHang;
 
 import java.sql.Connection;
 import java.sql.CallableStatement;
@@ -12,7 +13,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -320,8 +323,42 @@ public class JdbcManageCustomerDao implements ManageCustomerDao {
         }
     }
 
+    @Override
+    public Optional<KhachHang> findKhachHangById(String maKhachHang) throws SQLException {
+        String sql = """
+                SELECT MAKH, USER_ID, MA_HANG, TRANGTHAI, DOANH_THU,
+                       CREATED_AT, IS_DELETED
+                FROM KHACH_HANG
+                WHERE MAKH = ?
+                  AND NVL(IS_DELETED, 0) = 0
+                """;
+        try (Connection connection = ConnectionUtils.getMyConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, maKhachHang);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(mapKhachHang(rs)) : Optional.empty();
+            }
+        }
+    }
+
+    private static KhachHang mapKhachHang(ResultSet rs) throws SQLException {
+        return new KhachHang(
+                rs.getString("MAKH"),
+                rs.getString("USER_ID"),
+                rs.getString("MA_HANG"),
+                rs.getString("TRANGTHAI"),
+                rs.getBigDecimal("DOANH_THU"),
+                toLocalDateTime(rs.getTimestamp("CREATED_AT")),
+                rs.getInt("IS_DELETED") == 1
+        );
+    }
+
     private static java.time.LocalDate toLocalDate(Date value) {
         return value == null ? null : value.toLocalDate();
+    }
+
+    private static LocalDateTime toLocalDateTime(Timestamp value) {
+        return value == null ? null : value.toLocalDateTime();
     }
 }
 

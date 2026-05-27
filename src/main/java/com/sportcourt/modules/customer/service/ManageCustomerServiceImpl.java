@@ -8,6 +8,7 @@ import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.CustomerResult;
 import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.entity.KhachHang;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -51,6 +52,22 @@ public class ManageCustomerServiceImpl implements ManageCustomerService {
             return CustomerResult.ok("Lấy profile khách hàng thành công.", profile.get());
         } catch (SQLException e) {
             return CustomerResult.fail("Không thể lấy profile khách hàng: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public CustomerResult<KhachHang> findKhachHangById(String maKhachHang) {
+        if (isBlank(maKhachHang)) {
+            return CustomerResult.fail("Thiếu mã khách hàng.");
+        }
+        try {
+            Optional<KhachHang> khachHang = manageCustomerDao.findKhachHangById(maKhachHang.trim());
+            if (khachHang.isEmpty()) {
+                return CustomerResult.fail("Không tìm thấy khách hàng.");
+            }
+            return CustomerResult.ok("Lấy khách hàng thành công.", khachHang.get());
+        } catch (SQLException e) {
+            return CustomerResult.fail("Không thể lấy khách hàng: " + e.getMessage());
         }
     }
 
