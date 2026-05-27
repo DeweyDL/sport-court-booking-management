@@ -1,4 +1,4 @@
-package com.sportcourt.modules.area.enitity;
+package com.sportcourt.modules.area.entity;
 
 import java.time.LocalDateTime;
 

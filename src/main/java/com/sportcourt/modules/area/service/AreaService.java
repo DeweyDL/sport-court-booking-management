@@ -1,6 +1,6 @@
 package com.sportcourt.modules.area.service;
 
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.area.entity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 
