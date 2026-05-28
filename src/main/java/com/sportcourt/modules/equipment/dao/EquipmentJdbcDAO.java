@@ -14,13 +14,13 @@ public class EquipmentJdbcDAO implements EquipmentDAO {
     @Override
     public List<Equipment> findEquipments(String keyword) throws SQLException {
         String sql = "SELECT MADC, TENDC, DVT, GIA, SL_TON, CREATED_AT, IS_DELETED " +
-                "FROM DUNG_CU_THE_THAO WHERE 1=1";
+                "FROM DUNG_CU_THE_THAO WHERE IS_DELETED = 0";
 
         boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
         if (hasKeyword) {
             sql += " AND (UPPER(MADC) LIKE ? OR UPPER(TENDC) LIKE ?)";
         }
-        sql += " ORDER BY IS_DELETED ASC, CREATED_AT DESC";
+        sql += " ORDER BY CREATED_AT DESC";
 
         List<Equipment> rows = new ArrayList<>();
         try (Connection connection = ConnectionUtils.getMyConnection();

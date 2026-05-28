@@ -11,6 +11,7 @@ public class BookingHistoryItemDTO {
     private String branchAddress;
     private LocalDateTime bookingDate;
     private BigDecimal totalAmount;
+    private BigDecimal courtRentalTotal;
     private String status;
     private int courtCount;
     private LocalDateTime createdAt;
@@ -90,9 +91,22 @@ public class BookingHistoryItemDTO {
         this.createdAt = v;
     }
 
+    public BigDecimal getCourtRentalTotal() {
+        return courtRentalTotal;
+    }
+
+    public void setCourtRentalTotal(BigDecimal v) {
+        this.courtRentalTotal = v;
+    }
+
     public String getFormattedTotalAmount() {
         if (totalAmount == null) return "0 VNĐ";
         return String.format("%,.0f VNĐ", totalAmount).replace(",", ".");
+    }
+
+    public String getFormattedCourtRentalTotal() {
+        if (courtRentalTotal == null) return "0 VNĐ";
+        return String.format("%,.0f VNĐ", courtRentalTotal).replace(",", ".");
     }
 
     public String getFormattedBookingDate() {
