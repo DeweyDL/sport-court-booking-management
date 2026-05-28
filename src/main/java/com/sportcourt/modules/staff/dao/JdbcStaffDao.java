@@ -117,30 +117,61 @@ public class JdbcStaffDao {
                           StaffCreateRequest req,
                           String maLoaiNv,
                           String passwordHash) throws SQLException {
-        String call = "{ call PRC_THEM_NHAN_VIEN(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }";
+        String call = "{ call PRC_THEM_NHAN_VIEN(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) }";
+        String insertAccountRoleSql = """
+                INSERT INTO ACCOUNT_ROLE (ACCOUNT_ROLE_ID, ACCOUNT_ID, ROLE_ID, CREATED_AT, IS_DELETED)
+                VALUES (?, ?, ?, SYSDATE, 0)
+                """;
+        String updateTrangThaiSql = "UPDATE NHAN_VIEN SET TRANG_THAI = ? WHERE MANV = ?";
+        String updateDiaChiSql = "UPDATE USERS SET DIACHI = ? WHERE USER_ID = ?";
+
+        String manv = normalizeOptional(req.getManv());
+        String trangThai = normalizeOptional(req.getTrangThai());
+        String diaChi = normalizeOptional(req.getDiaChi());
 
         try (Connection conn = ConnectionUtils.getMyConnection()) {
             boolean originalAutoCommit = conn.getAutoCommit();
             conn.setAutoCommit(false);
-            try (CallableStatement ps = conn.prepareCall(call)) {
-                ps.setString(1, userId);
-                ps.setString(2, normalizeOptional(req.getManv()));
-                ps.setString(3, accountId);
-                ps.setString(4, accountRoleGroupId);
-                ps.setString(5, accountRoleId);
-                ps.setString(6, roleGroupId);
-                ps.setString(7, roleId);
-                ps.setString(8, normalizeOptional(req.getHoten()));
-                ps.setString(9, normalizeOptional(req.getSdt()));
-                ps.setString(10, maLoaiNv);
-                ps.setString(11, normalizeOptional(req.getMaCn()));
-                ps.setString(12, normalizeOptional(req.getCccd()));
-                ps.setInt(13, req.getIsQl());
-                ps.setString(14, normalizeOptional(req.getTrangThai()));
-                ps.setString(15, passwordHash);
-                ps.setString(16, normalizeOptional(req.getDiaChi()));
+            try {
+                try (CallableStatement ps = conn.prepareCall(call)) {
+                    ps.setString(1, userId);
+                    ps.setString(2, manv);
+                    ps.setString(3, accountId);
+                    ps.setString(4, accountRoleGroupId);
+                    ps.setString(5, normalizeOptional(req.getHoten()));
+                    ps.setString(6, normalizeOptional(req.getSdt()));
+                    ps.setString(7, null);
+                    ps.setString(8, passwordHash);
+                    ps.setString(9, normalizeOptional(req.getMaCn()));
+                    ps.setString(10, maLoaiNv);
+                    ps.setString(11, normalizeOptional(req.getCccd()));
+                    ps.setInt(12, req.getIsQl());
+                    ps.execute();
+                }
 
-                ps.execute();
+                try (PreparedStatement ps = conn.prepareStatement(insertAccountRoleSql)) {
+                    ps.setString(1, accountRoleId);
+                    ps.setString(2, accountId);
+                    ps.setString(3, roleId);
+                    ps.executeUpdate();
+                }
+
+                if (trangThai != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(updateTrangThaiSql)) {
+                        ps.setString(1, trangThai);
+                        ps.setString(2, manv);
+                        ps.executeUpdate();
+                    }
+                }
+
+                if (diaChi != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(updateDiaChiSql)) {
+                        ps.setString(1, diaChi);
+                        ps.setString(2, userId);
+                        ps.executeUpdate();
+                    }
+                }
+
                 conn.commit();
                 return true;
             } catch (SQLException e) {

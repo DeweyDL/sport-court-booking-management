@@ -411,7 +411,7 @@ public class BookingHistoryPanel extends JPanel {
 
             String locText = item.getBranchAddress() != null ? item.getBranchAddress() : "Chưa cập nhật địa chỉ";
             String dateText = item.getFormattedBookingDate();
-            String price = item.getFormattedTotalAmount();
+            String price = item.getFormattedCourtRentalTotal();
 
             RoundedPanel card = new RoundedPanel(UIScale.scale(80), CARD_BG, true);
             card.setLayout(new BorderLayout(UIScale.scale(22), 0));

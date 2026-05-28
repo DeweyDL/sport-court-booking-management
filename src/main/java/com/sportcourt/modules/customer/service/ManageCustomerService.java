@@ -5,6 +5,7 @@ import com.sportcourt.modules.customer.dto.CustomerProfile;
 import com.sportcourt.modules.customer.dto.CustomerResult;
 import com.sportcourt.modules.customer.dto.CustomerSummary;
 import com.sportcourt.modules.customer.dto.UpdateCustomerRequest;
+import com.sportcourt.modules.customer.entity.KhachHang;
 
 import java.util.List;
 
@@ -12,6 +13,8 @@ public interface ManageCustomerService {
     CustomerResult<List<CustomerSummary>> searchByName(String keyword);
 
     CustomerResult<CustomerProfile> getProfile(String maKhachHang);
+
+    CustomerResult<KhachHang> findKhachHangById(String maKhachHang);
 
     CustomerResult<String> generateNextMaKhachHang();
 

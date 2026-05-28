@@ -1,6 +1,6 @@
 package com.sportcourt.modules.area.dao;
 
-import com.sportcourt.modules.area.enitity.Area;
+import com.sportcourt.modules.area.entity.Area;
 import com.sportcourt.modules.area.dto.AreaCreateRequest;
 import com.sportcourt.modules.area.dto.AreaUpdateRequest;
 import com.sportcourt.common.db.ConnectionUtils;
@@ -36,7 +36,8 @@ public class JdbcAreaDao implements AreaDao {
                 SELECT k.MAKV, k.MACN, k.MATT, ltt.TEN AS TEN_THE_THAO, k.SO_LUONG_SAN, k.CREATED_AT, k.IS_DELETED
                 FROM KHU_VUC k
                 JOIN LOAI_THE_THAO ltt ON ltt.MATT = k.MATT AND ltt.IS_DELETED = 0
-                WHERE (
+                WHERE k.IS_DELETED = 0
+                  AND (
                         ? IS NULL
                         OR UPPER(k.MAKV) LIKE ?
                         OR UPPER(k.MACN) LIKE ?
