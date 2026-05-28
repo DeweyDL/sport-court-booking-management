@@ -392,7 +392,7 @@ public class BookingDetailPanel extends JPanel {
         JLabel lblTotal = new JLabel("Tổng tiền thuê sân");
         lblTotal.setFont(AppFonts.lexendRegular(13f));
         lblTotal.setForeground(TEXT_MUTED);
-        JLabel valTotal = new JLabel(detail.getFormattedTotalValue());
+        JLabel valTotal = new JLabel(money(courtRentalTotal(detail)));
         valTotal.setFont(AppFonts.lexendBold(17f));
         valTotal.setForeground(TEXT_DARK);
         totalRow.add(lblTotal, BorderLayout.WEST);
@@ -500,15 +500,13 @@ public class BookingDetailPanel extends JPanel {
         card.add(title);
         card.add(Box.createVerticalStrut(UIScale.scale(8)));
 
-        // --- BẮT ĐẦU LOGIC GỘP TRẠNG THÁI CHUẨN ---
-        String overallStatus = detail.getOverallStatus();
-        // --- KẾT THÚC LOGIC ---
+        String overallStatus = detail.getStatus();
 
         BigDecimal depositDue = depositDue(detail);
         card.add(createStatusBadge(overallStatus));
         card.add(Box.createVerticalStrut(UIScale.scale(16)));
 
-        String rentStr = money(detail.getTotalValue());
+        String rentStr = money(courtRentalTotal(detail));
         card.add(makeSummaryRow("Tiền thuê sân", rentStr, false));
 
         if (depositDue.compareTo(BigDecimal.ZERO) > 0) {
@@ -643,6 +641,17 @@ public class BookingDetailPanel extends JPanel {
         return btn;
     }
 
+    private BigDecimal courtRentalTotal(BookingDetailDTO detail) {
+        if (detail == null || detail.getCourtItems() == null) return BigDecimal.ZERO;
+        return detail.getCourtItems().stream()
+                .filter(i -> {
+                    String st = i.getStatus() != null ? i.getStatus().toUpperCase() : "";
+                    return !st.contains("HUỶ") && !st.contains("HỦY");
+                })
+                .map(i -> i.getUnitPrice() != null ? i.getUnitPrice() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private BigDecimal depositDue(BookingDetailDTO detail) {
         if (detail == null) {
             return BigDecimal.ZERO;
@@ -653,12 +662,12 @@ public class BookingDetailPanel extends JPanel {
             return deposit;
         }
 
-        BigDecimal totalValue = detail.getTotalValue();
-        if (totalValue == null || totalValue.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal rentalTotal = courtRentalTotal(detail);
+        if (rentalTotal.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
-        return totalValue.multiply(new BigDecimal("0.70")).setScale(2, RoundingMode.HALF_UP);
+        return rentalTotal.multiply(new BigDecimal("0.70")).setScale(2, RoundingMode.HALF_UP);
     }
 
     private String money(BigDecimal amount) {
