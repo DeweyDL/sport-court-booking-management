@@ -1,8 +1,6 @@
 package com.sportcourt.common.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import com.sportcourt.common.style.CrudViewStyle;
-import com.sportcourt.common.style.UIScale;
 import com.sportcourt.modules.account.view.AccountManagementPanel;
 import com.sportcourt.modules.area.view.AreaManagement;
 import com.sportcourt.modules.auth.dto.FunctionId;
@@ -11,45 +9,47 @@ import com.sportcourt.modules.auth.dto.RoleGroupId;
 import com.sportcourt.modules.auth.dto.UserSession;
 import com.sportcourt.modules.auth.service.SessionManager;
 import com.sportcourt.modules.auth.view.LoginScreen;
-import com.sportcourt.modules.booking_management.view.BookingRequest;
 import com.sportcourt.modules.branch.view.BranchManagement;
 import com.sportcourt.modules.cost.view.CostManagement;
 import com.sportcourt.modules.court.view.CourtManagementPanel;
 import com.sportcourt.modules.customer.view.ManageCustomerScreen;
-import com.sportcourt.modules.customer_booking.view.CustomerBookingPanel;
-import com.sportcourt.modules.customer_history.view.BookingDetailPanel;
 import com.sportcourt.modules.customer_rank.view.CustomerRankManagement;
 import com.sportcourt.modules.equipment.view.EquipmentManagement;
 import com.sportcourt.modules.imports.view.ImportManagement;
 import com.sportcourt.modules.product.view.ProductPanel;
-import com.sportcourt.modules.revenue.view.RevenuePanel;
 import com.sportcourt.modules.sport_type.view.ManageSportTypeScreen;
-import com.sportcourt.modules.staff_type.view.ManageStaffTypeScreen;
 import com.sportcourt.modules.staff.view.StaffPanel;
-import com.sportcourt.modules.supplier.view.SupplierManagementPanel;
 import com.sportcourt.modules.user_profile.view.UserProfilePanel;
-import com.sportcourt.modules.bill.view.ManageBillScreen;
-import com.sportcourt.modules.customer_history.view.BookingHistoryPanel;
-import com.sportcourt.modules.dashboard.view.DashBoardScreen;
+
+import com.sportcourt.common.style.UIScale;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.net.URL;
 
 public class Sidebar extends JFrame {
-    private static final String PROFILE_VIEW_KEY = "TRANG CÁ NHÂN";
-
-    private static final int SIDEBAR_MIN_WIDTH = UIScale.scale(220);
-    private static final int SIDEBAR_MAX_WIDTH = UIScale.scale(320);
+    private static final int SIDEBAR_MIN_WIDTH = 220;
+    private static final int SIDEBAR_MAX_WIDTH = 320;
     private static final double SIDEBAR_WIDTH_RATIO = 0.22;
 
     private ContentPanel contentPanel;
+    private JLabel currentTitleLabel;
+    private JButton toggleSidebarButton;
     private JPanel menuPanel;
+    private JPanel bottomPanel;
     private JPanel sidebarContainer;
+    private JScrollPane menuScrollPane;
     private boolean sidebarVisible = true;
 
-    private final Color SIDEBAR_BG = CrudViewStyle.SIDEBAR_BACKGROUND;
+    // Client-property keys for dynamic scaling via ComponentListener.
+    // Every scalable component stores its design (100%) value so
+    // refreshSidebarFonts() can re-derive the correct scaled version each time.
+    private static final String DESIGN_FONT_SIZE   = "sidebar.designFontSize";
+    private static final String DESIGN_MAX_HEIGHT  = "sidebar.designMaxHeight";
+
+    private final Color SIDEBAR_BG = Color.decode("#2f3c33");
     private final Color SIDEBAR_HOVER_BG = Color.decode("#43464A");
     private final Color TEXT_NORMAL = Color.decode("#B0B3B8");
     private final Color NEON_GREEN = Color.decode("#6af514");
@@ -76,12 +76,18 @@ public class Sidebar extends JFrame {
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent event) {
+                UIScale.updateFromWindowWidth(getWidth());
                 updateSidebarWidth();
+                refreshSidebarFonts();
             }
         });
 
+        // Apply the correct scale immediately (before first paint) so fonts are
+        // never shown at the raw design size on non-reference screens.
         SwingUtilities.invokeLater(() -> {
+            UIScale.updateFromWindowWidth(getWidth());
             updateSidebarWidth();
+            refreshSidebarFonts();
             if (menuPanel.getComponentCount() > 0) {
                 JPanel firstWrapper = (JPanel) menuPanel.getComponent(0);
                 JButton firstButton = (JButton) firstWrapper.getComponent(0);
@@ -97,25 +103,24 @@ public class Sidebar extends JFrame {
         sidebar.setPreferredSize(new Dimension(SIDEBAR_MAX_WIDTH, 0));
 
         // --- Logo Area ---
-        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         logoPanel.setOpaque(false);
-        logoPanel.setBorder(new EmptyBorder(
-                UIScale.scale(30), UIScale.scale(20), UIScale.scale(30), UIScale.scale(20)));
+        logoPanel.setBorder(new EmptyBorder(30, 20, 30, 20));
 
         JLabel logoLabel = new JLabel();
         logoLabel.setText("<html><div style='font-family: Lexend; color: " +
                 String.format("#%02x%02x%02x", LOGO_COLOR.getRed(), LOGO_COLOR.getGreen(), LOGO_COLOR.getBlue()) +
-                "; font-size: " + UIScale.scaleFontInt(20f) + "px; font-weight: 800; font-style: italic;'>" +
+                "; font-size: 20px; font-weight: 800; font-style: italic;'>" +
                 "RENTSTA</div></html>");
 
+        // Load Logo Icon
         try {
             URL imgURL = getClass().getResource("/icon/logo.png");
             if (imgURL != null) {
-                int logoSz = UIScale.scale(45);
                 ImageIcon icon = new ImageIcon(new ImageIcon(imgURL).getImage()
-                        .getScaledInstance(logoSz, logoSz, Image.SCALE_SMOOTH));
+                        .getScaledInstance(45, 45, Image.SCALE_SMOOTH));
                 logoLabel.setIcon(icon);
-                logoLabel.setIconTextGap(UIScale.scale(12));
+                logoLabel.setIconTextGap(12);
             }
         } catch (Exception e) {
             System.err.println("Logo not found");
@@ -131,13 +136,13 @@ public class Sidebar extends JFrame {
 
         menuPanel.add(createMenuButton("TRANG CHỦ", "/icon/home.1.png"));
 
-        if (isCustomerAccount() && canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) menuPanel.add(createMenuButton("ĐẶT SÂN", "/icon/home.1.png"));
-        if (isCustomerAccount() && canView(FunctionId.CUSTOMER_BOOKING_HISTORY)) menuPanel.add(createMenuButton("LỊCH SỬ ĐẶT SÂN", "/icon/report.1.png"));
+        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) menuPanel.add(createMenuButton("ĐẶT SÂN", "/icon/home.1.png"));
         if (canView(FunctionId.BRANCH_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ CHI NHÁNH", "/icon/branch.1.png"));
         if (canView(FunctionId.AREA_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ KHU VỰC", "/icon/branch.1.png"));
         if (canView(FunctionId.COURT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ SÂN CON", "/icon/branch.1.png"));
         if (canView(FunctionId.PRICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ BẢNG GIÁ", "/icon/report.1.png"));
         if (canView(FunctionId.BOOKING_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ ĐẶT SÂN", "/icon/home.1.png"));
+        if (canView(FunctionId.SERVICE_MANAGEMENT)) menuPanel.add(createMenuButton("CUNG CẤP DỊCH VỤ", "/icon/products.1.png"));
         if (canView(FunctionId.INVOICE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ HÓA ĐƠN", "/icon/report.1.png"));
         if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             menuPanel.add(createMenuButton("QUẢN LÝ KHÁCH HÀNG", "/icon/user.1.png"));
@@ -150,15 +155,27 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.SUPPLIER_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ NHÀ CUNG CẤP", "/icon/products.1.png"));
         if (canView(FunctionId.REVENUE_MANAGEMENT)) menuPanel.add(createMenuButton("BÁO CÁO DOANH THU", "/icon/report.1.png"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI THỂ THAO", "/icon/tools.1.png"));
-        if (canView(FunctionId.STAFF_TYPE_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ LOẠI NHÂN VIÊN", "/icon/staff.1.png"));
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) menuPanel.add(createMenuButton("QUẢN LÝ TÀI KHOẢN", "/icon/user.1.png"));
-
-        JScrollPane menuScrollPane = new JScrollPane(menuPanel);
+        menuScrollPane = new JScrollPane(menuPanel);
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
         menuScrollPane.getViewport().setOpaque(false);
         menuScrollPane.setOpaque(false);
-        CrudViewStyle.configureScrollPane(menuScrollPane);
+        menuScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        menuScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        menuScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        styleMenuScrollBar(menuScrollPane.getVerticalScrollBar());
         sidebar.add(menuScrollPane, BorderLayout.CENTER);
+
+        // --- Bottom Menu ---
+        bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+
+        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) bottomPanel.add(createMenuButton("TRANG CÁ NHÂN", "/icon/user.1.png"));
+        bottomPanel.add(createMenuButton("ĐĂNG XUẤT", "/icon/logout.png"));
+
+        sidebar.add(bottomPanel, BorderLayout.SOUTH);
 
         return sidebar;
     }
@@ -174,82 +191,29 @@ public class Sidebar extends JFrame {
     private JPanel createTopBar() {
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(Color.WHITE);
-        topBar.setBorder(new EmptyBorder(
-                UIScale.scale(10), UIScale.scale(14), UIScale.scale(10), UIScale.scale(14)));
+        topBar.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        // Left: sidebar toggle
-        JButton toggleBtn = new JButton("☰");
-        toggleBtn.setFont(new Font("Segoe UI Symbol", Font.BOLD, UIScale.scaleFontInt(16f)));
-        toggleBtn.setFocusPainted(false);
-        toggleBtn.setContentAreaFilled(false);
-        toggleBtn.setBorderPainted(false);
-        toggleBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        toggleBtn.setToolTipText("Toggle sidebar");
-        toggleBtn.addActionListener(e -> toggleSidebar());
+        toggleSidebarButton = new JButton("\u2630");
+        toggleSidebarButton.setToolTipText("Ẩn/hiện sidebar");
+        toggleSidebarButton.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+        toggleSidebarButton.putClientProperty(DESIGN_FONT_SIZE, 16f);
+        toggleSidebarButton.setFocusPainted(false);
+        toggleSidebarButton.setContentAreaFilled(false);
+        toggleSidebarButton.setBorderPainted(false);
+        toggleSidebarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        toggleSidebarButton.addActionListener(event -> toggleSidebar());
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        currentTitleLabel = new JLabel("TRANG CHỦ");
+        currentTitleLabel.setFont(new Font("Lexend", Font.BOLD, 15));
+        currentTitleLabel.putClientProperty(DESIGN_FONT_SIZE, 15f);
+        currentTitleLabel.setForeground(new Color(39, 44, 52));
+
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         left.setOpaque(false);
-        left.add(toggleBtn);
-
-        // Right: user profile button with dropdown
-        String displayName = session.getDisplayName() != null && !session.getDisplayName().isBlank()
-                ? session.getDisplayName() : session.getUsername();
-        JButton profileBtn = new JButton(displayName);
-        profileBtn.setHorizontalAlignment(SwingConstants.LEFT);
-        profileBtn.setHorizontalTextPosition(SwingConstants.RIGHT);
-        profileBtn.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scaleFontInt(13f)));
-        profileBtn.setForeground(new Color(39, 44, 52));
-        profileBtn.setContentAreaFilled(false);
-        profileBtn.setBorderPainted(false);
-        profileBtn.setFocusPainted(false);
-        profileBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        profileBtn.setIconTextGap(UIScale.scale(8));
-
-        try {
-            URL url = getClass().getResource("/icon/user_2.png");
-            if (url != null) {
-                int sz = UIScale.scale(28);
-                profileBtn.setIcon(new ImageIcon(new ImageIcon(url).getImage()
-                        .getScaledInstance(sz, sz, Image.SCALE_SMOOTH)));
-            }
-        } catch (Exception ignored) {}
-
-        JPopupMenu popup = new JPopupMenu();
-
-        JMenuItem profileItem = new JMenuItem("Profile");
-        profileItem.setFont(new Font("Plus Jakarta Sans", Font.PLAIN, UIScale.scaleFontInt(13f)));
-        profileItem.addActionListener(e -> {
-            if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
-                openView(PROFILE_VIEW_KEY);
-            }
-        });
-
-        JMenuItem signOutItem = new JMenuItem("Sign out");
-        signOutItem.setFont(new Font("Plus Jakarta Sans", Font.PLAIN, UIScale.scaleFontInt(13f)));
-        signOutItem.setForeground(LOGOUT_RED);
-        signOutItem.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(Sidebar.this,
-                    "Bạn có chắc chắn muốn đăng xuất?",
-                    "Xác nhận", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                SessionManager.clear();
-                dispose();
-                new LoginScreen().setVisible(true);
-            }
-        });
-
-        popup.add(profileItem);
-        popup.add(signOutItem);
-
-        profileBtn.addActionListener(e ->
-                popup.show(profileBtn, 0, profileBtn.getHeight()));
-
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        right.setOpaque(false);
-        right.add(profileBtn);
+        left.add(toggleSidebarButton);
+        left.add(currentTitleLabel);
 
         topBar.add(left, BorderLayout.WEST);
-        topBar.add(right, BorderLayout.EAST);
         return topBar;
     }
 
@@ -259,41 +223,46 @@ public class Sidebar extends JFrame {
         button.setVerticalAlignment(SwingConstants.CENTER);
         button.setVerticalTextPosition(SwingConstants.CENTER);
         button.setHorizontalTextPosition(SwingConstants.RIGHT);
-        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, UIScale.scaleFontInt(15f)));
+        button.setFont(new Font("Plus Jakarta Sans", Font.BOLD, 15));
+        button.putClientProperty(DESIGN_FONT_SIZE, 15f);
         button.setContentAreaFilled(false);
-        button.setBorder(new EmptyBorder(0, UIScale.scale(30), 0, UIScale.scale(10)));
+        button.setBorder(new EmptyBorder(0, 30, 0, 10));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setForeground(TEXT_NORMAL);
 
+        // Màu sắc mặc định
+        if (text.equals("ĐĂNG XUẤT")) {
+            button.setForeground(LOGOUT_RED);
+        } else {
+            button.setForeground(TEXT_NORMAL);
+        }
+
+        // Icon
         try {
             URL url = getClass().getResource(iconPath);
             if (url != null) {
-                int iconSz = UIScale.scale(20);
                 button.setIcon(new ImageIcon(new ImageIcon(url).getImage()
-                        .getScaledInstance(iconSz, iconSz, Image.SCALE_SMOOTH)));
-                button.setIconTextGap(UIScale.scale(10));
+                        .getScaledInstance(20, 20, Image.SCALE_SMOOTH)));
+                button.setIconTextGap(10);
             }
         } catch (Exception e) {
         }
 
-        int btnH = UIScale.scale(60);
-        int hPad = UIScale.scale(12);
-        int vPad = UIScale.scale(5);
-
         JPanel wrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
+                // Nếu là ĐĂNG XUẤT thì không vẽ nền bao quanh (Wrap)
+                if (text.equals("ĐĂNG XUẤT")) return;
+
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                 boolean isActive = Boolean.TRUE.equals(getClientProperty("isActive"));
-                boolean isHover  = Boolean.TRUE.equals(getClientProperty("isHover"));
+                boolean isHover = Boolean.TRUE.equals(getClientProperty("isHover"));
 
                 if (isActive) {
                     g2.setColor(NEON_GREEN);
-                    int arc = getHeight() - 2 * vPad;
-                    g2.fillRoundRect(hPad, vPad, getWidth() - 2 * hPad, getHeight() - 2 * vPad, arc, arc);
+                    g2.fillRoundRect(15, 5, getWidth() - 30, getHeight() - 10, getHeight() - 10, getHeight() - 10);
                 } else if (isHover) {
                     g2.setColor(SIDEBAR_HOVER_BG);
                     g2.fillRect(0, 0, getWidth(), getHeight());
@@ -303,20 +272,30 @@ public class Sidebar extends JFrame {
         };
 
         wrapper.setOpaque(false);
-        wrapper.setMinimumSize(new Dimension(0, btnH));
-        wrapper.setPreferredSize(new Dimension(UIScale.scale(220), btnH));
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, btnH));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        wrapper.putClientProperty(DESIGN_MAX_HEIGHT, 60);
         wrapper.add(button, BorderLayout.CENTER);
 
         button.addActionListener(e -> {
-            setActiveButton(wrapper, button);
-            openView(text);
+            if (text.equals("ĐĂNG XUẤT")) {
+                int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    SessionManager.clear();
+                    dispose();
+                    new LoginScreen().setVisible(true);
+                }
+            } else {
+                setActiveButton(wrapper, button);
+                openView(text);
+            }
         });
 
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                wrapper.putClientProperty("isHover", true);
-                wrapper.repaint();
+                if (!text.equals("ĐĂNG XUẤT")) {
+                    wrapper.putClientProperty("isHover", true);
+                    wrapper.repaint();
+                }
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
@@ -329,19 +308,26 @@ public class Sidebar extends JFrame {
     }
 
     private void setActiveButton(JPanel activeWrapper, JButton activeButton) {
-        for (Component comp : menuPanel.getComponents()) {
-            if (comp instanceof JPanel) {
-                JPanel w = (JPanel) comp;
-                JButton b = (JButton) w.getComponent(0);
-                w.putClientProperty("isActive", false);
-                w.repaint();
-                b.setForeground(TEXT_NORMAL);
+        Component[][] sections = {menuPanel.getComponents(), bottomPanel.getComponents()};
+        for (Component[] section : sections) {
+            for (Component comp : section) {
+                if (comp instanceof JPanel) {
+                    JPanel w = (JPanel) comp;
+                    JButton b = (JButton) w.getComponent(0);
+                    w.putClientProperty("isActive", false);
+                    w.repaint();
+                    // Reset màu chữ (trừ nút Đăng xuất)
+                    if (!b.getText().equals("ĐĂNG XUẤT")) {
+                        b.setForeground(TEXT_NORMAL);
+                    }
+                }
             }
         }
         activeWrapper.putClientProperty("isActive", true);
         activeWrapper.repaint();
         activeButton.setForeground(TEXT_ACTIVE);
     }
+
 
     private JPanel createPage(String title) {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -351,15 +337,15 @@ public class Sidebar extends JFrame {
     }
 
     private void registerModuleViews() {
-        contentPanel.registerView("TRANG CHỦ", DashBoardScreen::new);
-        if (isCustomerAccount() && canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", CustomerBookingPanel::new);
-        if (isCustomerAccount() && canView(FunctionId.CUSTOMER_BOOKING_HISTORY)) contentPanel.registerView("LỊCH SỬ ĐẶT SÂN", BookingHistoryPanel::new);
+        contentPanel.registerView("TRANG CHỦ", () -> createPage("TRANG CHỦ"));
+        if (canView(FunctionId.CUSTOMER_BOOKING_SELF_SERVICE)) contentPanel.registerView("ĐẶT SÂN", () -> createPage("ĐẶT SÂN KHÁCH HÀNG"));
         if (canView(FunctionId.BRANCH_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ CHI NHÁNH", BranchManagement::new);
         if (canView(FunctionId.AREA_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ KHU VỰC", AreaManagement::new);
         if (canView(FunctionId.COURT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SÂN CON", CourtManagementPanel::new);
         if (canView(FunctionId.PRICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ BẢNG GIÁ", CostManagement::new);
-        if (canView(FunctionId.BOOKING_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", BookingRequest::new);
-        if (canView(FunctionId.INVOICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", ManageBillScreen::new);
+        if (canView(FunctionId.BOOKING_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ ĐẶT SÂN", () -> createPage("QUẢN LÝ ĐẶT SÂN"));
+        if (canView(FunctionId.SERVICE_MANAGEMENT)) contentPanel.registerView("CUNG CẤP DỊCH VỤ", () -> createPage("CUNG CẤP DỊCH VỤ"));
+        if (canView(FunctionId.INVOICE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ HÓA ĐƠN", () -> createPage("QUẢN LÝ HÓA ĐƠN"));
         if (canView(FunctionId.CUSTOMER_MANAGEMENT) && !isCustomerAccount()) {
             contentPanel.registerView("QUẢN LÝ KHÁCH HÀNG", ManageCustomerScreen::new);
         }
@@ -368,18 +354,18 @@ public class Sidebar extends JFrame {
         if (canView(FunctionId.PRODUCT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ SẢN PHẨM", ProductPanel::new);
         if (canView(FunctionId.EQUIPMENT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ DỤNG CỤ", EquipmentManagement::new);
         if (canView(FunctionId.IMPORT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHẬP HÀNG", ImportManagement::new);
-        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", SupplierManagementPanel::new);
-        if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", RevenuePanel::new);
+        if (canView(FunctionId.SUPPLIER_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ NHÀ CUNG CẤP", () -> createPage("QUẢN LÝ NHÀ CUNG CẤP"));
+        if (canView(FunctionId.REVENUE_MANAGEMENT)) contentPanel.registerView("BÁO CÁO DOANH THU", () -> createPage("BÁO CÁO DOANH THU"));
         if (canView(FunctionId.SPORT_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI THỂ THAO", ManageSportTypeScreen::new);
-        if (canView(FunctionId.STAFF_TYPE_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ LOẠI NHÂN VIÊN", ManageStaffTypeScreen::new);
         if (canView(FunctionId.ACCOUNT_MANAGEMENT)) contentPanel.registerView("QUẢN LÝ TÀI KHOẢN", AccountManagementPanel::new);
-        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) {
-            contentPanel.registerView(PROFILE_VIEW_KEY, UserProfilePanel::new);
-        }
+        if (canView(FunctionId.PERSONAL_PROFILE_MANAGEMENT)) contentPanel.registerView("TRANG CÁ NHÂN", UserProfilePanel::new);
     }
 
     private void openView(String key) {
         contentPanel.showView(key);
+        if (currentTitleLabel != null) {
+            currentTitleLabel.setText(key);
+        }
     }
 
     private void toggleSidebar() {
@@ -419,8 +405,93 @@ public class Sidebar extends JFrame {
         return session.getRoleGroups().contains(RoleGroupId.CUSTOMER) && !session.isOwner();
     }
 
+    /**
+     * Re-applies UIScale to every tagged component in the sidebar and updates
+     * menu-item heights so the layout stays proportional.
+     * Called from the ComponentListener on every frame resize, and once on startup.
+     */
+    private void refreshSidebarFonts() {
+        float scale = UIScale.getScale();
+        scaleSidebarTree(sidebarContainer, scale);
+
+        // Top-bar lives outside sidebarContainer — update directly.
+        applyScaledFont(toggleSidebarButton, scale);
+        applyScaledFont(currentTitleLabel,   scale);
+
+        // Revalidate so the new preferred/max sizes propagate through the layout.
+        sidebarContainer.revalidate();
+        sidebarContainer.repaint();
+        if (menuScrollPane != null) {
+            menuScrollPane.revalidate();
+        }
+    }
+
+    private void applyScaledFont(JComponent c, float scale) {
+        if (c == null) return;
+        Object ds = c.getClientProperty(DESIGN_FONT_SIZE);
+        if (ds instanceof Float f && c.getFont() != null) {
+            c.setFont(c.getFont().deriveFont(f * scale));
+        }
+    }
+
+    /**
+     * Recursively walks the sidebar component tree.
+     * - Components with DESIGN_FONT_SIZE get their font rescaled.
+     * - Components with DESIGN_MAX_HEIGHT get their maxHeight rescaled
+     *   so menu items grow/shrink proportionally with fonts.
+     */
+    private void scaleSidebarTree(java.awt.Container container, float scale) {
+        for (java.awt.Component c : container.getComponents()) {
+            if (c instanceof JComponent jc) {
+                // Font scaling
+                Object df = jc.getClientProperty(DESIGN_FONT_SIZE);
+                if (df instanceof Float f && jc.getFont() != null) {
+                    jc.setFont(jc.getFont().deriveFont(f * scale));
+                }
+                // Height scaling (menu-button wrappers)
+                Object dh = jc.getClientProperty(DESIGN_MAX_HEIGHT);
+                if (dh instanceof Integer designH) {
+                    int scaledH = Math.round(designH * scale);
+                    jc.setMaximumSize(new Dimension(Integer.MAX_VALUE, scaledH));
+                    jc.setPreferredSize(new Dimension(jc.getPreferredSize().width, scaledH));
+                }
+            }
+            if (c instanceof java.awt.Container child) {
+                scaleSidebarTree(child, scale);
+            }
+        }
+    }
+
+    /** Makes the sidebar's vertical scrollbar visible on the dark background. */
+    private void styleMenuScrollBar(JScrollBar scrollBar) {
+        scrollBar.setPreferredSize(new Dimension(UIScale.scale(6), 0));
+        scrollBar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                thumbColor = new Color(106, 245, 20, 180);
+                trackColor = SIDEBAR_BG;
+            }
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return zeroSizeButton();
+            }
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return zeroSizeButton();
+            }
+            private JButton zeroSizeButton() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0, 0));
+                b.setMinimumSize(new Dimension(0, 0));
+                b.setMaximumSize(new Dimension(0, 0));
+                return b;
+            }
+        });
+    }
+
     public static void main(String[] args) {
         FlatLightLaf.setup();
         SwingUtilities.invokeLater(() -> new Sidebar().setVisible(true));
+
     }
 }
